@@ -71,6 +71,32 @@ SECTORS: list[SectorDef] = [
 ]
 SEC: dict[str, SectorDef] = {s['id']: s for s in SECTORS}
 
+
+def sector_adjacency() -> dict[str, list[str]]:
+    """
+    Смежность секторов по геометрии схемы (§3.4), а не отдельным списком:
+    сектора на соседних координатах x физически граничат друг с другом, а
+    сектора с одинаковым x — параллельные отсеки в одной точке коридора
+    (сейчас это l1/l2) и тоже считаются смежными.
+    """
+    by_x: dict[int, list[str]] = {}
+    for s in SECTORS:
+        by_x.setdefault(s['x'], []).append(s['id'])
+    xs = sorted(by_x)
+    adj: dict[str, set[str]] = {s['id']: set() for s in SECTORS}
+    for i, x in enumerate(xs):
+        group = by_x[x]
+        for a in group:
+            for b in group:
+                if a != b:
+                    adj[a].add(b)
+        if i:
+            for a in by_x[xs[i - 1]]:
+                for b in group:
+                    adj[a].add(b)
+                    adj[b].add(a)
+    return {k: sorted(v) for k, v in adj.items()}
+
 #: §3.5 — подписи уровней.
 RISK_LEVEL_RU = {'low': 'Низкий', 'medium': 'Средний', 'high': 'Высокий'}
 EXT_LEVEL_RU = {'low': 'Низкая', 'medium': 'Средняя', 'high': 'Высокая'}

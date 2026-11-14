@@ -12,6 +12,7 @@ import {
   type ReactNode,
 } from 'react';
 import { api } from '@/api';
+import type { SensorsStatus } from '@/api/types';
 import type { Analysis, Level, MaterialType, SectorId } from '@/domain/types';
 import { EMPTY_FORM, toForm, type FormState } from '@/domain/validation';
 import type { Palette } from '@/domain/reference';
@@ -67,6 +68,8 @@ export interface State {
   annotation: Annotation;
   /** История уже загружена: после этого activeId сам не восстанавливается. */
   histLoaded: boolean;
+  /** [ПРОТОТИП] имитация датчиков — тумблеры в хедере и форме анализа. */
+  sensors: SensorsStatus;
 }
 
 type Action =
@@ -87,7 +90,8 @@ type Action =
   | { type: 'toggleMismatch' }
   | { type: 'd2'; patch: { d0?: string; k?: string } }
   | { type: 'photo'; photo: Photo | null }
-  | { type: 'annotation'; key: keyof Annotation; value: string };
+  | { type: 'annotation'; key: keyof Annotation; value: string }
+  | { type: 'sensors'; sensors: SensorsStatus };
 
 export const initialState: State = {
   tab: 'overview',
@@ -106,6 +110,7 @@ export const initialState: State = {
   photo: null,
   annotation: { size: '', bright: '', shape: '' },
   histLoaded: false,
+  sensors: { enabled: false, manualOverride: false },
 };
 
 function reducer(s: State, a: Action): State {
@@ -177,6 +182,8 @@ function reducer(s: State, a: Action): State {
           [a.key]: s.annotation[a.key] === a.value ? '' : a.value,
         },
       };
+    case 'sensors':
+      return { ...s, sensors: a.sensors };
   }
 }
 
@@ -185,6 +192,10 @@ interface Store {
   dispatch: React.Dispatch<Action>;
   /** §9.5 — запуск расчёта. Повторный запуск во время расчёта игнорируется. */
   runAnalysis: (sector: SectorId, params: Parameters<typeof api.analyses.create>[0]['params']) => void;
+  /** [ПРОТОТИП] включить/выключить имитацию датчиков. Нет при VITE_API=local. */
+  toggleSensors: (enabled: boolean) => void;
+  /** [ПРОТОТИП] разблокировать форму ручного ввода, пока датчики включены. */
+  setManualOverride: (enabled: boolean) => void;
 }
 
 const StoreContext = createContext<Store | null>(null);
@@ -211,6 +222,19 @@ export function StoreProvider({
     };
   }, []);
 
+  useEffect(() => {
+    if (!api.sensors) return undefined;
+    let alive = true;
+    api.sensors.status().then((sensors) => {
+      if (alive) dispatch({ type: 'sensors', sensors });
+    });
+    const off = api.sensors.subscribe((sensors) => dispatch({ type: 'sensors', sensors }));
+    return () => {
+      alive = false;
+      off();
+    };
+  }, []);
+
   const runAnalysis = useCallback<Store['runAnalysis']>(
     (sector, params) => {
       dispatch({ type: 'running', running: true });
@@ -224,7 +248,20 @@ export function StoreProvider({
     [],
   );
 
-  const value = useMemo(() => ({ state, dispatch, runAnalysis }), [state, runAnalysis]);
+  const toggleSensors = useCallback<Store['toggleSensors']>((enabled) => {
+    api.sensors?.setEnabled(enabled).then((sensors) => dispatch({ type: 'sensors', sensors }));
+  }, []);
+
+  const setManualOverride = useCallback<Store['setManualOverride']>((enabled) => {
+    api.sensors
+      ?.setManualOverride(enabled)
+      .then((sensors) => dispatch({ type: 'sensors', sensors }));
+  }, []);
+
+  const value = useMemo(
+    () => ({ state, dispatch, runAnalysis, toggleSensors, setManualOverride }),
+    [state, runAnalysis, toggleSensors, setManualOverride],
+  );
   return <StoreContext.Provider value={value}>{children}</StoreContext.Provider>;
 }
 

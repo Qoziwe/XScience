@@ -199,6 +199,23 @@ export interface PhotosApi {
   remove(id: string): Promise<void>;
 }
 
+/** Имитация датчиков (прототип) — серверная генерация показаний. */
+export interface SensorsStatus {
+  enabled: boolean;
+  manualOverride: boolean;
+}
+
+export interface SensorsApi {
+  /** GET /api/sensors */
+  status(): Promise<SensorsStatus>;
+  /** Изменения статуса (вкл/выкл, переопределение). */
+  subscribe(listener: (s: SensorsStatus) => void): () => void;
+  /** POST /api/sensors/toggle */
+  setEnabled(enabled: boolean): Promise<SensorsStatus>;
+  /** POST /api/sensors/override */
+  setManualOverride(enabled: boolean): Promise<SensorsStatus>;
+}
+
 export interface XScienceApi {
   auth: AuthApi;
   analyses: AnalysesApi;
@@ -209,6 +226,8 @@ export interface XScienceApi {
   models?: ModelsApi;
   dataset?: DatasetApi;
   photos?: PhotosApi;
+  /** Имитация — только у httpApi: генерация полностью серверная. */
+  sensors?: SensorsApi;
 }
 
 /** Ошибка валидации входа. §18.9 */

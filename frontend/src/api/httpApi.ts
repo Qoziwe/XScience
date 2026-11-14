@@ -20,6 +20,8 @@ import type {
   PhotosApi,
   Prediction,
   Readiness,
+  SensorsApi,
+  SensorsStatus,
   SessionUser,
   TrainResult,
   D2Result,
@@ -144,6 +146,7 @@ const toAnalysis = (r: ServerAnalysis): Analysis => ({
   conf: r.conf,
   sent: r.sent,
   acked: !!r.acked_at,
+  hasReport: r.report_status != null,
 });
 
 /** Записи с неизвестным сектором или материалом игнорируются, как в §16.1. */
@@ -484,10 +487,95 @@ const toPhoto = (p: ServerPhoto): Photo => ({
   fileUrl: p.file_url,
 });
 
+/** [ПРОТОТИП] имитация датчиков — тумблеры в хедере и форме анализа. */
+class HttpSensors implements SensorsApi {
+  private listeners = new Set<(s: SensorsStatus) => void>();
+  private timer: ReturnType<typeof setInterval> | null = null;
+  private last = '';
+  private busy = false;
+
+  async status(): Promise<SensorsStatus> {
+    const s = await this.fetch();
+    this.last = JSON.stringify(s);
+    return s;
+  }
+
+  async setEnabled(enabled: boolean): Promise<SensorsStatus> {
+    const s = toStatus(
+      await request<ServerSensorsStatus>('/sensors/toggle', {
+        method: 'POST',
+        body: JSON.stringify({ enabled }),
+      }),
+    );
+    this.publish(s);
+    return s;
+  }
+
+  async setManualOverride(enabled: boolean): Promise<SensorsStatus> {
+    const s = toStatus(
+      await request<ServerSensorsStatus>('/sensors/override', {
+        method: 'POST',
+        body: JSON.stringify({ enabled }),
+      }),
+    );
+    this.publish(s);
+    return s;
+  }
+
+  subscribe(listener: (s: SensorsStatus) => void): () => void {
+    this.listeners.add(listener);
+    if (!this.timer) this.timer = setInterval(() => void this.poll(), POLL_MS);
+    return () => {
+      this.listeners.delete(listener);
+      if (!this.listeners.size && this.timer) {
+        clearInterval(this.timer);
+        this.timer = null;
+      }
+    };
+  }
+
+  private async fetch(): Promise<SensorsStatus> {
+    return toStatus(await request<ServerSensorsStatus>('/sensors'));
+  }
+
+  private publish(s: SensorsStatus): void {
+    this.last = JSON.stringify(s);
+    this.listeners.forEach((l) => l(s));
+  }
+
+  private async poll(): Promise<void> {
+    if (this.busy || !this.listeners.size) return;
+    this.busy = true;
+    try {
+      const s = await this.fetch();
+      const next = JSON.stringify(s);
+      if (next !== this.last) {
+        this.last = next;
+        this.listeners.forEach((l) => l(s));
+      }
+    } catch {
+      /* сеть или сессия недоступны — следующий опрос попробует снова */
+    } finally {
+      this.busy = false;
+    }
+  }
+}
+
+interface ServerSensorsStatus {
+  enabled: boolean;
+  manual_override: boolean;
+}
+
+const toStatus = (s: ServerSensorsStatus): SensorsStatus => ({
+  enabled: s.enabled,
+  manualOverride: s.manual_override,
+});
+
 export const httpApi: XScienceApi = {
   auth: new HttpAuth(),
   analyses: new HttpAnalyses(),
   models: new HttpModels(),
   dataset: new HttpDataset(),
   photos: new HttpPhotos(),
+  sensors: new HttpSensors(),
 };

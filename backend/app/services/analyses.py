@@ -19,6 +19,7 @@ from ..domain.scoring import (
 from ..domain.texts import notes_of
 from ..domain.validation import to_input
 from .ai import texts as ai_texts
+from . import reports as reports_svc
 from ..errors import ApiError
 
 
@@ -74,11 +75,15 @@ def build_record(params: dict[str, Any], sector: str, analysis_id: int,
 
 
 def create(params: dict[str, Any], sector: str, operator_id: str | None,
-           idem_key: str | None, request_hash: str) -> dict[str, Any]:
+           idem_key: str | None, request_hash: str, source: str = 'manual',
+           make_report: bool = True) -> dict[str, Any]:
     """
-    Создаёт анализ и отчёт в одной транзакции.
+    Создаёт анализ и (если make_report) отчёт в одной транзакции.
     §18.3 — повтор с тем же Idempotency-Key возвращает прежнюю запись;
-    тот же ключ с другим телом — 409.
+    тот же ключ с другим телом — 409. make_report=False и source='sensor'
+    используются имитацией датчиков (services/sensors.py) — показание
+    пишется как обычный анализ, но без немедленного отчёта: сводный отчёт
+    по кораблю собирает отдельный периодический воркер.
     """
     if idem_key:
         prev = query('SELECT * FROM idempotency WHERE key = ? AND user_id = ?',
@@ -94,21 +99,18 @@ def create(params: dict[str, Any], sector: str, operator_id: str | None,
         cur = con.execute(
             'INSERT INTO analyses (created_at, operator_id, sector, source, verdict, '
             'risk_score, ext_score, confidence, record) VALUES (?,?,?,?,?,?,?,?,?)',
-            (iso(now), operator_id, sector, 'manual', 'pending', 0, 0, 0, '{}'))
+            (iso(now), operator_id, sector, source, 'pending', 0, 0, 0, '{}'))
         analysis_id = int(cur.lastrowid)
-        rec = build_record(params, sector, analysis_id, now, operator_id)
+        rec = build_record(params, sector, analysis_id, now, operator_id, source=source)
         con.execute('UPDATE analyses SET verdict = ?, risk_score = ?, ext_score = ?, '
                     'confidence = ?, record = ? WHERE id = ?',
                     (rec['v'], rec['risk'], rec['ext'], rec['conf'],
                      json.dumps(rec, ensure_ascii=False), analysis_id))
 
-        doc = report_mod.report_doc(rec)
-        con.execute(
-            'INSERT INTO reports (id, analysis_id, sector, verdict, created_at, author, '
-            'status, sent_at, channel, content) VALUES (?,?,?,?,?,?,?,?,?,?)',
-            (rec['report_id'], analysis_id, sector, rec['v'], iso(now),
-             'ИИ-модуль состояния (макет генерации)', 'queued', None, 'mock',
-             json.dumps(doc, ensure_ascii=False)))
+        if make_report:
+            doc = report_mod.report_doc(rec)
+            reports_svc.insert_report(con, rec['report_id'], analysis_id, sector, rec['v'],
+                                       iso(now), doc)
 
         if idem_key:
             con.execute('INSERT INTO idempotency (key, user_id, request_hash, analysis_id, '

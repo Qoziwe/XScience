@@ -46,6 +46,13 @@ class Config:
     REPORT_SEND_DELAY_S = float(os.environ.get('XSCI_REPORT_SEND_DELAY_S', '2.5'))
     REPORT_WORKER = _bool('XSCI_REPORT_WORKER', True)
 
+    # [ПРОТОТИП] имитация датчиков — services/sensors.py. SENSOR_WORKER включает
+    # сам фоновый поток (как REPORT_WORKER); реальная генерация управляется
+    # отдельным рантайм-тумблером через POST /api/sensors/toggle.
+    SENSOR_WORKER = _bool('XSCI_SENSOR_WORKER', True)
+    SENSOR_TICK_S = _int('XSCI_SENSOR_TICK_S', 30)
+    SHIP_REPORT_INTERVAL_S = _int('XSCI_SHIP_REPORT_INTERVAL_S', 300)
+
     # §17.3, §18.7 — фото пламени: каталог вне веб-корня и предел размера.
     PHOTO_DIR = os.environ.get('XSCI_PHOTO_DIR', str(BASE_DIR / 'data' / 'photos'))
     PHOTO_MAX_BYTES = _int('XSCI_PHOTO_MAX_MB', 8) * 1024 * 1024

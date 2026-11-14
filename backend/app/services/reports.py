@@ -20,6 +20,21 @@ from ..domain.report import report_txt, with_sent
 from ..errors import not_found
 
 
+def insert_report(con: Any, report_id: str, analysis_id: int, sector: str, verdict: str,
+                   created_at: str, doc: dict[str, Any]) -> None:
+    """
+    Общая вставка строки отчёта — переиспользуется ручным/датчиковым созданием
+    анализа (services/analyses.py, в той же транзакции через con) и
+    периодическим сводным отчётом по кораблю (services/sensors.py).
+    """
+    con.execute(
+        'INSERT INTO reports (id, analysis_id, sector, verdict, created_at, author, '
+        'status, sent_at, channel, content) VALUES (?,?,?,?,?,?,?,?,?,?)',
+        (report_id, analysis_id, sector, verdict, created_at,
+         'ИИ-модуль состояния (макет генерации)', 'queued', None, 'mock',
+         json.dumps(doc, ensure_ascii=False)))
+
+
 def _public(row: Any) -> dict[str, Any]:
     return {
         'id': row['id'],

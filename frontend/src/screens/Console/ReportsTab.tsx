@@ -7,7 +7,11 @@ import { download } from '@/lib/download';
 
 export function ReportsTab() {
   const { state, dispatch } = useStore();
-  const { hist, repId } = state;
+  const { repId } = state;
+  // [ПРОТОТИП] показания имитации датчиков между отчётными кругами не
+  // заводят отчёт (hasReport=false) — вкладка их не показывает, иначе список
+  // заполнялся бы каждые 30 с. У обычных анализов hasReport всегда true.
+  const hist = state.hist.filter((h) => h.hasReport !== false);
 
   // Выбранный по умолчанию — последний (§11.1).
   const selected = hist.find((h) => h.id === repId) ?? hist[hist.length - 1] ?? null;

@@ -116,27 +116,30 @@ function NumericField({
 }
 
 export function AnalysisForm() {
-  const { state, dispatch, runAnalysis } = useStore();
-  const { form, cur, running, hist, tweaks } = state;
+  const { state, dispatch, runAnalysis, setManualOverride } = useStore();
+  const { form, cur, running, hist, tweaks, sensors } = state;
   const model = useFormModel();
   const result = useResult();
   const ship = shipStatus(hist);
   const showContrib = tweaks.showContrib;
   const { status, live } = model;
+  const locked = sensors.enabled && !sensors.manualOverride;
 
   const setP = (patch: Partial<FormState>) => dispatch({ type: 'patchForm', patch });
   const contrib = contributions(live);
 
-  const canRun = model.complete && !running;
-  const hint = running
-    ? 'Параметры зафиксированы до конца расчёта.'
-    : model.anyBad
-      ? 'Есть значения вне допустимого диапазона. Расчёт недоступен.'
-      : !model.complete
-        ? `Не хватает: ${model.missing.join(', ')}. Без всех параметров оценка не выдаётся.`
-        : result?.stale
-          ? 'Форма изменена. Запустите анализ, чтобы обновить результат.'
-          : 'Все параметры заданы.';
+  const canRun = model.complete && !running && !locked;
+  const hint = locked
+    ? 'Датчики активны — ручной ввод заблокирован. Включите переопределение, чтобы ввести данные вручную.'
+    : running
+      ? 'Параметры зафиксированы до конца расчёта.'
+      : model.anyBad
+        ? 'Есть значения вне допустимого диапазона. Расчёт недоступен.'
+        : !model.complete
+          ? `Не хватает: ${model.missing.join(', ')}. Без всех параметров оценка не выдаётся.`
+          : result?.stale
+            ? 'Форма изменена. Запустите анализ, чтобы обновить результат.'
+            : 'Все параметры заданы.';
 
   const run = () => {
     if (!canRun || !cur) return;
@@ -151,6 +154,26 @@ export function AnalysisForm() {
           {model.filledCount} из 8
         </span>
         <span className="card__spacer">
+          {sensors.enabled ? (
+            <div className="seg" role="group" aria-label="Ручной ввод">
+              <button
+                type="button"
+                className="seg__opt"
+                aria-pressed={!sensors.manualOverride}
+                onClick={() => setManualOverride(false)}
+              >
+                Авто
+              </button>
+              <button
+                type="button"
+                className="seg__opt"
+                aria-pressed={sensors.manualOverride}
+                onClick={() => setManualOverride(true)}
+              >
+                Ручной ввод
+              </button>
+            </div>
+          ) : null}
           <button
             type="button"
             className="btn"
@@ -162,7 +185,7 @@ export function AnalysisForm() {
         </span>
       </header>
 
-      <fieldset className="form-fields" disabled={running}>
+      <fieldset className="form-fields" disabled={running || locked}>
         {/* 0. Сектор корабля */}
         <div className="card__section">
           <div className="field__head">

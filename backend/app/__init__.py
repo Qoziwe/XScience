@@ -54,4 +54,8 @@ def create_app(overrides: dict[str, Any] | None = None) -> Flask:
         from .services.reports import start_worker
         start_worker(app)
 
+    if app.config['SENSOR_WORKER']:
+        from .services.sensors import start_tick_worker
+        start_tick_worker(app)
+
     return app

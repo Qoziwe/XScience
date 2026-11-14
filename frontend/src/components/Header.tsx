@@ -3,6 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { api } from '@/api';
 import { useStore, type Tab } from '@/state/store';
 import { shipStatus } from '@/domain/ship';
+import { DOT } from '@/domain/reference';
+import { Dot } from '@/components/ui';
 
 const MAIN_TABS: [Tab, string][] = [
   ['overview', 'Обзор'],
@@ -18,15 +20,18 @@ const REF_TABS: [Tab, string][] = [
 ];
 
 export function Header({ user }: { user: string }) {
-  const { state, dispatch } = useStore();
+  const { state, dispatch, toggleSensors } = useStore();
   const navigate = useNavigate();
+  const { enabled, manualOverride } = state.sensors;
   const ship = shipStatus(state.hist);
   const dangerCount = ship.dangers.length;
+  // [ПРОТОТИП] счётчик вкладки «Отчёты» — как и сама вкладка, без показаний
+  // имитации датчиков между отчётными кругами (hasReport=false).
+  const reportCount = state.hist.filter((h) => h.hasReport !== false).length;
 
   const countFor = (tab: Tab): { text: string; danger: boolean } | null => {
     if (tab === 'overview' && dangerCount) return { text: `${dangerCount} опасн.`, danger: true };
-    if (tab === 'reports' && state.hist.length)
-      return { text: String(state.hist.length), danger: false };
+    if (tab === 'reports' && reportCount) return { text: String(reportCount), danger: false };
     return null;
   };
 
@@ -84,9 +89,31 @@ export function Header({ user }: { user: string }) {
 
       <div className="header__right">
         <span className="sensors">
-          <span className="dot" style={{ background: 'var(--color-neutral-400)' }} />
-          Датчики не подключены · ручной ввод
+          <Dot color={enabled ? DOT.low : DOT.none} />
+          {enabled
+            ? `Датчики активны · ${manualOverride ? 'ручной ввод' : 'авто'}`
+            : 'Датчики не подключены · ручной ввод'}
         </span>
+        {api.sensors ? (
+          <div className="seg" role="group" aria-label="Имитация датчиков">
+            <button
+              type="button"
+              className="seg__opt"
+              aria-pressed={!enabled}
+              onClick={() => toggleSensors(false)}
+            >
+              Выкл
+            </button>
+            <button
+              type="button"
+              className="seg__opt"
+              aria-pressed={enabled}
+              onClick={() => toggleSensors(true)}
+            >
+              Вкл
+            </button>
+          </div>
+        ) : null}
         <button type="button" className="logout" onClick={logout}>
           {user} · Выход
         </button>
