@@ -10,11 +10,22 @@ import type {
   AnalysesApi,
   AuthApi,
   CreateAnalysisResult,
+  DatasetApi,
+  DatasetRow,
+  DatasetSummary,
+  ModelsApi,
   NewAnalysis,
+  Photo,
+  PhotoAnnotation,
+  PhotosApi,
+  Prediction,
+  Readiness,
   SessionUser,
+  TrainResult,
+  D2Result,
   XScienceApi,
 } from './types';
-import { AuthError, ValidationError } from './types';
+import { AuthError, NotConfiguredError, ValidationError } from './types';
 
 const BASE = '/api';
 /** Период опроса истории — §11.4 (смена статуса передачи) и чужие анализы. */
@@ -34,8 +45,8 @@ interface AnalysisInputBody {
   time_s: number;
 }
 
-const toInput = (sector: SectorId, p: AnalysisParams): AnalysisInputBody => ({
-  sector,
+/** Параметры прототипа → поля API §4.1 без сектора (нужны и прогнозу §17.1). */
+const toInputBody = (p: AnalysisParams): Omit<AnalysisInputBody, 'sector'> => ({
   material_type: p.material,
   material_description: p.desc ?? '',
   thickness_mm: p.thickness,
@@ -44,6 +55,11 @@ const toInput = (sector: SectorId, p: AnalysisParams): AnalysisInputBody => ({
   gravity: p.gravity,
   temperature_C: p.temp,
   time_s: p.time,
+});
+
+const toInput = (sector: SectorId, p: AnalysisParams): AnalysisInputBody => ({
+  sector,
+  ...toInputBody(p),
 });
 
 /** §18.9 — имена полей ответа 422 → ключи полей формы (§9.3). */
@@ -66,9 +82,11 @@ const csrfToken = (): string => {
 
 interface ApiErrorBody {
   error?: string;
+  detail?: string;
   fields?: Record<string, string>;
   attempts_left?: number;
   retry_after_s?: number;
+  reasons?: string[];
 }
 
 function raise(status: number, body: ApiErrorBody): never {
@@ -81,6 +99,11 @@ function raise(status: number, body: ApiErrorBody): never {
   const known = ['invalid_credentials', 'invalid_code', 'restart_login', 'locked'] as const;
   if ((status === 401 || status === 429) && (known as readonly string[]).includes(code)) {
     throw new AuthError(code as (typeof known)[number], body.attempts_left, body.retry_after_s);
+  }
+  // 409/502 — возможность есть в API, но на сервере не настроена или не готова
+  // (модель не обучена, распознавание не подключено, провайдер недоступен).
+  if (status === 409 || status === 502) {
+    throw new NotConfiguredError(code, body.detail ?? body.reasons?.join('; '));
   }
   // 401 без кода шага входа — сессия истекла или её нет (§6.5): это не ошибка
   // формы входа, экраны обрабатывают её как обычный сбой запроса.
@@ -105,6 +128,7 @@ interface ServerAnalysis extends Analysis {
   created_at: string;
   report_id: string;
   report_status: string | null;
+  acked_at: string | null;
 }
 
 const toAnalysis = (r: ServerAnalysis): Analysis => ({
@@ -119,6 +143,7 @@ const toAnalysis = (r: ServerAnalysis): Analysis => ({
   v: r.v,
   conf: r.conf,
   sent: r.sent,
+  acked: !!r.acked_at,
 });
 
 /** Записи с неизвестным сектором или материалом игнорируются, как в §16.1. */
@@ -155,6 +180,11 @@ class HttpAnalyses implements AnalysesApi {
     // История на сервере изменилась — разослать подписчикам, не дожидаясь опроса.
     void this.poll();
     return { analysis: toAnalysis(body.analysis), alertLevel: body.alert_level };
+  }
+
+  /** §10.2 — «Принято» оператором. Саму запись анализа не меняет. */
+  async ack(id: number): Promise<void> {
+    await request<unknown>(`/analyses/${id}/ack`, { method: 'POST' });
   }
 
   subscribe(listener: (hist: Analysis[]) => void): () => void {
@@ -219,9 +249,245 @@ class HttpAuth implements AuthApi {
   async logout(): Promise<void> {
     await request<void>('/auth/logout', { method: 'POST' });
   }
+
+  /** §6.5 — есть ли живая сессия. 401 здесь не ошибка, а «сессии нет». */
+  async me(): Promise<SessionUser | null> {
+    try {
+      const body = await request<{ login: string; role: string; expires_at: string }>('/me');
+      return { login: body.login, role: body.role, expiresAt: hhmm(body.expires_at) };
+    } catch {
+      return null;
+    }
+  }
 }
+
+/** §17.1–17.2 — ML-модель и закон d². */
+class HttpModels implements ModelsApi {
+  async readiness(): Promise<Readiness> {
+    const b = await request<ServerReadiness>('/models/ml/readiness');
+    return {
+      checks: b.checks,
+      mismatches: b.mismatches,
+      trainingSet: {
+        rows: b.training_set.rows,
+        riskClasses: b.training_set.risk_classes,
+        extClasses: b.training_set.ext_classes,
+        canTrain: b.training_set.can_train,
+        reasons: b.training_set.reasons,
+        excludedRows: b.training_set.excluded_rows,
+        labelsAreRuleDerived: b.training_set.labels_are_rule_derived,
+      },
+      model: {
+        trained: b.model.trained,
+        version: b.model.version,
+        trainedAt: b.model.trained_at,
+        metrics: b.model.metrics ? toMetrics(b.model.metrics) : undefined,
+        note: b.model.note,
+      },
+    };
+  }
+
+  async train(): Promise<TrainResult> {
+    const b = await request<{ version: string; metrics: ServerMetrics; note: string }>(
+      '/models/ml/train',
+      { method: 'POST', body: JSON.stringify({}) },
+    );
+    return { version: b.version, metrics: toMetrics(b.metrics), note: b.note };
+  }
+
+  async predict(params: AnalysisParams): Promise<Prediction> {
+    const b = await request<{
+      model_version: string;
+      predictions: Prediction['predictions'];
+      note: string;
+    }>('/models/ml/predict', {
+      method: 'POST',
+      body: JSON.stringify(toInputBody(params)),
+    });
+    return { modelVersion: b.model_version, predictions: b.predictions, note: b.note };
+  }
+
+  async d2(d0mm: number, kMm2S: number): Promise<D2Result> {
+    const b = await request<{
+      t_burn_s: number;
+      d0_squared_mm2: number;
+      points: D2Result['points'];
+    }>('/models/d2', {
+      method: 'POST',
+      body: JSON.stringify({ d0_mm: d0mm, k_mm2_s: kMm2S }),
+    });
+    return { tBurnS: b.t_burn_s, d0SquaredMm2: b.d0_squared_mm2, points: b.points };
+  }
+}
+
+interface ServerMetrics {
+  rows: number;
+  train_rows: number;
+  test_rows: number;
+  targets: Record<string, { train_accuracy: number; test_accuracy: number }>;
+}
+
+interface ServerReadiness {
+  checks: Readiness['checks'];
+  mismatches: number;
+  training_set: {
+    rows: number;
+    risk_classes: string[];
+    ext_classes: string[];
+    can_train: boolean;
+    reasons: string[];
+    excluded_rows: number;
+    labels_are_rule_derived: boolean;
+  };
+  model: {
+    trained: boolean;
+    version: string | null;
+    trained_at?: string;
+    metrics?: ServerMetrics;
+    note?: string;
+  };
+}
+
+const toMetrics = (m: ServerMetrics) => ({
+  rows: m.rows,
+  trainRows: m.train_rows,
+  testRows: m.test_rows,
+  targets: Object.fromEntries(
+    Object.entries(m.targets).map(([k, v]) => [
+      k,
+      { trainAccuracy: v.train_accuracy, testAccuracy: v.test_accuracy },
+    ]),
+  ),
+});
+
+/** §18.5 — набор данных со сверкой. */
+class HttpDataset implements DatasetApi {
+  async load(): Promise<{ summary: DatasetSummary; rows: DatasetRow[] }> {
+    const b = await request<{
+      summary: {
+        rows: number;
+        risk_classes: string[];
+        earth_rows: number;
+        valid_data_source: number;
+        mismatches: number;
+      };
+      rows: ServerDatasetRow[];
+    }>('/dataset');
+    return {
+      summary: {
+        rows: b.summary.rows,
+        riskClasses: b.summary.risk_classes,
+        earthRows: b.summary.earth_rows,
+        validDataSource: b.summary.valid_data_source,
+        mismatches: b.summary.mismatches,
+      },
+      rows: b.rows.map((r) => ({
+        n: r.n,
+        dataset: r.dataset,
+        p: r.p,
+        flameSizeCm: r.flame_size_cm,
+        flameSpreadRateCmS: r.flame_spread_rate_cm_s,
+        riskLevel: r.risk_level,
+        extinctionProbability: r.extinction_probability,
+        expectedResult: r.expected_result,
+        computed: r.computed,
+        ok: r.ok,
+        dataSource: r.data_source,
+        dataSourceValid: r.data_source_valid,
+      })),
+    };
+  }
+}
+
+interface ServerDatasetRow {
+  n: number;
+  dataset: string;
+  p: AnalysisParams;
+  flame_size_cm: string;
+  flame_spread_rate_cm_s: string;
+  risk_level: Level;
+  extinction_probability: Level;
+  expected_result: string;
+  computed: DatasetRow['computed'];
+  ok: boolean;
+  data_source: string;
+  data_source_valid: boolean;
+}
+
+/** §17.3, §18.7 — фото пламени. */
+class HttpPhotos implements PhotosApi {
+  async upload(file: File, analysisId?: number | null): Promise<Photo> {
+    const form = new FormData();
+    form.append('file', file);
+    if (analysisId != null) form.append('analysis_id', String(analysisId));
+    // FormData сам ставит Content-Type с boundary — своего не навязываем.
+    const res = await fetch(`${BASE}/photos`, {
+      method: 'POST',
+      body: form,
+      headers: { 'X-CSRF-Token': csrfToken() },
+      credentials: 'include',
+    });
+    if (!res.ok) raise(res.status, (await res.json().catch(() => ({}))) as ApiErrorBody);
+    return toPhoto((await res.json()) as ServerPhoto);
+  }
+
+  async annotate(id: string, patch: PhotoAnnotation): Promise<Photo> {
+    return toPhoto(
+      await request<ServerPhoto>(`/photos/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(patch),
+      }),
+    );
+  }
+
+  async recognize(id: string): Promise<Photo> {
+    return toPhoto(await request<ServerPhoto>(`/photos/${id}/recognize`, { method: 'POST' }));
+  }
+
+  async remove(id: string): Promise<void> {
+    await request<void>(`/photos/${id}`, { method: 'DELETE' });
+  }
+}
+
+interface ServerPhoto {
+  id: string;
+  file_name: string;
+  size_bytes: number;
+  mime: string;
+  analysis_id: number | null;
+  annotation: PhotoAnnotation;
+  recognition: (PhotoAnnotation & {
+    note: string;
+    flame_visible: boolean;
+    model: string;
+  }) | null;
+  file_url: string;
+}
+
+const toPhoto = (p: ServerPhoto): Photo => ({
+  id: p.id,
+  fileName: p.file_name,
+  sizeBytes: p.size_bytes,
+  mime: p.mime,
+  analysisId: p.analysis_id,
+  annotation: p.annotation ?? {},
+  recognition: p.recognition
+    ? {
+        size: p.recognition.size ?? undefined,
+        brightness: p.recognition.brightness ?? undefined,
+        shape: p.recognition.shape ?? undefined,
+        note: p.recognition.note,
+        flameVisible: p.recognition.flame_visible,
+        model: p.recognition.model,
+      }
+    : null,
+  fileUrl: p.file_url,
+});
 
 export const httpApi: XScienceApi = {
   auth: new HttpAuth(),
   analyses: new HttpAnalyses(),
+  models: new HttpModels(),
+  dataset: new HttpDataset(),
+  photos: new HttpPhotos(),
 };

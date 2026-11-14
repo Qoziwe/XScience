@@ -91,6 +91,8 @@ export interface Analysis {
   conf: number;
   /** null = в очереди на передачу; строка времени = передан. */
   sent: string | null;
+  /** «Принято» оператором (§10.2). Необязательно: прототип это не хранил. */
+  acked?: boolean;
 }
 
 export interface RecStep {

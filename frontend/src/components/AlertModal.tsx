@@ -1,4 +1,6 @@
 /** Окно оповещения и окно рекомендаций. FUNCTIONAL_SPEC.md §10. */
+import { useState } from 'react';
+import { api } from '@/api';
 import { DANGER_BG, VERDICT_RU, WARN_BG, WARN_BTN, WARN_INK, SEC, sentFull } from '@/domain/reference';
 import { reportNo } from '@/domain/format';
 import { useStore } from '@/state/store';
@@ -13,6 +15,7 @@ const ALERT_SUB = {
 
 export function AlertModal() {
   const { dispatch } = useStore();
+  const [acking, setAcking] = useState(false);
   const m = useModalModel();
   if (!m) return null;
 
@@ -26,6 +29,22 @@ export function AlertModal() {
   const primaryBg = high ? DANGER_BG : entry.v === 'medium' ? WARN_BTN : 'var(--color-accent-700)';
 
   const close = () => dispatch({ type: 'modal', modal: null });
+
+  /**
+   * §10.2 — «Принято». Отметка уходит на сервер; окно закрывается в любом
+   * случае, чтобы отказ сети не держал оператора в модальном окне.
+   */
+  const accept = async () => {
+    setAcking(true);
+    try {
+      await api.analyses.ack(entry.id);
+    } catch {
+      /* отметка не критична для работы: вердикт и отчёт уже сохранены */
+    } finally {
+      setAcking(false);
+      close();
+    }
+  };
   const openReport = () => {
     dispatch({ type: 'repId', id: entry.id });
     dispatch({ type: 'tab', tab: 'reports' });
@@ -107,14 +126,15 @@ export function AlertModal() {
             </>
           ) : (
             <>
-              {/* [ПРОТОТИП] «Принято» ничего не записывает. [БЭКЕНД] POST /api/analyses/{id}/ack. */}
+              {/* §10.2 — подтверждение оператора уходит на сервер (ack). */}
               <button
                 type="button"
                 className="btn btn--primary"
                 style={{ background: primaryBg, borderColor: primaryBg }}
-                onClick={close}
+                disabled={acking}
+                onClick={accept}
               >
-                Принято
+                {acking ? 'Отправка…' : 'Принято'}
               </button>
               <button type="button" className="btn" onClick={openReport}>
                 Открыть отчёт

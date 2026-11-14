@@ -7,10 +7,19 @@ import { MAT, SEC } from '@/domain/reference';
 import { now } from '@/domain/format';
 import { confidenceOf, score, verdictOfScores } from '@/domain/scoring';
 import type { Analysis, AnalysisParams, SectorId } from '@/domain/types';
-import type { AnalysesApi, AuthApi, CreateAnalysisResult, NewAnalysis, XScienceApi } from './types';
+import type {
+  AnalysesApi,
+  AuthApi,
+  CreateAnalysisResult,
+  NewAnalysis,
+  SessionUser,
+  XScienceApi,
+} from './types';
 import { AuthError } from './types';
 
 const KEY = 'xsci.hist.v3';
+/** Сессия прототипа: переживает перезагрузку, чтобы /console не выкидывал на вход. */
+const SESSION_KEY = 'xsci.session.v1';
 /** §9.5 — имитация времени расчёта. [БЭКЕНД] не нужна. */
 const CALC_DELAY_MS = 650;
 /** §11.4 — имитация передачи отчёта на Землю. */
@@ -77,6 +86,11 @@ class LocalAnalyses implements AnalysesApi {
     return this.hist;
   }
 
+  /** [ПРОТОТИП] «Принято» отмечается только в истории браузера. */
+  async ack(id: number): Promise<void> {
+    this.commit(this.hist.map((h) => (h.id === id ? { ...h, acked: true } : h)));
+  }
+
   subscribe(listener: (hist: Analysis[]) => void): () => void {
     this.listeners.add(listener);
     return () => {
@@ -133,14 +147,60 @@ class LocalAuth implements AuthApi {
     if (this.stage !== 'password_ok') throw new AuthError('restart_login');
     if (code !== DEMO.code) throw new AuthError('invalid_code');
     const d = new Date(Date.now() + 8 * 3600e3);
-    return { login: DEMO.login, role: 'operator', expiresAt: d.toTimeString().slice(0, 5) };
+    const user: SessionUser = {
+      login: DEMO.login,
+      role: 'operator',
+      expiresAt: d.toTimeString().slice(0, 5),
+    };
+    writeSession({ user, until: d.getTime() });
+    return user;
   }
 
   async logout() {
     this.stage = 'none';
+    writeSession(null);
+  }
+
+  /** Сессия прототипа из localStorage; по истечении срока — null. */
+  async me(): Promise<SessionUser | null> {
+    const s = readSession();
+    if (!s) return null;
+    if (Date.now() > s.until) {
+      writeSession(null);
+      return null;
+    }
+    return s.user;
   }
 }
 
+interface StoredSession {
+  user: SessionUser;
+  until: number;
+}
+
+function readSession(): StoredSession | null {
+  try {
+    const raw = JSON.parse(localStorage.getItem(SESSION_KEY) ?? 'null');
+    return raw && raw.user && typeof raw.until === 'number' ? (raw as StoredSession) : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeSession(s: StoredSession | null): void {
+  try {
+    if (s) localStorage.setItem(SESSION_KEY, JSON.stringify(s));
+    else localStorage.removeItem(SESSION_KEY);
+  } catch {
+    /* хранилище недоступно — сессия живёт только в памяти страницы */
+  }
+}
+
+/**
+ * Разделы models / dataset / photos прототип не реализует: у него нет сервера.
+ * Экраны это учитывают и работают на локальных константах §19/§17 и на снимке
+ * в памяти страницы (§17.3).
+ */
 export const localApi: XScienceApi = {
   auth: new LocalAuth(),
   analyses: new LocalAnalyses(),

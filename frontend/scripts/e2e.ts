@@ -5,6 +5,7 @@
  * База должна быть пустой: проверяются id 1 и 2.
  */
 import { httpApi } from '@/api/httpApi';
+import { NotConfiguredError, type Photo } from '@/api/types';
 import type { Analysis } from '@/domain/types';
 
 const sleep = (ms: number) => new Promise((r) => setTimeout(r, ms));
@@ -82,6 +83,91 @@ async function main() {
       v.name === 'AuthError' && v.code === 'invalid_credentials');
   }
 
+  // §6.5 — me() защищает маршрут /console.
+  const session = await httpApi.auth.me();
+  ok(`me(): ${session?.login}/${session?.role}, до ${session?.expiresAt}`,
+    session?.login === 'demo' && /^\d\d:\d\d$/.test(session?.expiresAt ?? ''));
+
+  // §10.2 — «Принято» в окне оповещения.
+  await httpApi.analyses.ack(1);
+  const acked = (await httpApi.analyses.list()).find((h) => h.id === 1);
+  ok('ack(1) отмечен в записи', acked?.acked === true);
+
+  // §18.5 — набор данных для вкладки «Данные».
+  const ds = await httpApi.dataset!.load();
+  ok(`dataset: ${ds.summary.rows} строк, классов risk_level ` +
+     `${ds.summary.riskClasses.length}, расхождений ${ds.summary.mismatches}`,
+    ds.rows.length === ds.summary.rows && ds.summary.riskClasses.length === 3 &&
+    ds.summary.mismatches === 1);
+  ok('строка 13 помечена расхождением с формулами',
+    ds.rows.find((r) => r.n === 13)?.ok === false);
+
+  // §17.1 — готовность, обучение, прогноз.
+  const before = await httpApi.models!.readiness();
+  ok(`readiness: ${before.checks.length} проверки, обучать можно ` +
+     `${before.trainingSet.canTrain}, модель ${before.model.trained}`,
+    before.checks.length === 4 && before.trainingSet.canTrain &&
+    before.trainingSet.labelsAreRuleDerived);
+
+  let predictBlocked = false;
+  try {
+    await httpApi.models!.predict({
+      material: 'paper', desc: '', thickness: 0.5, o2: 21, flow: 5,
+      gravity: 'microgravity', temp: 25, time: 30,
+    });
+  } catch (e) {
+    predictBlocked = e instanceof NotConfiguredError;
+  }
+  ok('прогноз без обученной модели → NotConfiguredError', predictBlocked || before.model.trained);
+
+  const trained = await httpApi.models!.train();
+  const acc = trained.metrics.targets.risk_level;
+  ok(`train(): ${trained.version}, строк ${trained.metrics.rows}, ` +
+     `точность риска ${acc.trainAccuracy}/${acc.testAccuracy}`,
+    acc.testAccuracy > 0.5 && trained.metrics.rows > 50);
+
+  const after = await httpApi.models!.readiness();
+  ok(`модель обучена: ${after.model.version}`, after.model.trained);
+
+  const pred = await httpApi.models!.predict({
+    material: 'paper', desc: '', thickness: 0.1, o2: 30, flow: 20,
+    gravity: 'microgravity', temp: 250, time: 300,
+  });
+  ok(`predict(): риск ${pred.predictions.risk_level.label}, затухание ` +
+     `${pred.predictions.extinction_probability.label}`,
+    pred.predictions.risk_level.label === 'high');
+
+  // §17.2 — закон d², которым вкладка «Модели» сверяет свой график.
+  const d2 = await httpApi.models!.d2(2, 0.5);
+  ok(`d2(2, 0.5): t_burn ${d2.tBurnS} с, точек ${d2.points.length}`,
+    d2.tBurnS === 8 && d2.points.length === 41);
+
+  // §17.3 — фото пламени: загрузка, разметка, распознавание.
+  const photo = await httpApi.photos!.upload(pngFile(), 1);
+  ok(`upload(): ${photo.fileName}, ${photo.sizeBytes} Б, анализ ${photo.analysisId}`,
+    photo.mime === 'image/png' && photo.analysisId === 1 && !!photo.id);
+
+  const annotated = await httpApi.photos!.annotate(photo.id, { size: 'большое' });
+  ok(`annotate(): ${JSON.stringify(annotated.annotation)}`,
+    annotated.annotation.size === 'большое');
+
+  let recognised: Photo | null = null;
+  let visionOff = false;
+  try {
+    recognised = await httpApi.photos!.recognize(photo.id);
+  } catch (e) {
+    visionOff = e instanceof NotConfiguredError;
+  }
+  ok(recognised
+    ? `recognize(): ${recognised.recognition?.size}/${recognised.recognition?.brightness}` +
+      `/${recognised.recognition?.shape} моделью ${recognised.recognition?.model}; ` +
+      `разметка оператора сохранена: ${recognised.annotation.size}`
+    : 'recognize(): распознавание не настроено → NotConfiguredError',
+    recognised ? !!recognised.recognition && recognised.annotation.size === 'большое' : visionOff);
+
+  await httpApi.photos!.remove(photo.id);
+  ok('remove(): снимок удалён', true);
+
   await httpApi.auth.logout();
   try {
     await httpApi.analyses.list();
@@ -90,6 +176,18 @@ async function main() {
     ok(`после logout список недоступен: ${(e as Error).message}`,
       (e as Error).message === '401 unauthorized');
   }
+  const gone = await httpApi.auth.me();
+  ok('me() после logout: null', gone === null);
+}
+
+/** Минимальный валидный PNG — сервер проверяет подпись файла, а не заголовок. */
+function pngFile(): File {
+  const png = Buffer.from(
+    'iVBORw0KGgoAAAANSUhEUgAAAAQAAAAECAIAAAAGfOP8AAAAFUlEQVR4nGP8z8DAwMDAwMDAwAAAFAAC' +
+      'AAEAAAAASUVORK5CYII=',
+    'base64',
+  );
+  return new File([png], 'flame.png', { type: 'image/png' });
 }
 
 main();

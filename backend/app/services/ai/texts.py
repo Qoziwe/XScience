@@ -11,6 +11,7 @@
 """
 from __future__ import annotations
 
+import re
 from typing import Any
 
 from ...domain.format import f1
@@ -56,11 +57,37 @@ SYSTEM = """\
 приёма отчёта на Земле."""
 
 #: Границы пригодности ответа: за ними текст в отчёт не пускаем.
-LIMITS = {'summary': (40, 700), 'why': (30, 700), 'why_ext': (20, 500),
-          'rec_intro': (30, 600)}
-STEPS_RANGE = (2, 8)
+#: Верхние границы с запасом — модели пишут длиннее, чем правила §15, и
+#: отбрасывать содержательный ответ из-за лишних 50 символов неправильно.
+LIMITS = {'summary': (40, 1200), 'why': (30, 1200), 'why_ext': (20, 800),
+          'rec_intro': (30, 900)}
+STEPS_RANGE = (2, 10)
 TITLE_MAX = 140
-DETAIL_MAX = 500
+DETAIL_MAX = 600
+
+#: Нумерация, которую модели ставят в заголовок шага, хотя её ставит сервер.
+_STEP_PREFIX = re.compile(r'^\s*(?:шаг\s*)?\d{1,2}\s*[.):\-–—]\s*', re.IGNORECASE)
+#: Разметка, которую просили не использовать, но она изредка просачивается.
+_MARKUP = re.compile(r'[*`_#]+')
+
+
+def clean_line(raw: object) -> str:
+    """Одна строка ответа: без разметки, нумерации, кавычек и переносов."""
+    text = ' '.join(str(raw or '').split())
+    text = _MARKUP.sub('', text)
+    text = _STEP_PREFIX.sub('', text)
+    return text.strip().strip('«»"\'').strip()
+
+
+def trim(text: str, limit: int) -> str:
+    """Обрезка по границе слова — лучше короткий шаг, чем потерянный ответ."""
+    if len(text) <= limit:
+        return text
+    cut = text[:limit].rstrip()
+    space = cut.rfind(' ')
+    if space > limit * 0.6:
+        cut = cut[:space]
+    return cut.rstrip(' ,;:.') + '…'
 
 
 def rules_texts(p: Params, s: Scores, sector_id: str, v: str) -> dict[str, Any]:
@@ -107,7 +134,10 @@ def facts(p: Params, s: Scores, sector_id: str, v: str, conf: int) -> str:
 
 
 def validate(data: Any) -> dict[str, Any]:
-    """Пригоден ли ответ модели. Непригодный — LlmError, уходим на правила."""
+    """
+    Пригоден ли ответ модели. Форматирование чиним молча (разметка, нумерация,
+    длина), на содержательный брак — LlmError, и тогда в отчёт идут правила §15.
+    """
     if not isinstance(data, dict):
         raise LlmError('ответ не объект')
     out: dict[str, Any] = {}
@@ -115,26 +145,28 @@ def validate(data: Any) -> dict[str, Any]:
         value = data.get(key)
         if not isinstance(value, str):
             raise LlmError(f'поле {key} не строка')
-        value = ' '.join(value.split())
-        if not lo <= len(value) <= hi:
-            raise LlmError(f'поле {key}: длина {len(value)} вне [{lo}, {hi}]')
-        out[key] = value
+        value = clean_line(value)
+        if len(value) < lo:
+            raise LlmError(f'поле {key}: длина {len(value)} меньше {lo}')
+        out[key] = trim(value, hi)
 
     steps = data.get('rec_steps')
     if not isinstance(steps, list) or not STEPS_RANGE[0] <= len(steps) <= STEPS_RANGE[1]:
-        raise LlmError('rec_steps: ожидается 2–8 шагов')
+        got = len(steps) if isinstance(steps, list) else type(steps).__name__
+        raise LlmError(f'rec_steps: ожидается {STEPS_RANGE[0]}–{STEPS_RANGE[1]} шагов, получено {got}')
     clean: list[dict[str, str]] = []
     for i, step in enumerate(steps):
         if not isinstance(step, dict):
-            raise LlmError('шаг не объект')
-        title = ' '.join(str(step.get('title', '')).split())
-        detail = ' '.join(str(step.get('detail', '')).split())
-        if not title or len(title) > TITLE_MAX:
-            raise LlmError(f'шаг {i + 1}: пустой или слишком длинный title')
-        if not detail or len(detail) > DETAIL_MAX:
-            raise LlmError(f'шаг {i + 1}: пустой или слишком длинный detail')
+            raise LlmError(f'шаг {i + 1}: не объект')
+        title = clean_line(step.get('title'))
+        detail = clean_line(step.get('detail'))
+        if not title:
+            raise LlmError(f'шаг {i + 1}: пустой title')
+        if not detail:
+            raise LlmError(f'шаг {i + 1}: пустой detail')
         # Нумерация — серверная, модель её не задаёт (§15.3).
-        clean.append({'n': str(i + 1).zfill(2), 'title': title, 'detail': detail})
+        clean.append({'n': str(i + 1).zfill(2), 'title': trim(title, TITLE_MAX),
+                      'detail': trim(detail, DETAIL_MAX)})
     out['rec_steps'] = clean
     return out
 

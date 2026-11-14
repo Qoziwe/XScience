@@ -191,8 +191,11 @@ class TestTextGeneration(ProviderCase):
         for bad in ('{"summary":"коротко"}',
                     json.dumps({**json.loads(GOOD_REPLY), 'rec_steps': []}),
                     json.dumps({**json.loads(GOOD_REPLY), 'why': 123}),
+                    json.dumps({**json.loads(GOOD_REPLY), 'summary': 'слишком коротко'}),
                     json.dumps({**json.loads(GOOD_REPLY),
-                                'rec_steps': [{'title': 'x' * 200, 'detail': 'y'}] * 2})):
+                                'rec_steps': [{'title': 'есть', 'detail': ''}] * 2}),
+                    json.dumps({**json.loads(GOOD_REPLY),
+                                'rec_steps': [{'title': 'шаг', 'detail': 'd'}] * 12})):
             with self.subTest(bad=bad[:40]):
                 self.llm.reply = bad
                 with mock.patch.dict('os.environ', self.env(), clear=True):
@@ -252,3 +255,43 @@ class TestAnalysisUsesAi(ProviderCase):
         self.assertEqual(a['texts_source'], 'rules')
         self.assertEqual(a['texts_model'], 'rules-v0.1')
         self.assertTrue(a['texts']['summary'])
+
+
+class TestOutputCleanup(unittest.TestCase):
+    """Форматирование ответа модели чиним молча — ответ по делу не отбрасываем."""
+
+    def test_strips_markup_numbering_and_quotes(self):
+        reply = {**json.loads(GOOD_REPLY), 'rec_steps': [
+            {'title': '**1. Снизьте приток кислорода**', 'detail': '`Остановите вентиляцию.`'},
+            {'title': 'Шаг 2: обесточьте линию', 'detail': '«Снимите питание со стойки.»'},
+        ]}
+        out = ai_texts.validate(reply)
+        self.assertEqual([s['title'] for s in out['rec_steps']],
+                         ['Снизьте приток кислорода', 'обесточьте линию'])
+        self.assertEqual(out['rec_steps'][0]['detail'], 'Остановите вентиляцию.')
+        self.assertEqual(out['rec_steps'][1]['detail'], 'Снимите питание со стойки.')
+        # Нумерацию ставит сервер, а не модель.
+        self.assertEqual([s['n'] for s in out['rec_steps']], ['01', '02'])
+
+    def test_long_values_are_trimmed_not_rejected(self):
+        long_title = 'Снизьте приток кислорода в сектор ' * 8
+        reply = {**json.loads(GOOD_REPLY),
+                 'summary': 'Пламя поддерживается. ' * 80,
+                 'rec_steps': [{'title': long_title, 'detail': 'Детали.'},
+                               {'title': 'Подтвердите приём', 'detail': 'Сообщите.'}]}
+        out = ai_texts.validate(reply)
+        self.assertLessEqual(len(out['summary']), ai_texts.LIMITS['summary'][1] + 1)
+        self.assertLessEqual(len(out['rec_steps'][0]['title']), ai_texts.TITLE_MAX + 1)
+        self.assertTrue(out['rec_steps'][0]['title'].endswith('…'))
+
+    def test_accepts_up_to_ten_steps(self):
+        reply = {**json.loads(GOOD_REPLY),
+                 'rec_steps': [{'title': f'Шаг {i}', 'detail': 'Детали шага.'}
+                               for i in range(1, 11)]}
+        self.assertEqual(len(ai_texts.validate(reply)['rec_steps']), 10)
+
+    def test_newlines_collapse(self):
+        reply = {**json.loads(GOOD_REPLY)}
+        reply['summary'] = 'Первая строка.\n\nВторая строка тоже важна для оператора.'
+        out = ai_texts.validate(reply)
+        self.assertNotIn('\n', out['summary'])

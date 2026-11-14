@@ -31,6 +31,8 @@ export interface Tweaks {
 }
 
 export interface Photo {
+  /** Есть, когда снимок сохранён на сервере (§18.7); иначе — объект в памяти. */
+  id?: string;
   url: string;
   name: string;
   size: string;
