@@ -1,0 +1,1439 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="industry.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap&subset=cyrillic">
+<style>
+:root{--color-bg:#f5f2ee;--color-surface:#fbf9f6;--color-text:#383b3f;--color-divider:#e6e1da;--color-neutral-100:#f1ede8;--color-neutral-200:#ebe6e0;--color-neutral-300:#ddd7cf;--color-neutral-400:#c9c3bb;--color-neutral-500:#aaa59e;--color-neutral-600:#85817b;--color-neutral-700:#68645f;--color-neutral-800:#4d4a46;--color-accent:#86a3bd;--color-accent-100:#e8eef3;--color-accent-200:#d9e3eb;--color-accent-300:#c5d4e0;--color-accent-500:#92aec6;--color-accent-700:#4f7090;--color-accent-800:#3f5d7a;--color-accent-900:#324b63}
+body{margin:0;background:var(--color-bg);color:var(--color-text);font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+a{color:var(--color-accent-700)}a:hover{color:var(--color-accent-900)}
+button:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}
+input[type=range]{accent-color:#6f90ae}
+</style>
+</helmet>
+<div style="min-height:100vh;display:flex;flex-direction:column">
+
+  <header style="display:flex;align-items:center;gap:20px;padding:14px 20px;flex-wrap:wrap">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="width:30px;height:30px;border-radius:9px;background:var(--color-accent-200);color:var(--color-accent-900);display:grid;place-items:center;font:600 14px 'IBM Plex Sans',sans-serif">X</div>
+      <div style="display:flex;flex-direction:column;line-height:1.2">
+        <span style="font-weight:600;font-size:16px">XScience</span>
+        <span style="font-size:12px;color:var(--color-neutral-700)">Пожарная обстановка · микрогравитация</span>
+      </div>
+    </div>
+    <nav style="display:flex;gap:2px;padding:3px;background:var(--color-neutral-200);border-radius:11px">
+      <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="3">
+        <button onClick="{{ t.onClick }}" style="white-space:nowrap;display:flex;align-items:center;gap:7px;padding:6px 14px;border:0;border-radius:8px;background:{{ t.bg }};box-shadow:{{ t.sh }};color:var(--color-text);font:500 13px 'IBM Plex Sans',sans-serif;cursor:pointer">
+          <span>{{ t.label }}</span>
+          <sc-if value="{{ t.hasCount }}" hint-placeholder-val="{{ false }}"><span style="font:500 11px 'IBM Plex Mono',monospace;padding:0 7px;border-radius:999px;background:{{ t.cbg }};color:{{ t.cfg }}">{{ t.count }}</span></sc-if>
+        </button>
+      </sc-for>
+    </nav>
+    <nav style="display:flex;gap:2px">
+      <sc-for list="{{ tabs2 }}" as="t" hint-placeholder-count="3">
+        <button onClick="{{ t.onClick }}" style="white-space:nowrap;padding:6px 11px;border:0;border-radius:8px;background:{{ t.bg }};color:{{ t.fg }};font:500 12.5px 'IBM Plex Sans',sans-serif;cursor:pointer" style-hover="background:var(--color-neutral-200)">{{ t.label }}</button>
+      </sc-for>
+    </nav>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:14px;min-width:0">
+      <span style="display:flex;align-items:center;gap:7px;font-size:12px;color:var(--color-neutral-700);white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0"><span style="width:7px;height:7px;border-radius:50%;background:var(--color-neutral-400);flex:none"></span>Датчики не подключены · ручной ввод</span>
+      <a href="XScience Login.dc.html" style="display:flex;align-items:center;gap:8px;padding:5px 12px;border:1px solid var(--color-divider);border-radius:999px;font-size:12.5px;color:var(--color-neutral-800);text-decoration:none;white-space:nowrap" style-hover="background:var(--color-neutral-200)">demo · Выход</a>
+    </div>
+  </header>
+
+  <sc-if value="{{ isAnalysis }}" hint-placeholder-val="{{ true }}">
+  <main style="display:flex;flex-wrap:wrap;align-items:flex-start;gap:16px;padding:6px 16px 16px;flex:1">
+
+    <aside style="flex:1 1 330px;max-width:390px;min-width:0;display:flex;flex-direction:column;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:16px;box-shadow:0 1px 2px rgba(70,55,40,.04),0 8px 24px rgba(70,55,40,.05);overflow:hidden">
+      <div style="display:flex;align-items:center;gap:10px;padding:16px 18px 12px">
+        <h2 style="margin:0;font-weight:600;font-size:17px">Параметры</h2>
+        <span style="font:400 12px 'IBM Plex Mono',monospace;color:var(--color-neutral-700)">{{ filledCount }} из 8</span>
+        <button onClick="{{ reset }}" disabled="{{ running }}" style="margin-left:auto;padding:5px 12px;border:1px solid var(--color-divider);border-radius:8px;background:transparent;font:500 12px 'IBM Plex Sans',sans-serif;color:var(--color-neutral-800);cursor:pointer" style-hover="background:var(--color-neutral-200)">Очистить</button>
+      </div>
+
+      <fieldset disabled="{{ running }}" style="border:0;margin:0;padding:0;min-width:0;opacity:{{ formOpacity }}">
+
+        <div style="padding:14px 18px;border-top:1px solid var(--color-divider);display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:baseline;gap:8px">
+            <span style="font-weight:500;font-size:13px;white-space:nowrap">Сектор корабля</span>
+            <span style="margin-left:auto;font:400 11.5px 'IBM Plex Mono',monospace;white-space:nowrap;color:{{ cm.sec.c }}">{{ cm.sec.t }}</span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px">
+            <sc-for list="{{ secOpts }}" as="s" hint-placeholder-count="7">
+              <button onClick="{{ s.onClick }}" style="display:flex;align-items:center;gap:9px;padding:7px 10px;border:1px solid {{ s.bc }};border-radius:9px;background:{{ s.bg }};color:var(--color-text);text-align:left;cursor:pointer;font:500 12.5px/1.25 'IBM Plex Sans',sans-serif" style-hover="border-color:var(--color-accent)">
+                <span style="width:8px;height:8px;border-radius:50%;background:{{ s.dot }};flex:none"></span>
+                <span style="display:flex;flex-direction:column;min-width:0">
+                  <span style="font:500 11px 'IBM Plex Mono',monospace;color:var(--color-neutral-700)">{{ s.code }}</span>
+                  <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ s.name }}</span>
+                </span>
+              </button>
+            </sc-for>
+          </div>
+          <div style="display:flex;align-items:baseline;gap:8px;flex-wrap:wrap">
+            <button type="button" onClick="{{ goMap }}" style="padding:0;border:0;background:transparent;font:500 12px 'IBM Plex Sans',sans-serif;color:var(--color-accent-800);cursor:pointer;text-decoration:underline">Выбрать на карте</button>
+            <span style="font-size:12px;color:var(--color-neutral-700)">Анализ идёт внутри одного сектора и входит в общую оценку корабля.</span>
+          </div>
+        </div>
+
+        <div style="padding:14px 18px;border-top:1px solid var(--color-divider);display:flex;flex-direction:column;gap:10px">
+          <div style="display:flex;align-items:baseline;gap:8px">
+            <span style="font-weight:500;font-size:13px;white-space:nowrap">Материал</span>
+            <span style="margin-left:auto;font:400 11.5px 'IBM Plex Mono',monospace;white-space:nowrap;color:{{ cm.mat.c }}">{{ cm.mat.t }}</span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px">
+            <sc-for list="{{ matOpts }}" as="m" hint-placeholder-count="6">
+              <button onClick="{{ m.onClick }}" style="display:flex;flex-direction:column;align-items:flex-start;gap:1px;padding:7px 11px;border:1px solid {{ m.bc }};border-radius:9px;background:{{ m.bg }};color:{{ m.fg }};text-align:left;cursor:pointer;font:500 13px/1.25 'IBM Plex Sans',sans-serif" style-hover="border-color:var(--color-accent)">
+                <span>{{ m.label }}</span>
+                <span style="font:400 11px 'IBM Plex Mono',monospace;color:var(--color-neutral-700)">риск {{ m.risk }}</span>
+              </button>
+            </sc-for>
+          </div>
+          <sc-if value="{{ isOther }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <label style="font-size:12px;color:var(--color-neutral-700)">Описание материала</label>
+              <textarea value="{{ p.desc }}" onChange="{{ onDesc }}" placeholder="Состав, плотность, наличие покрытия…" style="min-height:56px;padding:8px 10px;font:13px 'IBM Plex Sans',sans-serif;background:#fffdfb;border:1px solid {{ descBorder }};border-radius:9px;color:var(--color-text);resize:vertical"></textarea>
+              <sc-if value="{{ errDesc }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:var(--color-neutral-700)">Опишите материал — без описания расчёт недоступен</span></sc-if>
+            </div>
+          </sc-if>
+        </div>
+
+        <div style="padding:14px 18px;border-top:1px solid var(--color-divider);display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:baseline;gap:8px">
+            <span style="font-weight:500;font-size:13px;white-space:nowrap">Толщина</span>
+            <span style="margin-left:auto;font:400 11.5px 'IBM Plex Mono',monospace;white-space:nowrap;color:{{ cm.th.c }}">{{ cm.th.t }}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <input type="range" min="0.05" max="10" step="0.05" value="{{ sl.thickness }}" onChange="{{ onThickness }}" style="flex:1;min-width:0;opacity:{{ so.thickness }}">
+            <input type="number" min="0.05" max="10" step="0.05" value="{{ p.thickness }}" placeholder="—" onChange="{{ onThickness }}" style="width:76px;height:34px;padding:0 8px;font:13px 'IBM Plex Mono',monospace;text-align:right;background:#fffdfb;border:1px solid {{ bd.thickness }};border-radius:8px;color:var(--color-text)">
+            <span style="width:26px;font:12px 'IBM Plex Mono',monospace;color:var(--color-neutral-700)">мм</span>
+          </div>
+          <sc-if value="{{ er.thickness }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:var(--color-neutral-700)">Допустимо от 0.05 до 10 мм</span></sc-if>
+        </div>
+
+        <div style="padding:14px 18px;border-top:1px solid var(--color-divider);display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:baseline;gap:8px">
+            <span style="font-weight:500;font-size:13px;white-space:nowrap">Кислород</span>
+            <span style="margin-left:auto;font:400 11.5px 'IBM Plex Mono',monospace;white-space:nowrap;color:{{ cm.o2.c }}">{{ cm.o2.t }}</span>
+          </div>
+          <div style="display:flex;align-items:flex-start;gap:10px">
+            <div style="flex:1;min-width:0;display:flex;flex-direction:column">
+              <input type="range" min="13" max="35" step="0.5" value="{{ sl.o2 }}" onChange="{{ onO2 }}" style="width:100%;margin:0;opacity:{{ so.o2 }}">
+              <div style="position:relative;height:18px">
+                <button onClick="{{ setAir }}" style="position:absolute;left:36.4%;top:2px;transform:translateX(-50%);padding:0 3px;border:0;background:transparent;font:500 11.5px 'IBM Plex Mono',monospace;color:var(--color-accent-800);cursor:pointer;white-space:nowrap">21 · воздух</button>
+                <span style="position:absolute;left:0;top:2px;font:400 11.5px 'IBM Plex Mono',monospace;color:var(--color-neutral-700)">13</span>
+                <span style="position:absolute;right:0;top:2px;font:400 11.5px 'IBM Plex Mono',monospace;color:var(--color-neutral-700)">35</span>
+              </div>
+            </div>
+            <input type="number" min="13" max="35" step="0.5" value="{{ p.o2 }}" placeholder="—" onChange="{{ onO2 }}" style="width:76px;height:34px;padding:0 8px;font:13px 'IBM Plex Mono',monospace;text-align:right;background:#fffdfb;border:1px solid {{ bd.o2 }};border-radius:8px;color:var(--color-text)">
+            <span style="width:26px;font:12px 'IBM Plex Mono',monospace;color:var(--color-neutral-700);padding-top:8px">%</span>
+          </div>
+          <sc-if value="{{ er.o2 }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:var(--color-neutral-700)">Допустимо от 13 до 35 %</span></sc-if>
+          <sc-if value="{{ warnO2 }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:oklch(0.45 0.08 70)">При такой концентрации кислорода пламя может не поддерживаться</span></sc-if>
+        </div>
+
+        <div style="padding:14px 18px;border-top:1px solid var(--color-divider);display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+            <span style="font-weight:500;font-size:13px;white-space:nowrap">Поток воздуха</span>
+            <span style="font:400 11.5px 'IBM Plex Mono',monospace;white-space:nowrap;color:{{ cm.flow.c }}">{{ cm.flow.t }}</span>
+            <div style="margin-left:auto;display:flex;gap:2px;padding:2px;background:var(--color-neutral-200);border-radius:8px">
+              <sc-for list="{{ flowModes }}" as="fm" hint-placeholder-count="2">
+                <button onClick="{{ fm.onClick }}" style="padding:2px 9px;border:0;border-radius:6px;background:{{ fm.bg }};box-shadow:{{ fm.sh }};color:var(--color-text);font:500 11.5px 'IBM Plex Sans',sans-serif;cursor:pointer">{{ fm.label }}</button>
+              </sc-for>
+            </div>
+          </div>
+          <sc-if value="{{ flowPrecise }}" hint-placeholder-val="{{ true }}">
+            <div style="display:flex;align-items:center;gap:10px">
+              <input type="range" min="0" max="30" step="0.5" value="{{ sl.flow }}" onChange="{{ onFlow }}" style="flex:1;min-width:0;opacity:{{ so.flow }}">
+              <input type="number" min="0" max="30" step="0.5" value="{{ p.flow }}" placeholder="—" onChange="{{ onFlow }}" style="width:76px;height:34px;padding:0 8px;font:13px 'IBM Plex Mono',monospace;text-align:right;background:#fffdfb;border:1px solid {{ bd.flow }};border-radius:8px;color:var(--color-text)">
+              <span style="width:26px;font:12px 'IBM Plex Mono',monospace;color:var(--color-neutral-700)">см/с</span>
+            </div>
+          </sc-if>
+          <sc-if value="{{ flowSimple }}" hint-placeholder-val="{{ false }}">
+            <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px">
+              <sc-for list="{{ flowOpts }}" as="fo" hint-placeholder-count="4">
+                <button onClick="{{ fo.onClick }}" style="display:flex;flex-direction:column;align-items:flex-start;padding:6px 9px;border:1px solid {{ fo.bc }};border-radius:9px;background:{{ fo.bg }};color:{{ fo.fg }};cursor:pointer;font:500 12px 'IBM Plex Sans',sans-serif">
+                  <span>{{ fo.label }}</span>
+                  <span style="font:400 11.5px 'IBM Plex Mono',monospace;color:var(--color-neutral-700)">{{ fo.v }} см/с</span>
+                </button>
+              </sc-for>
+            </div>
+          </sc-if>
+          <sc-if value="{{ er.flow }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:var(--color-neutral-700)">Допустимо от 0 до 30 см/с</span></sc-if>
+          <sc-if value="{{ warnFlow0 }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:oklch(0.45 0.08 70)">Без потока пламя может быть неустойчивым, особенно в микрогравитации</span></sc-if>
+          <sc-if value="{{ warnFlowHi }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:oklch(0.45 0.08 70)">При очень сильном потоке пламя может сорваться</span></sc-if>
+        </div>
+
+        <div style="padding:14px 18px;border-top:1px solid var(--color-divider);display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:baseline;gap:8px">
+            <span style="font-weight:500;font-size:13px;white-space:nowrap">Гравитация</span>
+            <span style="margin-left:auto;font:400 11.5px 'IBM Plex Mono',monospace;white-space:nowrap;color:{{ cm.grav.c }}">{{ cm.grav.t }}</span>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:6px">
+            <sc-for list="{{ gravOpts }}" as="g" hint-placeholder-count="2">
+              <button onClick="{{ g.onClick }}" style="padding:8px 11px;border:1px solid {{ g.bc }};border-radius:9px;background:{{ g.bg }};color:{{ g.fg }};font:500 13px 'IBM Plex Sans',sans-serif;cursor:pointer;text-align:left">{{ g.label }}</button>
+            </sc-for>
+          </div>
+          <span style="font-size:11.5px;color:var(--color-neutral-700)">Только категория. Уровень g не оценивается.</span>
+        </div>
+
+        <div style="padding:14px 18px;border-top:1px solid var(--color-divider);display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:baseline;gap:8px">
+            <span style="font-weight:500;font-size:13px;white-space:nowrap">Температура в зоне горения</span>
+            <span style="margin-left:auto;font:400 11.5px 'IBM Plex Mono',monospace;white-space:nowrap;color:{{ cm.temp.c }}">{{ cm.temp.t }}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <input type="range" min="20" max="300" step="5" value="{{ sl.temp }}" onChange="{{ onTemp }}" style="flex:1;min-width:0;opacity:{{ so.temp }}">
+            <input type="number" min="20" max="300" step="5" value="{{ p.temp }}" placeholder="—" onChange="{{ onTemp }}" style="width:76px;height:34px;padding:0 8px;font:13px 'IBM Plex Mono',monospace;text-align:right;background:#fffdfb;border:1px solid {{ bd.temp }};border-radius:8px;color:var(--color-text)">
+            <span style="width:26px;font:12px 'IBM Plex Mono',monospace;color:var(--color-neutral-700)">°C</span>
+          </div>
+          <sc-if value="{{ er.temp }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:var(--color-neutral-700)">Допустимо от 20 до 300 °C</span></sc-if>
+        </div>
+
+        <div style="padding:14px 18px;border-top:1px solid var(--color-divider);display:flex;flex-direction:column;gap:8px">
+          <div style="display:flex;align-items:baseline;gap:8px">
+            <span style="font-weight:500;font-size:13px;white-space:nowrap">Время горения</span>
+            <span style="margin-left:auto;font:400 11.5px 'IBM Plex Mono',monospace;white-space:nowrap;color:{{ cm.time.c }}">{{ cm.time.t }}</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:10px">
+            <input type="range" min="0" max="600" step="1" value="{{ sl.time }}" onChange="{{ onTime }}" style="flex:1;min-width:0;opacity:{{ so.time }}">
+            <input type="number" min="0" max="600" step="1" value="{{ p.time }}" placeholder="—" onChange="{{ onTime }}" style="width:76px;height:34px;padding:0 8px;font:13px 'IBM Plex Mono',monospace;text-align:right;background:#fffdfb;border:1px solid {{ bd.time }};border-radius:8px;color:var(--color-text)">
+            <span style="width:26px;font:12px 'IBM Plex Mono',monospace;color:var(--color-neutral-700)">с</span>
+          </div>
+          <sc-if value="{{ er.time }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:var(--color-neutral-700)">Допустимо от 0 до 600 с</span></sc-if>
+        </div>
+      </fieldset>
+
+      <div style="padding:14px 18px 18px;display:flex;flex-direction:column;gap:8px;border-top:1px solid var(--color-divider)">
+        <button onClick="{{ analyze }}" disabled="{{ cantRun }}" style="width:100%;display:flex;align-items:center;justify-content:center;gap:12px;height:44px;border:0;border-radius:11px;background:{{ runBg }};color:{{ runFg }};font:600 15px 'IBM Plex Sans',sans-serif;cursor:{{ runCursor }}" style-hover="filter:brightness(.95)">
+          <span>{{ runLabel }}</span>
+          <span style="font:400 11px 'IBM Plex Mono',monospace;opacity:.8">Ctrl ↵</span>
+        </button>
+        <span style="font-size:12px;color:var(--color-neutral-700);text-wrap:pretty">{{ runHint }}</span>
+      </div>
+    </aside>
+
+    <section style="flex:999 1 520px;min-width:0;display:flex;flex-direction:column;gap:16px">
+
+      <sc-if value="{{ noResult }}" hint-placeholder-val="{{ false }}">
+        <div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:16px;box-shadow:0 1px 2px rgba(70,55,40,.04),0 8px 24px rgba(70,55,40,.05);padding:28px;display:flex;flex-direction:column;gap:18px">
+          <div style="display:flex;flex-direction:column;gap:6px;max-width:560px">
+            <h1 style="margin:0;font-weight:600;font-size:22px">Результата пока нет</h1>
+            <p style="margin:0;color:var(--color-neutral-800);text-wrap:pretty">Оценка выдаётся только при выбранном секторе и заполненных всех семи параметрах. Недостающие значения не подставляются и не угадываются.</p>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:8px">
+            <sc-for list="{{ checklist }}" as="c" hint-placeholder-count="7">
+              <div style="display:flex;align-items:center;gap:10px;padding:9px 12px;border:1px solid var(--color-divider);border-radius:10px;background:{{ c.bg }}">
+                <span style="width:8px;height:8px;border-radius:50%;background:{{ c.dot }};flex:none"></span>
+                <span style="font-size:13px">{{ c.name }}</span>
+                <span style="margin-left:auto;font:400 12px 'IBM Plex Mono',monospace;color:var(--color-neutral-700);white-space:nowrap">{{ c.val }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+
+      <sc-if value="{{ hasResult }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;flex-direction:column;gap:3px;padding:4px 4px 0">
+        <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap">
+          <h1 style="margin:0;font-weight:600;font-size:22px">Результат анализа</h1>
+          <span style="font:400 12px 'IBM Plex Mono',monospace;color:var(--color-neutral-700)">#{{ res.id }} · {{ res.ts }} · {{ res.sector }}</span>
+          <sc-if value="{{ stale }}" hint-placeholder-val="{{ false }}">
+            <span style="margin-left:auto;padding:3px 11px;border-radius:999px;background:var(--color-accent-100);font-size:12px;color:var(--color-accent-900)">Параметры изменены — результат относится к прошлому запуску</span>
+          </sc-if>
+        </div>
+        <span style="font:400 12px 'IBM Plex Mono',monospace;color:var(--color-neutral-700)">{{ res.summary }}</span>
+        <span style="font-size:12px;color:var(--color-neutral-700)">Оценка по правилам раздела 9. Не прогноз развития пожара.</span>
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:16px;opacity:{{ resOpacity }}">
+
+        <div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:16px;box-shadow:0 1px 2px rgba(70,55,40,.04),0 8px 24px rgba(70,55,40,.05);overflow:hidden">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:14px 20px;background:var(--color-accent-100)">
+            <span style="font-weight:600;font-size:14px;color:var(--color-accent-900)">Оценка ИИ-модуля по сектору</span>
+            <span style="font:400 12px 'IBM Plex Mono',monospace;color:var(--color-accent-800)">{{ ai.model }}</span>
+            <span style="margin-left:auto;font-size:12px;color:var(--color-accent-800);white-space:nowrap">обновлено {{ res.ts }}</span>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(290px,1fr))">
+            <div style="padding:20px;display:flex;flex-direction:column;gap:14px">
+              <div style="display:flex;align-items:center;gap:16px">
+                <div style="width:14px;height:56px;border-radius:7px;background:{{ ai.fill }};flex:none"></div>
+                <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                  <span style="font-weight:600;font-size:28px;line-height:1.1;color:{{ ai.ink }}">{{ ai.verdict }}</span>
+                  <span style="font-size:12.5px;color:var(--color-neutral-700)">{{ ai.subtitle }}</span>
+                </div>
+              </div>
+              <p style="margin:0;font-size:15px;line-height:1.55;text-wrap:pretty">{{ ai.summary }}</p>
+              <div style="display:flex;flex-direction:column;gap:6px">
+                <div style="display:flex;align-items:baseline;gap:8px">
+                  <span style="font-size:12.5px;color:var(--color-neutral-700)">Уверенность оценки</span>
+                  <span style="margin-left:auto;font:500 13px 'IBM Plex Mono',monospace">{{ ai.conf }} %</span>
+                </div>
+                <div style="height:8px;border-radius:4px;background:var(--color-neutral-200);overflow:hidden">
+                  <div style="height:100%;width:{{ ai.confW }};background:var(--color-accent-700)"></div>
+                </div>
+                <span style="font-size:12px;color:var(--color-neutral-700);text-wrap:pretty">{{ ai.confNote }}</span>
+              </div>
+            </div>
+            <div style="padding:20px;display:flex;flex-direction:column;gap:10px;border-left:1px solid var(--color-divider)">
+              <span style="font-weight:500;font-size:13px;color:var(--color-neutral-700)">Что учтено в оценке</span>
+              <div style="display:flex;flex-direction:column;gap:1px">
+                <sc-for list="{{ ai.channels }}" as="c" hint-placeholder-count="7">
+                  <div style="display:grid;grid-template-columns:minmax(0,1fr) auto 54px;gap:10px;align-items:center;padding:6px 0;border-bottom:1px solid var(--color-divider);font-size:12.5px">
+                    <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ c.name }}</span>
+                    <span style="font:400 12px 'IBM Plex Mono',monospace;color:var(--color-neutral-700);white-space:nowrap">{{ c.val }}</span>
+                    <div style="display:flex;gap:2px;justify-content:flex-end">
+                      <sc-for list="{{ c.cells }}" as="cc" hint-placeholder-count="3"><div style="width:14px;height:8px;border-radius:3px;background:{{ cc.bg }}"></div></sc-for>
+                    </div>
+                  </div>
+                </sc-for>
+              </div>
+              <span style="font-size:12px;color:var(--color-neutral-700);text-wrap:pretty">Оценка состояния — рекомендательная. Решение о действиях принимает экипаж.</span>
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:12px 16px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:12px">
+          <span style="width:8px;height:8px;border-radius:50%;background:{{ rep.dot }};flex:none"></span>
+          <div style="display:flex;flex-direction:column;line-height:1.35;min-width:0">
+            <span style="font-size:13px;font-weight:500">Отчёт {{ rep.no }} для Земли</span>
+            <span style="font-size:12px;color:var(--color-neutral-700)">{{ rep.status }}</span>
+          </div>
+          <div style="margin-left:auto;display:flex;gap:8px;flex-wrap:wrap">
+            <button onClick="{{ openRecs }}" style="padding:6px 14px;border:1px solid var(--color-divider);border-radius:9px;background:transparent;font:500 12.5px 'IBM Plex Sans',sans-serif;color:var(--color-neutral-800);cursor:pointer" style-hover="background:var(--color-neutral-200)">Рекомендации</button>
+            <button onClick="{{ openRep }}" style="padding:6px 14px;border:1px solid var(--color-divider);border-radius:9px;background:transparent;font:500 12.5px 'IBM Plex Sans',sans-serif;color:var(--color-neutral-800);cursor:pointer" style-hover="background:var(--color-neutral-200)">Открыть отчёт</button>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:16px">
+          <div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:16px;box-shadow:0 1px 2px rgba(70,55,40,.04),0 8px 24px rgba(70,55,40,.05);padding:18px 20px;display:flex;flex-direction:column;gap:14px">
+            <div style="display:flex;align-items:baseline;gap:8px">
+              <span style="white-space:nowrap;font-weight:500;font-size:13px;color:var(--color-neutral-700)">Уровень риска</span>
+              <span style="margin-left:auto;white-space:nowrap;font:400 11px 'IBM Plex Mono',monospace;color:var(--color-neutral-700)">RiskScore</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:14px">
+              <div style="width:14px;height:44px;border-radius:7px;background:{{ sig.fill }};flex:none"></div>
+              <span style="font-weight:600;font-size:30px;line-height:1;color:{{ sig.ink }}">{{ res.levelRu }}</span>
+              <div style="margin-left:auto;display:flex;align-items:baseline;gap:4px">
+                <span style="font:500 30px 'IBM Plex Mono',monospace">{{ res.risk }}</span>
+                <span style="font:400 13px 'IBM Plex Mono',monospace;color:var(--color-neutral-700)">/ 16</span>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:5px">
+              <div style="display:flex;gap:3px">
+                <sc-for list="{{ riskCells }}" as="c" hint-placeholder-count="14">
+                  <div style="flex:1;height:10px;border-radius:4px;background:{{ c.bg }}"></div>
+                </sc-for>
+              </div>
+              <div style="display:flex;justify-content:space-between;gap:8px;white-space:nowrap;font:400 11px 'IBM Plex Mono',monospace;color:var(--color-neutral-700)">
+                <span>3 · низкий</span><span>4–6 · средний</span><span>≥ 7 · высокий</span>
+              </div>
+            </div>
+          </div>
+
+          <div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:16px;box-shadow:0 1px 2px rgba(70,55,40,.04),0 8px 24px rgba(70,55,40,.05);padding:18px 20px;display:flex;flex-direction:column;gap:14px">
+            <div style="display:flex;align-items:baseline;gap:8px">
+              <span style="white-space:nowrap;font-weight:500;font-size:13px;color:var(--color-neutral-700)">Вероятность затухания</span>
+              <span style="margin-left:auto;white-space:nowrap;font:400 11px 'IBM Plex Mono',monospace;color:var(--color-neutral-700)">ExtinctionScore</span>
+            </div>
+            <div style="display:flex;align-items:center;gap:14px">
+              <div style="width:14px;height:44px;border-radius:7px;background:var(--color-accent-500);flex:none"></div>
+              <span style="font-weight:600;font-size:30px;line-height:1;color:var(--color-accent-800)">{{ res.extRu }}</span>
+              <div style="margin-left:auto;display:flex;align-items:baseline;gap:4px">
+                <span style="font:500 30px 'IBM Plex Mono',monospace">{{ res.ext }}</span>
+                <span style="font:400 13px 'IBM Plex Mono',monospace;color:var(--color-neutral-700)">/ 8</span>
+              </div>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:5px">
+              <div style="display:flex;gap:3px">
+                <sc-for list="{{ extCells }}" as="c" hint-placeholder-count="9">
+                  <div style="flex:1;height:10px;border-radius:4px;background:{{ c.bg }}"></div>
+                </sc-for>
+              </div>
+              <div style="display:flex;justify-content:space-between;gap:8px;white-space:nowrap;font:400 11px 'IBM Plex Mono',monospace;color:var(--color-neutral-700)">
+                <span>0–1 · низкая</span><span>2–3 · средняя</span><span>≥ 4 · высокая</span>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <sc-if value="{{ res.combo }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;gap:12px;align-items:flex-start;padding:12px 16px;border-radius:12px;background:var(--color-accent-100);font-size:13px;color:var(--color-accent-900)">
+            <span style="font:500 11px 'IBM Plex Mono',monospace;padding-top:2px;flex:none">16.2</span>
+            <span>Высокий риск при высокой вероятности затухания: пламя нестабильно, возможны срыв и повторное воспламенение. Оценки рассчитываются независимо.</span>
+          </div>
+        </sc-if>
+
+        <div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:16px;box-shadow:0 1px 2px rgba(70,55,40,.04),0 8px 24px rgba(70,55,40,.05);display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr))">
+          <div style="padding:18px 20px;display:flex;flex-direction:column;gap:8px">
+            <span style="font-weight:500;font-size:13px;color:var(--color-neutral-700)">Почему такой уровень</span>
+            <p style="margin:0;font-size:15px;line-height:1.55;text-wrap:pretty">{{ res.why }}</p>
+            <p style="margin:0;font-size:13.5px;line-height:1.55;color:var(--color-neutral-800);text-wrap:pretty">{{ res.whyExt }}</p>
+          </div>
+          <div style="padding:18px 20px;display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;align-items:baseline;gap:8px">
+              <span style="font-weight:500;font-size:13px;color:var(--color-neutral-700)">Рекомендуемые действия</span>
+              <span style="margin-left:auto;font:400 11px 'IBM Plex Mono',monospace;color:var(--color-neutral-700)">черновик · 16.9</span>
+            </div>
+            <sc-for list="{{ res.recs }}" as="r" hint-placeholder-count="3">
+              <div style="display:flex;gap:12px;align-items:baseline">
+                <span style="font:500 12px 'IBM Plex Mono',monospace;color:{{ r.numColor }};flex:none">{{ r.n }}</span>
+                <div style="display:flex;flex-direction:column;gap:1px">
+                  <span style="font-weight:{{ r.weight }};font-size:14.5px">{{ r.title }}</span>
+                  <span style="font-size:12.5px;color:var(--color-neutral-700)">{{ r.note }}</span>
+                </div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px">
+          <div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:16px;box-shadow:0 1px 2px rgba(70,55,40,.04),0 8px 24px rgba(70,55,40,.05);padding:14px 20px 10px;display:flex;flex-direction:column">
+            <div style="display:flex;align-items:baseline;gap:8px;padding-bottom:8px">
+              <span style="font-weight:500;font-size:13px;color:var(--color-neutral-700)">Из чего сложился риск</span>
+              <span style="margin-left:auto;font:500 12px 'IBM Plex Mono',monospace">Σ {{ res.risk }}</span>
+            </div>
+            <sc-for list="{{ res.riskRows }}" as="b" hint-placeholder-count="6">
+              <div style="display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) 64px 22px;gap:10px;align-items:center;padding:7px 0;border-top:1px solid var(--color-divider);font-size:13px">
+                <div style="display:flex;flex-direction:column;line-height:1.25;min-width:0">
+                  <span>{{ b.name }}</span>
+                  <span style="font:400 11.5px 'IBM Plex Mono',monospace;color:var(--color-neutral-700)">{{ b.code }}</span>
+                </div>
+                <span style="font:400 12px 'IBM Plex Mono',monospace;color:var(--color-neutral-800);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ b.input }}</span>
+                <div style="display:flex;gap:3px">
+                  <sc-for list="{{ b.cells }}" as="bc" hint-placeholder-count="3"><div style="width:18px;height:8px;border-radius:3px;background:{{ bc.bg }}"></div></sc-for>
+                </div>
+                <span style="font:500 13px 'IBM Plex Mono',monospace;text-align:right">{{ b.v }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:16px;box-shadow:0 1px 2px rgba(70,55,40,.04),0 8px 24px rgba(70,55,40,.05);padding:14px 20px 10px;display:flex;flex-direction:column">
+            <div style="display:flex;align-items:baseline;gap:8px;padding-bottom:8px">
+              <span style="font-weight:500;font-size:13px;color:var(--color-neutral-700)">Из чего сложилось затухание</span>
+              <span style="margin-left:auto;font:500 12px 'IBM Plex Mono',monospace">Σ {{ res.ext }}</span>
+            </div>
+            <sc-for list="{{ res.extRows }}" as="b" hint-placeholder-count="3">
+              <div style="display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) 64px 22px;gap:10px;align-items:center;padding:7px 0;border-top:1px solid var(--color-divider);font-size:13px">
+                <div style="display:flex;flex-direction:column;line-height:1.25;min-width:0">
+                  <span>{{ b.name }}</span>
+                  <span style="font:400 11.5px 'IBM Plex Mono',monospace;color:var(--color-neutral-700)">{{ b.code }}</span>
+                </div>
+                <span style="font:400 12px 'IBM Plex Mono',monospace;color:var(--color-neutral-800);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ b.input }}</span>
+                <div style="display:flex;gap:3px">
+                  <sc-for list="{{ b.cells }}" as="bc" hint-placeholder-count="3"><div style="width:18px;height:8px;border-radius:3px;background:{{ bc.bg }}"></div></sc-for>
+                </div>
+                <span style="font:500 13px 'IBM Plex Mono',monospace;text-align:right">{{ b.v }}</span>
+              </div>
+            </sc-for>
+            <div style="padding:8px 0;border-top:1px solid var(--color-divider);font-size:12px;color:var(--color-neutral-700);text-wrap:pretty">Толщина влияет только на затухание, не на риск — это противоречит описанию параметра (16.3).</div>
+          </div>
+        </div>
+      </div>
+      </sc-if>
+    </section>
+
+    <aside style="flex:1 1 280px;max-width:340px;min-width:0;display:flex;flex-direction:column;gap:16px">
+      <sc-if value="{{ hasResult }}" hint-placeholder-val="{{ true }}">
+      <div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:16px;box-shadow:0 1px 2px rgba(70,55,40,.04),0 8px 24px rgba(70,55,40,.05);padding:16px 18px;display:flex;flex-direction:column;gap:8px">
+        <div style="display:flex;align-items:baseline;gap:8px">
+          <span style="font-weight:500;font-size:13px;color:var(--color-neutral-700)">Материал</span>
+          <span style="margin-left:auto;font:400 11px 'IBM Plex Mono',monospace;color:var(--color-neutral-700)">черновик · 16.11</span>
+        </div>
+        <div style="display:flex;align-items:baseline;gap:8px">
+          <span style="font-weight:600;font-size:18px">{{ card.title }}</span>
+          <span style="margin-left:auto;font:400 12px 'IBM Plex Mono',monospace;color:var(--color-neutral-700)">{{ card.flam }}</span>
+        </div>
+        <p style="margin:0;font-size:13px;line-height:1.55;text-wrap:pretty">{{ card.body }}</p>
+        <div style="display:flex;flex-direction:column">
+          <sc-for list="{{ card.facts }}" as="f" hint-placeholder-count="2">
+            <div style="display:flex;gap:10px;padding:6px 0;border-top:1px solid var(--color-divider);font-size:12.5px">
+              <span style="color:var(--color-neutral-700);flex:none;width:96px">{{ f.k }}</span><span>{{ f.v }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+
+      <div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:16px;box-shadow:0 1px 2px rgba(70,55,40,.04),0 8px 24px rgba(70,55,40,.05);padding:16px 18px;display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;align-items:baseline;gap:8px">
+          <span style="font-weight:500;font-size:13px;color:var(--color-neutral-700)">Допущения расчёта</span>
+          <span style="margin-left:auto;font:400 11.5px 'IBM Plex Mono',monospace;color:var(--color-neutral-700)">{{ notesCount }}</span>
+        </div>
+        <sc-for list="{{ notes }}" as="n" hint-placeholder-count="2">
+          <div style="display:flex;gap:10px;font-size:12.5px;line-height:1.45">
+            <span style="font:500 11.5px 'IBM Plex Mono',monospace;color:var(--color-accent-800);flex:none;width:30px;padding-top:2px">{{ n.ref }}</span>
+            <span style="text-wrap:pretty">{{ n.text }}</span>
+          </div>
+        </sc-for>
+      </div>
+      </sc-if>
+
+      <div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:16px;box-shadow:0 1px 2px rgba(70,55,40,.04),0 8px 24px rgba(70,55,40,.05);display:flex;flex-direction:column;overflow:hidden">
+        <div style="display:flex;align-items:center;gap:8px;padding:14px 18px 10px">
+          <span style="font-weight:500;font-size:13px;color:var(--color-neutral-700)">История запусков</span>
+          <span style="font:400 11.5px 'IBM Plex Mono',monospace;color:var(--color-neutral-700)">{{ histCount }}</span>
+          <button onClick="{{ exportCsv }}" disabled="{{ noHist }}" style="margin-left:auto;padding:3px 10px;border:1px solid var(--color-divider);border-radius:7px;background:transparent;font:500 11.5px 'IBM Plex Sans',sans-serif;color:var(--color-neutral-800);cursor:pointer" style-hover="background:var(--color-neutral-200)">CSV</button>
+        </div>
+        <sc-if value="{{ noHist }}" hint-placeholder-val="{{ false }}"><span style="padding:4px 18px 14px;font-size:12.5px;color:var(--color-neutral-700)">Запусков пока не было.</span></sc-if>
+        <sc-for list="{{ hist }}" as="h" hint-placeholder-count="3">
+          <button onClick="{{ h.onClick }}" style="display:grid;grid-template-columns:8px minmax(0,1fr) auto;gap:3px 10px;align-items:center;padding:9px 18px;border:0;border-top:1px solid var(--color-divider);background:{{ h.bg }};color:var(--color-text);text-align:left;cursor:pointer;font:inherit" style-hover="background:var(--color-neutral-100)">
+            <span style="width:8px;height:8px;border-radius:50%;background:{{ h.fill }}"></span>
+            <span style="font:500 12px 'IBM Plex Mono',monospace">#{{ h.id }} <span style="font-weight:400;color:var(--color-neutral-700)">{{ h.ts }}</span></span>
+            <span style="font:500 12px 'IBM Plex Mono',monospace">R{{ h.risk }} · E{{ h.ext }}</span>
+            <span></span>
+            <span style="grid-column:span 2;font-size:12px;color:var(--color-neutral-700);overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ h.line }}</span>
+          </button>
+        </sc-for>
+        <span style="padding:10px 18px 14px;font-size:11px;color:var(--color-neutral-700);border-top:1px solid var(--color-divider)">Хранится в этом браузере. Место хранения не определено (16.12).</span>
+      </div>
+    </aside>
+  </main>
+  </sc-if>
+
+  <sc-if value="{{ isOverview }}" hint-placeholder-val="{{ true }}">
+  <main style="padding:6px 16px 20px;display:flex;flex-direction:column;gap:16px">
+    <sc-if value="{{ hasDanger }}" hint-placeholder-val="{{ false }}">
+      <div role="alert" style="display:flex;align-items:center;gap:6px 16px;flex-wrap:wrap;padding:16px 20px;border-radius:14px;background:oklch(0.5 0.17 28);color:#fff">
+        <span style="font-weight:600;font-size:22px;letter-spacing:.08em">ОПАСНОСТЬ</span>
+        <span style="font-size:14.5px">{{ dangerText }}</span>
+        <button onClick="{{ openDanger }}" style="margin-left:auto;height:38px;padding:0 18px;border:0;border-radius:10px;background:#fff;color:oklch(0.42 0.16 28);font:600 13.5px 'IBM Plex Sans',sans-serif;cursor:pointer" style-hover="filter:brightness(.95)">Открыть рекомендации</button>
+      </div>
+    </sc-if>
+
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;padding:0 4px">
+      <h1 style="margin:0;font-weight:600;font-size:22px">Обзор</h1>
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <sc-for list="{{ scopeChips }}" as="c" hint-placeholder-count="1">
+          <button onClick="{{ c.onClick }}" style="display:flex;align-items:center;gap:8px;padding:5px 13px;border:1px solid {{ c.bc }};border-radius:999px;background:{{ c.bg }};color:{{ c.fg }};font:500 12.5px 'IBM Plex Sans',sans-serif;cursor:pointer"><span>{{ c.label }}</span><span>{{ c.x }}</span></button>
+        </sc-for>
+      </div>
+      <button onClick="{{ startAnalysis }}" style="margin-left:auto;height:38px;padding:0 18px;border:0;border-radius:10px;background:var(--color-accent-700);color:#fff;font:600 13.5px 'IBM Plex Sans',sans-serif;cursor:pointer" style-hover="filter:brightness(.95)">{{ ov.cta }}</button>
+    </div>
+
+    <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start">
+      <div style="flex:999 1 480px;min-width:0;display:flex;flex-direction:column;gap:16px">
+        <div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:16px;box-shadow:0 1px 2px rgba(70,55,40,.04),0 8px 24px rgba(70,55,40,.05);overflow:hidden">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:14px 20px;background:var(--color-accent-100)">
+            <span style="font-weight:600;font-size:14px;color:var(--color-accent-900)">{{ ov.head }}</span>
+            <span style="font:400 12px 'IBM Plex Mono',monospace;color:var(--color-accent-800)">{{ ov.title }}</span>
+            <span style="margin-left:auto;font-size:12px;color:var(--color-accent-800)">ИИ-модуль · макет</span>
+          </div>
+          <sc-if value="{{ ov.noData }}" hint-placeholder-val="{{ false }}">
+            <div style="padding:28px 20px;display:flex;flex-direction:column;gap:6px">
+              <span style="font-weight:600;font-size:20px">Данных пока нет</span>
+              <span style="font-size:13.5px;color:var(--color-neutral-800);max-width:520px;text-wrap:pretty">{{ ov.noText }}</span>
+            </div>
+          </sc-if>
+          <sc-if value="{{ ov.hasData }}" hint-placeholder-val="{{ true }}">
+            <div style="padding:20px;display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:20px">
+              <div style="display:flex;flex-direction:column;gap:14px">
+                <div style="display:flex;align-items:center;gap:16px">
+                  <div style="width:14px;height:56px;border-radius:7px;background:{{ ov.fill }};flex:none"></div>
+                  <div style="display:flex;flex-direction:column;gap:2px;min-width:0">
+                    <span style="font-weight:600;font-size:28px;line-height:1.1;color:{{ ov.ink }}">{{ ov.verdict }}</span>
+                    <span style="font-size:12.5px;color:var(--color-neutral-700)">{{ ov.subtitle }}</span>
+                  </div>
+                </div>
+                <p style="margin:0;font-size:15px;line-height:1.55;text-wrap:pretty">{{ ov.summary }}</p>
+                <sc-if value="{{ ov.sectorData }}" hint-placeholder-val="{{ false }}">
+                  <div style="display:flex;gap:8px;flex-wrap:wrap">
+                    <button onClick="{{ ov.openResult }}" style="padding:6px 14px;border:1px solid var(--color-divider);border-radius:9px;background:transparent;font:500 12.5px 'IBM Plex Sans',sans-serif;color:var(--color-neutral-800);cursor:pointer" style-hover="background:var(--color-neutral-200)">Открыть результат</button>
+                    <button onClick="{{ ov.openRecs }}" style="padding:6px 14px;border:1px solid var(--color-divider);border-radius:9px;background:transparent;font:500 12.5px 'IBM Plex Sans',sans-serif;color:var(--color-neutral-800);cursor:pointer" style-hover="background:var(--color-neutral-200)">Рекомендации</button>
+                    <button onClick="{{ ov.openRep }}" style="padding:6px 14px;border:1px solid var(--color-divider);border-radius:9px;background:transparent;font:500 12.5px 'IBM Plex Sans',sans-serif;color:var(--color-neutral-800);cursor:pointer" style-hover="background:var(--color-neutral-200)">Отчёт</button>
+                  </div>
+                </sc-if>
+              </div>
+              <div style="display:flex;flex-direction:column;gap:12px">
+                <div style="display:flex;flex-direction:column;gap:6px">
+                  <div style="display:flex;align-items:baseline;gap:8px">
+                    <span style="font-size:12.5px;color:var(--color-neutral-700)">Уверенность оценки</span>
+                    <span style="margin-left:auto;font:500 13px 'IBM Plex Mono',monospace">{{ ov.conf }} %</span>
+                  </div>
+                  <div style="height:8px;border-radius:4px;background:var(--color-neutral-200);overflow:hidden"><div style="height:100%;width:{{ ov.confW }};background:var(--color-accent-700)"></div></div>
+                  <span style="font-size:12px;color:var(--color-neutral-700);text-wrap:pretty">{{ ov.confNote }}</span>
+                </div>
+                <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px">
+                  <sc-for list="{{ ov.tiles }}" as="t" hint-placeholder-count="4">
+                    <div style="padding:10px 12px;border:1px solid var(--color-divider);border-radius:10px;display:flex;flex-direction:column;line-height:1.2">
+                      <span style="font:500 22px 'IBM Plex Mono',monospace;color:{{ t.color }}">{{ t.v }}</span>
+                      <span style="font-size:12px;color:var(--color-neutral-700)">{{ t.label }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+            <div style="padding:10px 20px;border-top:1px solid var(--color-divider);font-size:12px;color:var(--color-neutral-700)">{{ ov.note }} Оценка рекомендательная, решение принимает экипаж.</div>
+          </sc-if>
+        </div>
+      </div>
+
+      <div style="flex:1 1 340px;max-width:480px;min-width:0;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:16px;box-shadow:0 1px 2px rgba(70,55,40,.04),0 8px 24px rgba(70,55,40,.05);padding:16px 18px;display:flex;flex-direction:column;gap:10px">
+        <div style="display:flex;align-items:baseline;gap:8px">
+          <span style="font-weight:500;font-size:13px;color:var(--color-neutral-700)">Карта корабля</span>
+          <button onClick="{{ goMap }}" style="margin-left:auto;padding:0;border:0;background:transparent;font:500 12px 'IBM Plex Sans',sans-serif;color:var(--color-accent-800);cursor:pointer;text-decoration:underline">Открыть карту</button>
+        </div>
+        <svg viewBox="0 0 720 250" style="width:100%;height:auto;display:block;font-family:'IBM Plex Mono',monospace">
+          <line x1="94" y1="130" x2="626" y2="130" stroke="var(--color-neutral-400)" stroke-width="8" stroke-linecap="round"></line>
+          <sc-for list="{{ mapMini }}" as="s" hint-placeholder-count="7">
+            <g onClick="{{ s.onClick }}" style="cursor:pointer">
+              <rect x="{{ s.x }}" y="{{ s.y }}" width="{{ s.w }}" height="{{ s.h }}" rx="16" fill="{{ s.bg }}" stroke="{{ s.sc }}" stroke-width="{{ s.sw }}"></rect>
+              <text x="{{ s.cx }}" y="{{ s.y1 }}" text-anchor="middle" font-size="26" font-weight="500" fill="{{ s.fg }}">{{ s.code }}</text>
+            </g>
+          </sc-for>
+        </svg>
+        <div style="display:flex;gap:6px 14px;flex-wrap:wrap">
+          <sc-for list="{{ legend }}" as="l" hint-placeholder-count="4">
+            <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--color-neutral-800)"><span style="width:10px;height:10px;border-radius:3px;background:{{ l.bg }};border:1px solid {{ l.bc }}"></span>{{ l.label }}</span>
+          </sc-for>
+        </div>
+        <span style="font-size:12px;color:var(--color-neutral-700)">Нажмите на сектор — оценка выше покажет только его.</span>
+      </div>
+    </div>
+
+    <div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:16px;box-shadow:0 1px 2px rgba(70,55,40,.04),0 8px 24px rgba(70,55,40,.05);overflow-x:auto">
+      <div style="min-width:720px;padding:12px 8px 8px">
+        <div style="display:grid;grid-template-columns:70px minmax(0,1.4fr) minmax(0,1fr) 90px 80px 90px 130px;gap:10px;padding:4px 12px 8px;font-size:12px;color:var(--color-neutral-700)">
+          <span>Сектор</span><span>Название</span><span>Состояние</span><span>Оценки</span><span>Время</span><span>Отчёт</span><span></span>
+        </div>
+        <sc-for list="{{ secRows }}" as="r" hint-placeholder-count="7">
+          <div onClick="{{ r.onClick }}" style="display:grid;grid-template-columns:70px minmax(0,1.4fr) minmax(0,1fr) 90px 80px 90px 130px;gap:10px;align-items:center;padding:8px 12px;border-top:1px solid var(--color-divider);border-radius:8px;background:{{ r.bg }};cursor:pointer;font-size:13px" style-hover="background:var(--color-neutral-100)">
+            <span style="font:500 12px 'IBM Plex Mono',monospace">{{ r.code }}</span>
+            <span>{{ r.name }}</span>
+            <span style="display:flex;align-items:center;gap:8px"><span style="width:9px;height:9px;border-radius:50%;background:{{ r.dot }};flex:none"></span>{{ r.verdict }}</span>
+            <span style="font:400 12px 'IBM Plex Mono',monospace">{{ r.rs }}</span>
+            <span style="font:400 12px 'IBM Plex Mono',monospace;color:var(--color-neutral-700)">{{ r.time }}</span>
+            <span style="font-size:12px;color:var(--color-neutral-700)">{{ r.rep }}</span>
+            <button onClick="{{ r.onAnalyze }}" style="justify-self:end;padding:4px 12px;border:1px solid var(--color-divider);border-radius:8px;background:transparent;font:500 12px 'IBM Plex Sans',sans-serif;color:var(--color-neutral-800);cursor:pointer;white-space:nowrap" style-hover="background:var(--color-accent-100);border-color:var(--color-accent)">Анализ →</button>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </main>
+  </sc-if>
+
+  <sc-if value="{{ isMap }}" hint-placeholder-val="{{ false }}">
+  <main style="padding:6px 16px 20px;display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start">
+    <section style="flex:999 1 520px;min-width:0;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:16px;box-shadow:0 1px 2px rgba(70,55,40,.04),0 8px 24px rgba(70,55,40,.05);padding:18px 20px;display:flex;flex-direction:column;gap:12px">
+      <div style="display:flex;align-items:baseline;gap:12px;flex-wrap:wrap">
+        <h1 style="margin:0;font-weight:600;font-size:22px">Карта корабля</h1>
+        <span style="font-size:12.5px;color:var(--color-neutral-700)">Выберите сектор, чтобы увидеть его состояние и запустить анализ.</span>
+      </div>
+      <svg viewBox="0 0 720 250" style="width:100%;height:auto;display:block;font-family:'IBM Plex Sans',sans-serif">
+        <line x1="94" y1="130" x2="626" y2="130" stroke="var(--color-neutral-400)" stroke-width="8" stroke-linecap="round"></line>
+        <sc-for list="{{ mapFull }}" as="s" hint-placeholder-count="7">
+          <g onClick="{{ s.onClick }}" style="cursor:pointer">
+            <rect x="{{ s.x }}" y="{{ s.y }}" width="{{ s.w }}" height="{{ s.h }}" rx="16" fill="{{ s.bg }}" stroke="{{ s.sc }}" stroke-width="{{ s.sw }}"></rect>
+            <text x="{{ s.cx }}" y="{{ s.y1 }}" text-anchor="middle" font-size="17" font-weight="600" fill="{{ s.fg }}">{{ s.code }}</text>
+            <text x="{{ s.cx }}" y="{{ s.y2 }}" text-anchor="middle" font-size="11.5" fill="{{ s.fg }}">{{ s.name }}</text>
+            <text x="{{ s.cx }}" y="{{ s.y3 }}" text-anchor="middle" font-size="11" fill="{{ s.fg }}">{{ s.word }}</text>
+          </g>
+        </sc-for>
+      </svg>
+      <div style="display:flex;gap:6px 14px;flex-wrap:wrap">
+        <sc-for list="{{ legend }}" as="l" hint-placeholder-count="4">
+          <span style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--color-neutral-800)"><span style="width:10px;height:10px;border-radius:3px;background:{{ l.bg }};border:1px solid {{ l.bc }}"></span>{{ l.label }}</span>
+        </sc-for>
+      </div>
+      <span style="font-size:12px;color:var(--color-neutral-700)">Схема-заглушка: планировка корабля и назначение отсеков в спецификации не заданы.</span>
+    </section>
+
+    <aside style="flex:1 1 300px;max-width:400px;min-width:0;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:16px;box-shadow:0 1px 2px rgba(70,55,40,.04),0 8px 24px rgba(70,55,40,.05);padding:18px 20px;display:flex;flex-direction:column;gap:14px">
+      <sc-if value="{{ mp.none }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <span style="font-weight:600;font-size:17px">Сектор не выбран</span>
+          <span style="font-size:13px;color:var(--color-neutral-700)">Нажмите на отсек на схеме. Пока сектор не выбран, анализ запустить нельзя.</span>
+        </div>
+      </sc-if>
+      <sc-if value="{{ mp.has }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <span style="font:500 12px 'IBM Plex Mono',monospace;color:var(--color-neutral-700)">{{ mp.code }}</span>
+          <span style="font-weight:600;font-size:20px">{{ mp.name }}</span>
+          <span style="font-size:12.5px;color:var(--color-neutral-700);text-wrap:pretty">{{ mp.desc }}</span>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;background:var(--color-neutral-100)">
+          <span style="width:10px;height:10px;border-radius:50%;background:{{ mp.dot }};flex:none"></span>
+          <span style="font-weight:500;font-size:14px">{{ mp.verdict }}</span>
+          <span style="margin-left:auto;font:400 12px 'IBM Plex Mono',monospace;color:var(--color-neutral-700)">{{ mp.rs }}</span>
+        </div>
+        <sc-if value="{{ mp.hasA }}" hint-placeholder-val="{{ false }}">
+          <p style="margin:0;font-size:13px;line-height:1.5;text-wrap:pretty">{{ mp.summary }}</p>
+          <div style="display:flex;flex-direction:column">
+            <sc-for list="{{ mp.params }}" as="f" hint-placeholder-count="7">
+              <div style="display:flex;gap:10px;padding:5px 0;border-top:1px solid var(--color-divider);font-size:12.5px">
+                <span style="color:var(--color-neutral-700);flex:none;width:110px">{{ f.k }}</span><span>{{ f.v }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </sc-if>
+        <sc-if value="{{ mp.noA }}" hint-placeholder-val="{{ false }}"><span style="font-size:13px;color:var(--color-neutral-700)">В этом секторе анализ ещё не проводился.</span></sc-if>
+        <div style="display:flex;flex-direction:column;gap:8px">
+          <button onClick="{{ startAnalysis }}" style="height:42px;border:0;border-radius:11px;background:var(--color-accent-700);color:#fff;font:600 14px 'IBM Plex Sans',sans-serif;cursor:pointer" style-hover="filter:brightness(.95)">Анализ в этом секторе</button>
+          <button onClick="{{ showOnOverview }}" style="height:36px;border:1px solid var(--color-divider);border-radius:10px;background:transparent;font:500 13px 'IBM Plex Sans',sans-serif;color:var(--color-neutral-800);cursor:pointer" style-hover="background:var(--color-neutral-200)">Показать на обзоре</button>
+        </div>
+        <sc-if value="{{ mp.hasHist }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;flex-direction:column;border-top:1px solid var(--color-divider);padding-top:10px">
+            <span style="font-weight:500;font-size:13px;color:var(--color-neutral-700);padding-bottom:6px">Последние анализы</span>
+            <sc-for list="{{ mp.hist }}" as="h" hint-placeholder-count="3">
+              <button onClick="{{ h.onClick }}" style="display:flex;align-items:center;gap:10px;padding:7px 0;border:0;border-top:1px solid var(--color-divider);background:transparent;text-align:left;cursor:pointer;font:inherit;color:var(--color-text)">
+                <span style="width:8px;height:8px;border-radius:50%;background:{{ h.dot }};flex:none"></span>
+                <span style="font:500 12px 'IBM Plex Mono',monospace">#{{ h.id }} <span style="font-weight:400;color:var(--color-neutral-700)">{{ h.ts }}</span></span>
+                <span style="margin-left:auto;font-size:12px;color:var(--color-neutral-700)">{{ h.verdict }}</span>
+              </button>
+            </sc-for>
+          </div>
+        </sc-if>
+      </sc-if>
+    </aside>
+  </main>
+  </sc-if>
+
+  <sc-if value="{{ isReports }}" hint-placeholder-val="{{ false }}">
+  <main style="padding:6px 16px 20px;display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start">
+    <aside style="flex:1 1 300px;max-width:380px;min-width:0;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:16px;box-shadow:0 1px 2px rgba(70,55,40,.04),0 8px 24px rgba(70,55,40,.05);overflow:hidden;display:flex;flex-direction:column">
+      <div style="display:flex;align-items:baseline;gap:10px;padding:16px 18px 10px">
+        <h1 style="margin:0;font-weight:600;font-size:18px">Отчёты для Земли</h1>
+        <span style="font:400 12px 'IBM Plex Mono',monospace;color:var(--color-neutral-700)">{{ histCount }}</span>
+      </div>
+      <sc-if value="{{ noHist }}" hint-placeholder-val="{{ false }}"><span style="padding:4px 18px 18px;font-size:13px;color:var(--color-neutral-700)">Отчёт создаётся автоматически при каждом анализе.</span></sc-if>
+      <sc-for list="{{ repList }}" as="r" hint-placeholder-count="4">
+        <button onClick="{{ r.onClick }}" style="display:grid;grid-template-columns:8px minmax(0,1fr) auto;gap:3px 10px;align-items:center;padding:10px 18px;border:0;border-top:1px solid var(--color-divider);background:{{ r.bg }};color:var(--color-text);text-align:left;cursor:pointer;font:inherit" style-hover="background:var(--color-neutral-100)">
+          <span style="width:8px;height:8px;border-radius:50%;background:{{ r.dot }}"></span>
+          <span style="font:500 12px 'IBM Plex Mono',monospace">{{ r.no }} <span style="font-weight:400;color:var(--color-neutral-700)">{{ r.ts }}</span></span>
+          <span style="font-size:12px;color:var(--color-neutral-700)">{{ r.verdict }}</span>
+          <span></span>
+          <span style="grid-column:span 2;font-size:12px;color:var(--color-neutral-700)">{{ r.code }} · {{ r.name }} · {{ r.status }}</span>
+        </button>
+      </sc-for>
+    </aside>
+
+    <section style="flex:999 1 480px;min-width:0">
+      <sc-if value="{{ rd.has }}" hint-placeholder-val="{{ false }}">
+        <div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:16px;box-shadow:0 1px 2px rgba(70,55,40,.04),0 8px 24px rgba(70,55,40,.05);padding:24px 26px;display:flex;flex-direction:column;gap:18px">
+          <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+            <div style="display:flex;flex-direction:column;line-height:1.25">
+              <span style="font:500 12px 'IBM Plex Mono',monospace;color:var(--color-neutral-700)">Отчёт {{ rd.no }}</span>
+              <span style="font-weight:600;font-size:22px">{{ rd.title }}</span>
+            </div>
+            <span style="display:flex;align-items:center;gap:8px;padding:4px 12px;border-radius:999px;background:var(--color-neutral-100);font-size:13px;font-weight:500"><span style="width:9px;height:9px;border-radius:50%;background:{{ rd.dot }}"></span>{{ rd.verdict }}</span>
+            <button onClick="{{ rd.download }}" style="margin-left:auto;padding:7px 16px;border:1px solid var(--color-divider);border-radius:9px;background:transparent;font:500 13px 'IBM Plex Sans',sans-serif;color:var(--color-neutral-800);cursor:pointer" style-hover="background:var(--color-neutral-200)">Скачать TXT</button>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:0 24px">
+            <sc-for list="{{ rd.meta }}" as="m" hint-placeholder-count="6">
+              <div style="display:flex;gap:10px;padding:7px 0;border-top:1px solid var(--color-divider);font-size:13px">
+                <span style="color:var(--color-neutral-700);flex:none;width:120px">{{ m.k }}</span><span>{{ m.v }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <sc-for list="{{ rd.sections }}" as="s" hint-placeholder-count="4">
+            <div style="display:flex;flex-direction:column;gap:4px">
+              <span style="font-weight:500;font-size:13px;color:var(--color-neutral-700)">{{ s.h }}</span>
+              <p style="margin:0;font-size:14.5px;line-height:1.55;text-wrap:pretty">{{ s.t }}</p>
+            </div>
+          </sc-for>
+          <div style="display:flex;flex-direction:column;gap:10px">
+            <span style="font-weight:500;font-size:13px;color:var(--color-neutral-700)">Рекомендации</span>
+            <p style="margin:0;font-size:13.5px;color:var(--color-neutral-800);text-wrap:pretty">{{ rd.intro }}</p>
+            <sc-for list="{{ rd.steps }}" as="r" hint-placeholder-count="4">
+              <div style="display:flex;gap:12px;align-items:baseline">
+                <span style="font:500 12px 'IBM Plex Mono',monospace;color:var(--color-accent-800);flex:none">{{ r.n }}</span>
+                <div style="display:flex;flex-direction:column;gap:1px"><span style="font-weight:500;font-size:14.5px">{{ r.title }}</span><span style="font-size:13px;color:var(--color-neutral-700)">{{ r.detail }}</span></div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ noHist }}" hint-placeholder-val="{{ false }}">
+        <div style="padding:28px;border:1px dashed var(--color-divider);border-radius:16px;font-size:13.5px;color:var(--color-neutral-700)">Отчётов пока нет. Запустите анализ в одном из секторов.</div>
+      </sc-if>
+    </section>
+  </main>
+  </sc-if>
+
+  <sc-if value="{{ isData }}" hint-placeholder-val="{{ false }}">
+  <main style="padding:6px 20px 20px;display:flex;flex-direction:column;gap:16px">
+    <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;padding:0 4px">
+      <h1 style="margin:0;font-weight:600;font-size:22px">Набор данных</h1>
+      <span style="font:400 12px 'IBM Plex Mono',monospace;color:var(--color-neutral-700)">simulated_rule_based · значения из файла, расчёт — только для сверки</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px">
+      <sc-for list="{{ dsFacts }}" as="f" hint-placeholder-count="5">
+        <div style="padding:14px 16px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:14px;display:flex;flex-direction:column;gap:2px">
+          <span style="font:500 26px 'IBM Plex Mono',monospace;color:{{ f.color }}">{{ f.v }}</span>
+          <span style="font-size:12px;color:var(--color-neutral-700)">{{ f.k }}</span>
+        </div>
+      </sc-for>
+    </div>
+    <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap">
+      <div style="display:flex;gap:6px;flex-wrap:wrap">
+        <sc-for list="{{ dsMatFilter }}" as="m" hint-placeholder-count="6">
+          <button onClick="{{ m.onClick }}" style="padding:5px 12px;border:1px solid {{ m.bc }};border-radius:999px;background:{{ m.bg }};color:{{ m.fg }};font:500 12.5px 'IBM Plex Sans',sans-serif;cursor:pointer">{{ m.label }}</button>
+        </sc-for>
+      </div>
+      <button onClick="{{ toggleMismatch }}" style="padding:5px 12px;border:1px solid {{ mmBc }};border-radius:999px;background:{{ mmBg }};color:{{ mmFg }};font:500 12.5px 'IBM Plex Sans',sans-serif;cursor:pointer">Только расхождения с расчётом</button>
+      <span style="margin-left:auto;font:400 12px 'IBM Plex Mono',monospace;color:var(--color-neutral-700)">{{ dsShown }}</span>
+    </div>
+    <div style="overflow-x:auto;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:16px;box-shadow:0 1px 2px rgba(70,55,40,.04),0 8px 24px rgba(70,55,40,.05)">
+      <table style="width:100%;border-collapse:collapse;font-size:13px;min-width:1040px">
+        <thead>
+          <tr style="text-align:left;font:500 12px 'IBM Plex Sans',sans-serif;color:var(--color-neutral-700)">
+            <th style="padding:12px 10px;font-weight:500">#</th>
+            <th style="padding:12px 10px;font-weight:500">Материал</th>
+            <th style="padding:12px 10px;font-weight:500;text-align:right">мм</th>
+            <th style="padding:12px 10px;font-weight:500;text-align:right">O₂ %</th>
+            <th style="padding:12px 10px;font-weight:500;text-align:right">см/с</th>
+            <th style="padding:12px 10px;font-weight:500;text-align:right">°C</th>
+            <th style="padding:12px 10px;font-weight:500;text-align:right">с</th>
+            <th style="padding:12px 10px;font-weight:500;text-align:right">Пламя, см</th>
+            <th style="padding:12px 10px;font-weight:500;text-align:right">Скор., см/с</th>
+            <th style="padding:12px 10px;font-weight:500">Риск</th>
+            <th style="padding:12px 10px;font-weight:500">Затухание</th>
+            <th style="padding:12px 10px;font-weight:500">Результат</th>
+            <th style="padding:12px 10px;font-weight:500">Сверка</th>
+            <th style="padding:12px 10px"></th>
+          </tr>
+        </thead>
+        <tbody>
+          <sc-for list="{{ dsRows }}" as="r" hint-placeholder-count="12">
+            <tr style="background:{{ r.bg }}">
+              <td style="padding:8px 10px;border-top:1px solid var(--color-divider);font-family:'IBM Plex Mono',monospace;color:var(--color-neutral-700)">{{ r.n }}</td>
+              <td style="padding:8px 10px;border-top:1px solid var(--color-divider)">{{ r.mat }}</td>
+              <td style="padding:8px 10px;border-top:1px solid var(--color-divider);font-family:'IBM Plex Mono',monospace;text-align:right">{{ r.th }}</td>
+              <td style="padding:8px 10px;border-top:1px solid var(--color-divider);font-family:'IBM Plex Mono',monospace;text-align:right">{{ r.o2 }}</td>
+              <td style="padding:8px 10px;border-top:1px solid var(--color-divider);font-family:'IBM Plex Mono',monospace;text-align:right">{{ r.flow }}</td>
+              <td style="padding:8px 10px;border-top:1px solid var(--color-divider);font-family:'IBM Plex Mono',monospace;text-align:right">{{ r.temp }}</td>
+              <td style="padding:8px 10px;border-top:1px solid var(--color-divider);font-family:'IBM Plex Mono',monospace;text-align:right">{{ r.time }}</td>
+              <td style="padding:8px 10px;border-top:1px solid var(--color-divider);font-family:'IBM Plex Mono',monospace;text-align:right">{{ r.size }}</td>
+              <td style="padding:8px 10px;border-top:1px solid var(--color-divider);font-family:'IBM Plex Mono',monospace;text-align:right">{{ r.rate }}</td>
+              <td style="padding:8px 10px;border-top:1px solid var(--color-divider)"><span style="display:inline-flex;align-items:center;gap:7px;font-family:'IBM Plex Mono',monospace;font-size:12px"><span style="width:8px;height:8px;border-radius:50%;background:{{ r.fill }}"></span>{{ r.riskLbl }}</span></td>
+              <td style="padding:8px 10px;border-top:1px solid var(--color-divider);font-family:'IBM Plex Mono',monospace;font-size:12px">{{ r.extLbl }}</td>
+              <td style="padding:8px 10px;border-top:1px solid var(--color-divider);font-family:'IBM Plex Mono',monospace;font-size:12px">{{ r.res }}</td>
+              <td style="padding:8px 10px;border-top:1px solid var(--color-divider);font-size:12px;color:{{ r.checkColor }}">{{ r.check }}</td>
+              <td style="padding:5px 10px;border-top:1px solid var(--color-divider);text-align:right"><button onClick="{{ r.onLoad }}" style="padding:4px 10px;border:1px solid var(--color-divider);border-radius:8px;background:transparent;font:500 12px 'IBM Plex Sans',sans-serif;color:var(--color-neutral-800);cursor:pointer;white-space:nowrap" style-hover="background:var(--color-accent-100);border-color:var(--color-accent)">В форму →</button></td>
+            </tr>
+          </sc-for>
+        </tbody>
+      </table>
+    </div>
+  </main>
+  </sc-if>
+
+  <sc-if value="{{ isRules }}" hint-placeholder-val="{{ false }}">
+  <main style="padding:6px 20px 20px;display:flex;flex-direction:column;gap:16px">
+    <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;padding:0 4px">
+      <h1 style="margin:0;font-weight:600;font-size:22px">Правила оценки</h1>
+      <span style="font:400 12px 'IBM Plex Mono',monospace;color:var(--color-neutral-700)">диапазон подсвечивается, когда соответствующее поле формы заполнено</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:16px">
+      <div style="padding:14px 18px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:14px;font:400 13px 'IBM Plex Mono',monospace;display:flex;flex-direction:column;gap:6px">
+        <span style="font:500 13px 'IBM Plex Sans',sans-serif;color:var(--color-neutral-700)">RiskScore · 3–16</span>
+        <span>Material + Oxygen + Flow + Temperature + Time + Gravity = <b style="font-weight:500">{{ totRisk }}</b></span>
+      </div>
+      <div style="padding:14px 18px;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:14px;font:400 13px 'IBM Plex Mono',monospace;display:flex;flex-direction:column;gap:6px">
+        <span style="font:500 13px 'IBM Plex Sans',sans-serif;color:var(--color-neutral-700)">ExtinctionScore · 0–8</span>
+        <span>OxygenDeficit + LowFlowPenalty + ThicknessBonus = <b style="font-weight:500">{{ totExt }}</b></span>
+      </div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:16px">
+      <sc-for list="{{ rules }}" as="t" hint-placeholder-count="9">
+        <div style="display:flex;flex-direction:column;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:14px;padding:12px 8px 8px;box-shadow:0 1px 2px rgba(70,55,40,.04)">
+          <div style="display:flex;align-items:baseline;gap:8px;padding:0 10px 8px">
+            <span style="font-weight:500;font-size:13px">{{ t.name }}</span>
+            <span style="font:400 11.5px 'IBM Plex Mono',monospace;color:var(--color-neutral-700)">{{ t.code }}</span>
+            <span style="margin-left:auto;font:400 11px 'IBM Plex Mono',monospace;color:var(--color-neutral-700)">{{ t.input }}</span>
+          </div>
+          <sc-for list="{{ t.bands }}" as="b" hint-placeholder-count="4">
+            <div style="display:flex;align-items:center;gap:10px;padding:6px 10px;border-radius:8px;background:{{ b.bg }};font:400 12.5px 'IBM Plex Mono',monospace">
+              <span style="width:7px;height:7px;border-radius:50%;background:{{ b.dot }};flex:none"></span>
+              <span>{{ b.range }}</span>
+              <span style="margin-left:auto;font-weight:500">{{ b.score }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </sc-for>
+    </div>
+    <div style="display:flex;flex-direction:column;background:var(--color-surface);border:1px solid var(--color-divider);border-radius:16px;padding:14px 20px 8px">
+      <div style="display:flex;align-items:baseline;gap:8px;padding-bottom:8px">
+        <span style="font-weight:500;font-size:13px;color:var(--color-neutral-700)">Открытые вопросы спецификации</span>
+        <span style="margin-left:auto;font:400 11.5px 'IBM Plex Mono',monospace;color:var(--color-neutral-700)">{{ issuesSummary }}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(340px,1fr));column-gap:28px">
+        <sc-for list="{{ issues }}" as="i" hint-placeholder-count="13">
+          <div style="display:flex;gap:12px;align-items:baseline;padding:8px 0;border-top:1px solid var(--color-divider);font-size:13px">
+            <span style="font:500 11px 'IBM Plex Mono',monospace;color:var(--color-accent-800);width:34px;flex:none">{{ i.id }}</span>
+            <span style="flex:1;color:{{ i.color }}">{{ i.t }}</span>
+            <span style="font:500 11px 'IBM Plex Sans',sans-serif;padding:1px 9px;border-radius:999px;background:{{ i.bg }};color:{{ i.color }}">{{ i.s }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+  </main>
+  </sc-if>
+
+  <sc-if value="{{ isModels }}" hint-placeholder-val="{{ false }}">
+  <main style="padding:6px 20px 20px;display:flex;flex-direction:column;gap:16px">
+    <div style="display:flex;align-items:baseline;gap:14px;flex-wrap:wrap;padding:0 4px">
+      <h1 style="margin:0;font-weight:600;font-size:22px">Модели</h1>
+      <span style="font:400 12px 'IBM Plex Mono',monospace;color:var(--color-neutral-700)">Stage 2 · Stage 3 · распознавание пламени</span>
+    </div>
+
+    <div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:16px;box-shadow:0 1px 2px rgba(70,55,40,.04),0 8px 24px rgba(70,55,40,.05);padding:20px;display:flex;flex-direction:column;gap:16px">
+      <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
+        <span style="font:500 12px 'IBM Plex Mono',monospace;color:var(--color-neutral-700)">Stage 2</span>
+        <h2 style="margin:0;font-weight:600;font-size:18px">ML-модель риска и затухания</h2>
+        <span style="padding:2px 10px;border-radius:999px;background:var(--color-neutral-200);font-size:12px;color:var(--color-neutral-800)">не обучена</span>
+      </div>
+      <p style="margin:0;max-width:640px;font-size:13.5px;color:var(--color-neutral-800);text-wrap:pretty">Вход — те же 7 параметров, выход — уровень риска и вероятность затухания. Обучение начинается после готовности CSV. Пока модель не обучена, прогноз не выдаётся и не заменяется расчётом по правилам.</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:10px">
+        <sc-for list="{{ ml.checks }}" as="c" hint-placeholder-count="4">
+          <div style="display:flex;flex-direction:column;gap:3px;padding:12px 14px;border:1px solid var(--color-divider);border-radius:12px;background:{{ c.bg }}">
+            <div style="display:flex;align-items:baseline;gap:8px">
+              <span style="font-size:13px;font-weight:500">{{ c.name }}</span>
+              <span style="margin-left:auto;font:500 13px 'IBM Plex Mono',monospace;color:{{ c.color }}">{{ c.v }}</span>
+            </div>
+            <span style="font-size:12px;color:var(--color-neutral-700);text-wrap:pretty">{{ c.note }}</span>
+          </div>
+        </sc-for>
+      </div>
+      <div style="display:flex;align-items:center;gap:14px;flex-wrap:wrap">
+        <button disabled="{{ true }}" style="height:40px;padding:0 18px;border:0;border-radius:11px;background:var(--color-neutral-300);color:var(--color-neutral-700);font:600 14px 'IBM Plex Sans',sans-serif;cursor:not-allowed">Обучить модель</button>
+        <span style="font-size:12.5px;color:var(--color-neutral-700);text-wrap:pretty">{{ ml.blocker }}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:10px;border-top:1px solid var(--color-divider);padding-top:14px">
+        <sc-for list="{{ ml.outputs }}" as="o" hint-placeholder-count="2">
+          <div style="display:flex;align-items:center;gap:12px;padding:12px 14px;border:1px dashed var(--color-divider);border-radius:12px">
+            <span style="font:500 28px 'IBM Plex Mono',monospace;color:var(--color-neutral-700)">—</span>
+            <div style="display:flex;flex-direction:column;line-height:1.3">
+              <span style="font-size:13px;font-weight:500">{{ o.name }}</span>
+              <span style="font-size:12px;color:var(--color-neutral-700)">{{ o.note }}</span>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </div>
+
+    <div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:16px;box-shadow:0 1px 2px rgba(70,55,40,.04),0 8px 24px rgba(70,55,40,.05);padding:20px;display:flex;flex-direction:column;gap:16px">
+      <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
+        <span style="font:500 12px 'IBM Plex Mono',monospace;color:var(--color-neutral-700)">Stage 3</span>
+        <h2 style="margin:0;font-weight:600;font-size:18px">Горение капли · закон d²</h2>
+        <span style="padding:2px 10px;border-radius:999px;background:var(--color-accent-100);font-size:12px;color:var(--color-accent-900)">сокращённая форма</span>
+      </div>
+      <p style="margin:0;max-width:640px;font-size:13.5px;color:var(--color-neutral-800);text-wrap:pretty">Реализован только классический закон d²(t) = d₀² − K · t. Полная модель (перенос массы, энергия, реакция, излучение) не входит в прототип. Константа K берётся из параметров — источник значений для конкретного топлива в спецификации не задан.</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:12px">
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <label style="font-weight:500;font-size:13px">Начальный диаметр d₀</label>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input type="number" min="0.1" max="5" step="0.05" placeholder="—" value="{{ d2.d0 }}" onChange="{{ onD0 }}" style="flex:1;min-width:0;height:38px;padding:0 10px;font:14px 'IBM Plex Mono',monospace;text-align:right;background:#fffdfb;border:1px solid var(--color-divider);border-radius:9px;color:var(--color-text)">
+            <span style="font:12px 'IBM Plex Mono',monospace;color:var(--color-neutral-700)">мм</span>
+          </div>
+          <span style="font-size:12px;color:var(--color-neutral-700)">от 0.1 до 5 мм</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <label style="font-weight:500;font-size:13px">Константа горения K</label>
+          <div style="display:flex;align-items:center;gap:8px">
+            <input type="number" min="0.01" max="5" step="0.01" placeholder="—" value="{{ d2.k }}" onChange="{{ onK }}" style="flex:1;min-width:0;height:38px;padding:0 10px;font:14px 'IBM Plex Mono',monospace;text-align:right;background:#fffdfb;border:1px solid var(--color-divider);border-radius:9px;color:var(--color-text)">
+            <span style="font:12px 'IBM Plex Mono',monospace;color:var(--color-neutral-700)">мм²/с</span>
+          </div>
+          <span style="font-size:12px;color:var(--color-neutral-700)">значение задаёт оператор, по умолчанию не подставляется</span>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:6px;justify-content:flex-end">
+          <span style="font-size:13px;color:var(--color-neutral-700)">Полное выгорание</span>
+          <span style="font:500 24px 'IBM Plex Mono',monospace;color:{{ d2.tbColor }}">{{ d2.tBurn }}</span>
+        </div>
+      </div>
+      <sc-if value="{{ d2.ready }}" hint-placeholder-val="{{ false }}">
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <svg viewBox="0 0 640 220" style="width:100%;height:auto;display:block;font-family:'IBM Plex Mono',monospace">
+            <g stroke="var(--color-divider)" stroke-width="1">
+              <line x1="52" y1="20" x2="624" y2="20"></line><line x1="52" y1="63" x2="624" y2="63"></line><line x1="52" y1="106" x2="624" y2="106"></line><line x1="52" y1="149" x2="624" y2="149"></line>
+            </g>
+            <line x1="52" y1="192" x2="624" y2="192" stroke="var(--color-neutral-400)" stroke-width="1"></line>
+            <line x1="52" y1="20" x2="52" y2="192" stroke="var(--color-neutral-400)" stroke-width="1"></line>
+            <text x="56" y="32" font-size="11" fill="var(--color-neutral-700)">мм²</text>
+            <text x="46" y="24" font-size="10.5" fill="var(--color-neutral-700)" text-anchor="end">{{ d2.yMax }}</text>
+            <text x="46" y="196" font-size="10.5" fill="var(--color-neutral-700)" text-anchor="end">0</text>
+            <text x="52" y="210" font-size="10.5" fill="var(--color-neutral-700)" text-anchor="middle">0</text>
+            <text x="624" y="210" font-size="10.5" fill="var(--color-neutral-700)" text-anchor="end">{{ d2.xMax }} с</text>
+            <path d="{{ d2.dPath }}" fill="none" stroke="var(--color-accent-700)" stroke-width="1.5" stroke-dasharray="4 3"></path>
+            <line x1="52" y1="20" x2="{{ d2.xEnd }}" y2="192" stroke="var(--color-accent-700)" stroke-width="2"></line>
+          </svg>
+          <div style="display:flex;gap:18px;flex-wrap:wrap;font:400 11.5px 'IBM Plex Mono',monospace;color:var(--color-neutral-700)">
+            <span style="display:flex;align-items:center;gap:7px"><span style="width:16px;height:2px;background:var(--color-accent-700)"></span>d²(t) — закон d²</span>
+            <span style="display:flex;align-items:center;gap:7px"><span style="width:16px;border-top:1.5px dashed var(--color-accent-700)"></span>d(t), мм</span>
+          </div>
+        </div>
+      </sc-if>
+      <sc-if value="{{ d2.idle }}" hint-placeholder-val="{{ true }}">
+        <div style="padding:22px;border:1px dashed var(--color-divider);border-radius:12px;font-size:13px;color:var(--color-neutral-700);text-align:center">Задайте d₀ и K — график строится только по введённым значениям.</div>
+      </sc-if>
+      <div style="display:flex;flex-direction:column;gap:6px;border-top:1px solid var(--color-divider);padding-top:14px">
+        <span style="font-weight:500;font-size:13px;color:var(--color-neutral-700)">Не реализовано в прототипе</span>
+        <div style="display:flex;gap:8px;flex-wrap:wrap">
+          <sc-for list="{{ d2.missing }}" as="m" hint-placeholder-count="5">
+            <span style="padding:3px 11px;border:1px solid var(--color-divider);border-radius:999px;font-size:12px;color:var(--color-neutral-700)">{{ m.t }}</span>
+          </sc-for>
+        </div>
+      </div>
+    </div>
+
+    <div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:16px;box-shadow:0 1px 2px rgba(70,55,40,.04),0 8px 24px rgba(70,55,40,.05);padding:20px;display:flex;flex-direction:column;gap:16px">
+      <div style="display:flex;align-items:baseline;gap:10px;flex-wrap:wrap">
+        <span style="font:500 12px 'IBM Plex Mono',monospace;color:var(--color-neutral-700)">Опционально</span>
+        <h2 style="margin:0;font-weight:600;font-size:18px">Фото пламени</h2>
+        <span style="padding:2px 10px;border-radius:999px;background:var(--color-neutral-200);font-size:12px;color:var(--color-neutral-800)">распознавание не подключено</span>
+      </div>
+      <p style="margin:0;max-width:640px;font-size:13.5px;color:var(--color-neutral-800);text-wrap:pretty">Снимок прикладывается к анализу как материал наблюдения. Размер, яркость и форму заполняет оператор — автоматическое распознавание не выполняется, и значения не подставляются.</p>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:16px;align-items:start">
+        <div style="display:flex;flex-direction:column;gap:10px">
+          <label style="display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:150px;padding:18px;border:1px dashed var(--color-divider);border-radius:12px;background:var(--color-neutral-100);cursor:pointer;text-align:center" style-hover="border-color:var(--color-accent)">
+            <span style="font-weight:500;font-size:13.5px">Загрузить фото пламени</span>
+            <span style="font-size:12px;color:var(--color-neutral-700)">JPEG или PNG, один снимок</span>
+            <input type="file" accept="image/*" onChange="{{ onPhoto }}" style="display:none">
+          </label>
+          <sc-if value="{{ photo.has }}" hint-placeholder-val="{{ false }}">
+            <div style="display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid var(--color-divider);border-radius:10px">
+              <img src="{{ photo.url }}" alt="" style="width:46px;height:46px;object-fit:cover;border-radius:7px;flex:none">
+              <div style="display:flex;flex-direction:column;min-width:0;line-height:1.3">
+                <span style="font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ photo.name }}</span>
+                <span style="font:400 11.5px 'IBM Plex Mono',monospace;color:var(--color-neutral-700)">{{ photo.size }}</span>
+              </div>
+              <button onClick="{{ clearPhoto }}" style="margin-left:auto;padding:4px 10px;border:1px solid var(--color-divider);border-radius:8px;background:transparent;font:500 12px 'IBM Plex Sans',sans-serif;color:var(--color-neutral-800);cursor:pointer" style-hover="background:var(--color-neutral-200)">Убрать</button>
+            </div>
+          </sc-if>
+        </div>
+        <div style="display:flex;flex-direction:column;gap:12px">
+          <sc-for list="{{ ann }}" as="a" hint-placeholder-count="3">
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <span style="font-weight:500;font-size:13px">{{ a.name }}</span>
+              <div style="display:flex;gap:6px;flex-wrap:wrap">
+                <sc-for list="{{ a.opts }}" as="o" hint-placeholder-count="3">
+                  <button onClick="{{ o.onClick }}" disabled="{{ o.off }}" style="padding:5px 12px;border:1px solid {{ o.bc }};border-radius:999px;background:{{ o.bg }};color:{{ o.fg }};font:500 12.5px 'IBM Plex Sans',sans-serif;cursor:{{ o.cursor }}">{{ o.label }}</button>
+                </sc-for>
+              </div>
+            </div>
+          </sc-for>
+          <span style="font-size:12px;color:var(--color-neutral-700);text-wrap:pretty">{{ annNote }}</span>
+        </div>
+      </div>
+    </div>
+  </main>
+  </sc-if>
+
+  <sc-if value="{{ modalOpen }}" hint-placeholder-val="{{ false }}">
+  <div role="dialog" aria-modal="true" style="position:fixed;top:0;right:0;bottom:0;left:0;z-index:50;display:flex;align-items:center;justify-content:center;padding:20px;background:rgba(40,28,24,.6);overflow:auto">
+    <sc-if value="{{ modal.isAlert }}" hint-placeholder-val="{{ false }}">
+      <div style="width:100%;max-width:680px;border-radius:20px;overflow:hidden;background:#fffdfb;box-shadow:0 24px 64px rgba(40,10,10,.45)">
+        <div style="padding:30px 34px;background:oklch(0.5 0.17 28);color:#fff;display:flex;flex-direction:column;gap:8px">
+          <span style="font:500 13px 'IBM Plex Mono',monospace;letter-spacing:.14em">СЕКТОР {{ modal.code }} · {{ modal.name }}</span>
+          <span style="font-weight:600;font-size:68px;line-height:1;letter-spacing:.04em">ОПАСНОСТЬ</span>
+          <span style="font-size:17px">Обнаружены опасные значения. Требуются немедленные действия.</span>
+        </div>
+        <div style="padding:24px 34px 28px;display:flex;flex-direction:column;gap:16px">
+          <p style="margin:0;font-size:15px;line-height:1.55;text-wrap:pretty">{{ modal.why }}</p>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <div style="padding:10px 14px;border:1px solid var(--color-divider);border-radius:10px;display:flex;flex-direction:column;line-height:1.2"><span style="font:500 22px 'IBM Plex Mono',monospace">{{ modal.risk }} / 16</span><span style="font-size:12px;color:var(--color-neutral-700)">RiskScore</span></div>
+            <div style="padding:10px 14px;border:1px solid var(--color-divider);border-radius:10px;display:flex;flex-direction:column;line-height:1.2"><span style="font:500 22px 'IBM Plex Mono',monospace">{{ modal.ext }} / 8</span><span style="font-size:12px;color:var(--color-neutral-700)">ExtinctionScore</span></div>
+            <div style="padding:10px 14px;border:1px solid var(--color-divider);border-radius:10px;display:flex;flex-direction:column;line-height:1.2"><span style="font:500 22px 'IBM Plex Mono',monospace">{{ modal.conf }} %</span><span style="font-size:12px;color:var(--color-neutral-700)">уверенность</span></div>
+          </div>
+          <span style="font-size:12.5px;color:var(--color-neutral-700)">Отчёт {{ modal.no }}: {{ modal.status }}</span>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button onClick="{{ toRecs }}" style="height:48px;padding:0 26px;border:0;border-radius:12px;background:oklch(0.5 0.17 28);color:#fff;font:600 16px 'IBM Plex Sans',sans-serif;cursor:pointer" style-hover="filter:brightness(.92)">Открыть рекомендации</button>
+            <button onClick="{{ closeModal }}" style="height:48px;padding:0 20px;border:1px solid var(--color-divider);border-radius:12px;background:transparent;font:500 14px 'IBM Plex Sans',sans-serif;color:var(--color-neutral-800);cursor:pointer" style-hover="background:var(--color-neutral-200)">Закрыть</button>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+    <sc-if value="{{ modal.isRecs }}" hint-placeholder-val="{{ false }}">
+      <div style="width:100%;max-width:680px;max-height:92vh;overflow:auto;border-radius:20px;background:#fffdfb;box-shadow:0 24px 64px rgba(40,10,10,.45)">
+        <div style="padding:20px 30px;background:{{ modal.headBg }};color:#fff;display:flex;align-items:baseline;gap:14px;flex-wrap:wrap">
+          <span style="font-weight:600;font-size:22px;letter-spacing:.04em">{{ modal.headLabel }}</span>
+          <span style="font:500 12px 'IBM Plex Mono',monospace;letter-spacing:.1em">СЕКТОР {{ modal.code }} · {{ modal.name }}</span>
+        </div>
+        <div style="padding:24px 30px 28px;display:flex;flex-direction:column;gap:16px">
+          <div style="display:flex;flex-direction:column;gap:4px">
+            <span style="font-weight:600;font-size:20px">Рекомендации по нейтрализации</span>
+            <span style="font-size:13px;color:var(--color-neutral-700);text-wrap:pretty">{{ modal.intro }}</span>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:14px">
+            <sc-for list="{{ modal.steps }}" as="r" hint-placeholder-count="5">
+              <div style="display:flex;gap:14px;align-items:baseline">
+                <span style="font:500 14px 'IBM Plex Mono',monospace;color:var(--color-accent-800);flex:none">{{ r.n }}</span>
+                <div style="display:flex;flex-direction:column;gap:2px"><span style="font-weight:600;font-size:15.5px">{{ r.title }}</span><span style="font-size:13.5px;color:var(--color-neutral-800);text-wrap:pretty">{{ r.detail }}</span></div>
+              </div>
+            </sc-for>
+          </div>
+          <span style="font-size:12.5px;color:var(--color-neutral-700);border-top:1px solid var(--color-divider);padding-top:12px">Отчёт {{ modal.no }}: {{ modal.status }}</span>
+          <div style="display:flex;gap:10px;flex-wrap:wrap">
+            <button onClick="{{ closeModal }}" style="height:44px;padding:0 24px;border:0;border-radius:11px;background:var(--color-accent-700);color:#fff;font:600 14.5px 'IBM Plex Sans',sans-serif;cursor:pointer" style-hover="filter:brightness(.95)">Принято</button>
+            <button onClick="{{ modalToReport }}" style="height:44px;padding:0 20px;border:1px solid var(--color-divider);border-radius:11px;background:transparent;font:500 14px 'IBM Plex Sans',sans-serif;color:var(--color-neutral-800);cursor:pointer" style-hover="background:var(--color-neutral-200)">Открыть отчёт</button>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+  </div>
+  </sc-if>
+
+  <footer style="padding:12px 22px 16px;font-size:12px;color:var(--color-neutral-700);display:flex;gap:16px;flex-wrap:wrap">
+    <span>Прототип для обучения и исследований. Не является сертифицированным средством пожарной безопасности.</span>
+    <span style="margin-left:auto">Диапазоны NASA не проверены (16.13)</span>
+  </footer>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;showContrib&quot;:{&quot;editor&quot;:&quot;boolean&quot;,&quot;default&quot;:true,&quot;tsType&quot;:&quot;boolean&quot;,&quot;section&quot;:&quot;Форма&quot;},&quot;signalColors&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;Сигнальные&quot;,&quot;Монохром&quot;],&quot;default&quot;:&quot;Сигнальные&quot;,&quot;tsType&quot;:&quot;string&quot;,&quot;section&quot;:&quot;Индикатор&quot;}}">
+const MATS=[['paper','Бумага',3],['fabric','Ткань',2],['plastic','Пластик',3],['wood','Дерево',2],['wire_insulation','Изоляция провода',3],['other','Другое',2]];
+const MAT=Object.fromEntries(MATS.map(([c,l,r])=>[c,{l,r}]));
+const FLOWS=[['none','Нет',0],['weak','Слабый',2.5],['medium','Средний',10],['strong','Сильный',20]];
+const RNG={thickness:[0.05,10],o2:[13,35],flow:[0,30],temp:[20,300],time:[0,600]};
+const SLMIN={thickness:0.05,o2:13,flow:0,temp:20,time:0};
+const NAMES={sector:'Сектор',material:'Материал',thickness:'Толщина',o2:'Кислород',flow:'Поток воздуха',gravity:'Гравитация',temp:'Температура',time:'Время горения'};
+const UNITS={thickness:' мм',o2:' %',flow:' см/с',temp:' °C',time:' с'};
+const EMPTY={material:null,desc:'',thickness:'',o2:'',flow:'',flowMode:'precise',gravity:null,temp:'',time:''};
+const oR=o=>o<16?0:o<=18?1:o<=21?2:3, fR=v=>v===0?1:v<=5?2:v<=15?3:2, tR=t=>t<=50?0:t<=100?1:t<=200?2:3, sR=s=>s<=10?0:s<=30?1:s<=60?2:3;
+const oD=o=>o<16?3:o<18?2:o<19?1:0, lF=v=>v<1?2:v<3?1:0, tB=m=>m<0.2?3:m<=0.5?2:m<=2?1:0;
+const LV={low:'Низкий',medium:'Средний',high:'Высокий'}, LVE={low:'Низкая',medium:'Средняя',high:'Высокая'};
+const f1=v=>Number.isInteger(v)?String(v):String(+v.toFixed(2));
+const pn=s=>s===''||s==null?NaN:Number(s);
+function score(p){const t={mat:MAT[p.material].r,o2:oR(p.o2),flow:fR(p.flow),temp:tR(p.temp),time:sR(p.time),grav:p.gravity==='microgravity'?1:0,od:oD(p.o2),lf:lF(p.flow),th:tB(p.thickness)};
+  const risk=t.mat+t.o2+t.flow+t.temp+t.time+t.grav, ext=t.od+t.lf+t.th;
+  return {t,risk,ext,level:risk<=3?'low':risk<=6?'medium':'high',extLevel:ext>=4?'high':ext>=2?'medium':'low'};}
+const pad=n=>String(n).padStart(4,'0'), now=()=>new Date().toTimeString().slice(0,8);
+const toForm=p=>({material:p.material,desc:p.desc||'',thickness:String(p.thickness),o2:String(p.o2),flow:String(p.flow),flowMode:'precise',gravity:p.gravity,temp:String(p.temp),time:String(p.time)});
+const toNum=p=>({material:p.material,desc:p.desc,thickness:+p.thickness,o2:+p.o2,flow:+p.flow,gravity:p.gravity,temp:+p.temp,time:+p.time});
+const CARDS={
+  paper:{body:'Тонкий целлюлозный материал. Быстро прогревается и легко воспламеняется; пламя распространяется по поверхности листа, особенно при тонком слое.',facts:[['Где на борту','документация, упаковка, фильтры'],['Главная угроза','быстрое распространение']]},
+  fabric:{body:'Плотная ткань прогревается медленнее бумаги, но способна тлеть и поддерживать горение долго; волокна удерживают тепло.',facts:[['Где на борту','одежда, обивка, ремни'],['Главная угроза','тление, скрытое горение']]},
+  plastic:{body:'При нагреве плавится; в микрогравитации расплав собирается в горящие капли, которые могут отрываться и переносить огонь. Дым токсичен.',facts:[['Где на борту','корпуса, контейнеры, плёнки'],['Главная угроза','капли расплава, токсичный дым']]},
+  wood:{body:'Толстый материал: требует больше тепла для прогрева и поддержания горения. Обугливается и может долго тлеть.',facts:[['Где на борту','редко; образцы, инструмент'],['Главная угроза','длительное тление']]},
+  wire_insulation:{body:'Нагревается изнутри током — источник тепла остаётся включённым. Горение в жгутах проводов может быть скрытым; продукты горения токсичны.',facts:[['Где на борту','кабельные трассы, панели'],['Главная угроза','скрытый нагрев под током']]},
+  other:{body:'Свойства не заданы. Используется базовый риск 2; что делать при наличии дополнительных свойств — не определено (16.6).',facts:[['Описание',''],['Главная угроза','неизвестна']]}
+};
+const RAW=`paper,0.1,20,2,150,10,3.78,0.14,high,high,possible_extinction
+paper,0.2,16,20,40,90,3.42,0.34,high,high,possible_extinction
+fabric,0.5,26,0,200,45,5.68,0.21,high,high,possible_extinction
+plastic,0.8,15,1,150,120,2.35,0.06,high,high,possible_extinction
+wood,2,16,3,40,240,1.72,0.06,high,medium,unstable
+wire_insulation,0.4,21,0,250,20,4.85,0.15,high,high,possible_extinction
+paper,0.1,18,30,250,10,7.05,1.09,high,high,possible_extinction
+paper,0.2,26,25,150,10,7.68,1.47,high,medium,fast_flame_spread
+fabric,0.5,18,0,200,30,3.55,0.09,high,high,possible_extinction
+plastic,0.8,19,10,60,240,3.42,0.25,high,low,fast_flame_spread
+wood,2,16,25,100,240,4.52,0.53,high,medium,unstable
+wire_insulation,0.4,28,2,40,300,4.82,0.26,high,medium,fast_flame_spread
+paper,0.1,26,30,80,90,7.48,1.67,high,high,fast_flame_spread
+paper,0.2,16,20,40,300,3.42,0.34,high,high,possible_extinction
+fabric,0.5,15,25,80,180,4.05,0.45,high,high,possible_extinction
+plastic,0.8,28,20,150,90,7.72,1.34,high,low,fast_flame_spread
+wood,2,22,25,180,90,6.92,1.12,high,low,fast_flame_spread
+wire_insulation,0.4,19,3,60,45,2.72,0.11,high,medium,fast_flame_spread
+paper,0.1,16,25,100,240,4.52,0.53,high,high,possible_extinction
+paper,0.2,22,8,180,60,5.22,0.38,high,medium,fast_flame_spread
+fabric,0.5,26,1,40,240,4.18,0.18,high,medium,fast_flame_spread
+plastic,0.8,21,2,120,30,3.75,0.15,high,medium,fast_flame_spread
+wood,2,22,10,25,20,3.87,0.32,high,low,fast_flame_spread
+wire_insulation,0.4,24,25,120,90,6.85,1.21,high,medium,fast_flame_spread
+paper,0.1,30,8,250,180,8.05,0.81,high,medium,fast_flame_spread
+paper,0.2,26,15,40,20,5.58,0.73,high,medium,fast_flame_spread
+fabric,0.5,19,15,40,10,3.72,0.35,high,medium,fast_flame_spread
+plastic,0.8,30,5,250,180,7.75,0.61,high,low,fast_flame_spread
+wood,2,19,10,120,10,4.02,0.29,high,low,fast_flame_spread
+wire_insulation,0.4,22,8,60,300,4.02,0.29,high,medium,fast_flame_spread`;
+const DS=RAW.split('\n').map((l,i)=>{const a=l.split(',');const p={material:a[0],desc:'',thickness:+a[1],gravity:'microgravity',o2:+a[2],flow:+a[3],temp:+a[4],time:+a[5]};const s=score(p);
+  return {n:i+1,p,size:a[6],rate:a[7],risk:a[8],ext:a[9],res:a[10],s,ok:s.level===a[8]&&s.extLevel===a[9]};});
+const ISSUES=[['16.1','Границы диапазонов не определены',0],['16.2','Риск и затухание рассчитываются независимо',0],['16.3','Толщина работает против собственного описания',0],['16.4','Шкала риска смещена к «высокому»',0],['16.5','Проблемы тестового набора данных',0],['16.6','Материал «другое»',0],['16.7','Коды значений other / earth',1],['16.8','Простой режим потока воздуха',1],['16.9','Правила объяснений и рекомендаций',0],['16.10','Модель графика и класса пламени',0],['16.11','Тексты карточек материалов',0],['16.12','Хранение истории анализов',0],['16.13','Непроверенные диапазоны NASA',0]];
+
+const SECT=[
+ {id:'sh',code:'ШЛ',name:'Шлюз',desc:'Стыковочный узел и выход наружу.',x:14,y:95,w:80,h:70},
+ {id:'km',code:'КМ',name:'Командный модуль',desc:'Посты управления и связи.',x:104,y:80,w:120,h:100},
+ {id:'zh',code:'ЖМ',name:'Жилой модуль',desc:'Каюты, камбуз, зона отдыха.',x:234,y:60,w:150,h:140},
+ {id:'l1',code:'ЛБ-1',name:'Лаборатория 1',desc:'Научное оборудование и образцы.',x:394,y:40,w:116,h:85},
+ {id:'l2',code:'ЛБ-2',name:'Лаборатория 2',desc:'Научное оборудование и образцы.',x:394,y:135,w:116,h:85},
+ {id:'sk',code:'СК',name:'Склад',desc:'Грузы, запасы, контейнеры.',x:520,y:80,w:96,h:100},
+ {id:'ep',code:'ЭП',name:'Энергоотсек',desc:'Распределение питания, кабельные трассы.',x:626,y:95,w:80,h:70}];
+const SEC=Object.fromEntries(SECT.map(s=>[s.id,s]));
+const VERD={low:'Безопасно',medium:'Требует внимания',high:'Опасно'};
+const VSUBT={low:'условия не поддерживают развитие пламени',medium:'возможно развитие или нестабильное горение',high:'высокая вероятность быстрого распространения'};
+const DOT={none:'var(--color-neutral-400)',low:'oklch(0.66 0.1 155)',medium:'oklch(0.78 0.12 88)',high:'oklch(0.5 0.17 28)'};
+const verdictKey=rs=>{const d=rs.risk+(rs.ext<=1?2:rs.ext>=4?-1:0);return d>=10?'high':d>=6?'medium':'low';};
+const bndCount=p=>{let n=0;const o=p.o2;if([16,18,19,21].includes(o)||(o>18&&o<19))n++;if([1,5,15].includes(p.flow))n++;if([50,100,200].includes(p.temp))n++;if([10,30,60].includes(p.time))n++;if([0.5,2].includes(p.thickness))n++;return n;};
+const confOf=p=>Math.max(45,Math.min(94,94-bndCount(p)*8-(p.material==='other'?14:0)-((p.o2>30||p.flow>15)?10:0)));
+const aiSumOf=rs=>rs.level==='high'&&rs.extLevel==='high'?'Горение нестабильно: условия одновременно поддерживают быстрое распространение и срыв пламени. Нужен контроль — после срыва возможно повторное воспламенение.':rs.level==='high'?'Сочетание материала, кислорода и потока создаёт условия для быстрого распространения пламени. Затухание маловероятно — требуется вмешательство.':rs.level==='medium'?'Отдельные параметры повышают опасность, но условия для устойчивого быстрого горения не сложились. Достаточно наблюдения и устранения ведущего фактора.':'Все составляющие на минимальных значениях. Угрозы для сектора при текущих показаниях нет.';
+const SECACT={sh:['Закройте люки шлюза','Не допускайте переноса огня и дыма в соседние отсеки.'],km:['Передайте управление на резервный пост','Сохраните связь и управление кораблём, пока очаг не локализован.'],zh:['Выведите экипаж из сектора','Соберите людей в безопасном модуле и проверьте по списку.'],l1:['Остановите эксперимент и отключите подачу газов','Обесточьте оборудование сектора, перекройте газовые линии.'],l2:['Остановите эксперимент и отключите подачу газов','Обесточьте оборудование сектора, перекройте газовые линии.'],sk:['Изолируйте стеллажи и контейнеры','Не перемещайте горючие грузы, пока очаг не потушен.'],ep:['Переведите питание на резервные линии','Отключите повреждённую шину, чтобы сохранить энергоснабжение других секторов.']};
+function recSteps(p,rs,sid,v){const st=[],sec=SEC[sid];
+ if(p.material==='wire_insulation'||sid==='ep')st.push(['Обесточьте линию и источник нагрева','Горение электропроводки поддерживается током: пока линия под напряжением, тушение малоэффективно.']);
+ else if(rs.t.temp>=2)st.push(['Отключите источник нагрева',`Температура ${p.temp} °C в зоне горения ускоряет прогрев материала.`]);
+ if(rs.t.o2===3||rs.t.flow===3)st.push(['Снизьте приток кислорода','Остановите вентиляцию сектора и подачу O₂, перекройте воздуховоды.']);
+ if(v!=='low')st.push(SECACT[sid]);
+ if(rs.level==='high')st.push(['Изолируйте очаг','Отделите горючие материалы от очага, не допускайте переноса пламени в соседние сектора.']);
+ if(v!=='low')st.push(['Примените подходящий способ тушения',p.material==='wire_insulation'||sid==='ep'?'Для электрооборудования — только неводное средство.':'Выберите средство по типу материала.']);
+ if(rs.extLevel==='high'&&v!=='low')st.push(['Не снимайте наблюдение после срыва пламени','Пламя нестабильно: возможно повторное воспламенение.']);
+ if(v==='low')st.push(['Продолжайте наблюдение','Условия в секторе не поддерживают развитие пламени, действий не требуется.']);
+ st.push(['Подтвердите приём отчёта на Земле','Отчёт передаётся автоматически; сообщите о принятых мерах.']);
+ return {intro:`Сектор ${sec.code}: ${VERD[v].toLowerCase()}. RiskScore ${rs.risk} из 16, ExtinctionScore ${rs.ext} из 8. Рекомендации подготовлены ИИ-модулем (макет генерации) и требуют согласования с бортовыми протоколами.`,steps:st.map(([title,detail],i)=>({n:String(i+1).padStart(2,'0'),title,detail}))};}
+
+class Component extends DCLogic {
+  constructor(props){super(props);
+    let hist=[];try{const h=JSON.parse(localStorage.getItem('xsci.hist.v3'));if(Array.isArray(h))hist=h.filter(x=>x&&SEC[x.sector]&&x.p&&x.p.material&&MAT[x.p.material]);}catch(e){}
+    this.state={tab:'overview',cur:null,modal:null,repId:null,p:{...EMPTY},hist,activeId:hist.length?hist[hist.length-1].id:null,running:false,dsMat:'all',dsMis:false,d0:'',k:'',photo:null,ann:{size:'',bright:'',shape:''}};
+  }
+  mk(p,id,ts,sector){const s=score(p);return {id,ts,sector,p:{...p},risk:s.risk,ext:s.ext,level:s.level,extLevel:s.extLevel,v:verdictKey(s),conf:confOf(p),sent:null};}
+  persist(h){try{localStorage.setItem('xsci.hist.v3',JSON.stringify(h));}catch(e){}}
+  queueSend(id){const t=setTimeout(()=>{this.setState(s=>{const hist=s.hist.map(h=>h.id===id&&!h.sent?{...h,sent:now()}:h);this.persist(hist);return {hist};});},2500);(this._tm=this._tm||[]).push(t);}
+  componentDidMount(){this._k=e=>{if(e.key==='Escape'&&this.state.modal){this.setState({modal:null});return;}if((e.ctrlKey||e.metaKey)&&e.key==='Enter'&&this.state.tab==='analysis'&&!this.state.modal){e.preventDefault();this.analyze();}};window.addEventListener('keydown',this._k);this.state.hist.filter(h=>!h.sent).forEach(h=>this.queueSend(h.id));}
+  componentWillUnmount(){window.removeEventListener('keydown',this._k);clearTimeout(this._t);(this._tm||[]).forEach(clearTimeout);}
+  setP(patch){this.setState(s=>({p:{...s.p,...patch}}));}
+  inp(key){return e=>this.setP({[key]:e.target.value});}
+  status(p){const o={};
+    o.material=!p.material?'empty':(p.material==='other'&&!p.desc.trim()?'empty':'ok');
+    o.gravity=p.gravity?'ok':'empty';o.sector=this.state.cur?'ok':'empty';
+    for(const k of Object.keys(RNG)){const v=pn(p[k]);o[k]=p[k]===''?'empty':(isNaN(v)||v<RNG[k][0]||v>RNG[k][1]?'bad':'ok');}
+    return o;}
+  analyze(){const {p,running}=this.state;if(running)return;const s=this.status(p);if(Object.values(s).some(v=>v!=='ok'))return;
+    const np=toNum(p),sec=this.state.cur;this.setState({running:true});
+    this._t=setTimeout(()=>{const st=this.state,id=st.hist.reduce((m,h)=>Math.max(m,h.id),0)+1,ent=this.mk(np,id,now(),sec),hist=[...st.hist,ent].slice(-100);this.persist(hist);this.setState({hist,activeId:id,repId:id,running:false,modal:ent.v==='high'?{id,view:'alert'}:st.modal});this.queueSend(id);},650);}
+  sigOf(level){const mono=(this.props.signalColors??'Сигнальные')==='Монохром';
+    const S=mono?{low:['var(--color-accent-300)','var(--color-accent-100)','var(--color-accent-700)'],medium:['var(--color-accent-500)','var(--color-accent-200)','var(--color-accent-800)'],high:['var(--color-accent-700)','var(--color-accent-300)','var(--color-accent-900)']}
+      :{low:['oklch(0.74 0.08 155)','oklch(0.95 0.025 155)','oklch(0.42 0.07 155)'],medium:['oklch(0.83 0.09 88)','oklch(0.96 0.035 90)','oklch(0.46 0.08 75)'],high:['oklch(0.70 0.11 30)','oklch(0.95 0.025 30)','oklch(0.46 0.12 30)']};
+    const [fill,tint,ink]=S[level];return {fill,tint,ink};}
+  explain(p,s){const t=s.t,parts=[];
+    if(t.mat===3)parts.push(`${MAT[p.material].l.toLowerCase()} — легковоспламеняемый материал`);
+    if(t.o2===3)parts.push(`кислород выше нормы (${f1(p.o2)} %)`);
+    if(t.flow===3)parts.push(`поток ${f1(p.flow)} см/с активно подпитывает пламя`);
+    if(t.temp>=2)parts.push(`высокая температура в зоне горения (${p.temp} °C)`);
+    if(t.time>=2)parts.push(`длительное горение (${p.time} с)`);
+    if(t.grav===1)parts.push('микрогравитация повышает неопределённость поведения пламени');
+    const why=parts.length?`Риск повышают: ${parts.join('; ')}.`:'Все составляющие на минимальных значениях — условия не поддерживают развитие пламени.';
+    const e=[];if(t.od>=2)e.push(`недостаток кислорода (${f1(p.o2)} %)`);if(t.lf>=1)e.push(p.flow===0?'отсутствие потока':'слабый поток');if(t.th>=2)e.push(`тонкий материал (${f1(p.thickness)} мм)`);
+    return {why,whyExt:`Затухание: ${LVE[s.extLevel].toLowerCase()} вероятность${e.length?' — '+e.join(', '):', факторов затухания нет'}.`};}
+  recs(p,s,sig){const r=[];
+    if(p.material==='wire_insulation')r.push(['Обесточьте линию и отключите источник нагрева','Провод нагревается током — без обесточивания тушение неэффективно']);
+    else if(s.t.temp>=2)r.push(['Отключите источник нагрева',`Температура ${p.temp} °C ускоряет прогрев материала`]);
+    if(s.t.o2===3||s.t.flow===3)r.push(['Снизьте доступ кислорода','Остановите вентиляцию модуля и подачу O₂ в зону']);
+    if(s.level==='high')r.push(['Изолируйте материал','Отделите очаг от соседних горючих объектов']);
+    if(s.level!=='low')r.push(['Примените подходящий способ тушения',p.material==='wire_insulation'?'Для электрооборудования — неводное средство':'Выбор средства — по типу материала']);
+    if(!r.length)r.push(['Продолжайте наблюдение','Условия не поддерживают развитие пламени']);
+    return r.slice(0,3).map(([title,note],i)=>({n:String(i+1).padStart(2,'0'),title,note,weight:i===0?600:500,numColor:i===0?sig.ink:'var(--color-neutral-700)'}));}
+  renderVals(){
+    const st=this.state,p=st.p,running=st.running,showContrib=this.props.showContrib??true;
+    const ss=this.status(p),keys=Object.keys(NAMES),filled=keys.filter(k=>ss[k]==='ok'),complete=filled.length===8,anyBad=Object.values(ss).includes('bad');
+    const missing=keys.filter(k=>ss[k]!=='ok').map(k=>NAMES[k].toLowerCase());
+    // partial live contributions: only for valid fields
+    const N={material:p.material,thickness:pn(p.thickness),o2:pn(p.o2),flow:pn(p.flow),temp:pn(p.temp),time:pn(p.time),gravity:p.gravity};
+    const tmp=score({material:p.material||'other',thickness:ss.thickness==='ok'?N.thickness:1,o2:ss.o2==='ok'?N.o2:21,flow:ss.flow==='ok'?N.flow:1,temp:ss.temp==='ok'?N.temp:20,time:ss.time==='ok'?N.time:0,gravity:p.gravity||'earth'}).t;
+    const T={mat:ss.material==='ok'?tmp.mat:null,th:ss.thickness==='ok'?tmp.th:null,o2:ss.o2==='ok'?tmp.o2:null,od:ss.o2==='ok'?tmp.od:null,flow:ss.flow==='ok'?tmp.flow:null,lf:ss.flow==='ok'?tmp.lf:null,temp:ss.temp==='ok'?tmp.temp:null,time:ss.time==='ok'?tmp.time:null,grav:ss.gravity==='ok'?tmp.grav:null};
+    const MISS={t:'не заполнено',c:'var(--color-neutral-700)'},BADC={t:'вне диапазона',c:'var(--color-neutral-700)'};
+    const cell=(k,txt)=>ss[k]==='ok'?{t:showContrib?txt:'',c:'var(--color-accent-800)'}:(ss[k]==='bad'?BADC:MISS);
+    const cm={sec:ss.sector==='ok'?{t:SEC[st.cur].code,c:'var(--color-accent-800)'}:MISS,mat:cell('material',`R +${T.mat}`),th:cell('thickness',`E +${T.th}`),o2:cell('o2',`R +${T.o2} · E +${T.od}`),flow:cell('flow',`R +${T.flow} · E +${T.lf}`),grav:cell('gravity',`R +${T.grav}`),temp:cell('temp',`R +${T.temp}`),time:cell('time',`R +${T.time}`)};
+    const act=st.hist.find(h=>h.id===st.activeId)||null,hasResult=!!act;
+    const segA=on=>({bg:on?'var(--color-accent-100)':'transparent',fg:on?'var(--color-accent-900)':'var(--color-text)',bc:on?'var(--color-accent)':'var(--color-divider)'});
+    const bd={},sl={},so={},er={};
+    for(const k of Object.keys(RNG)){bd[k]=ss[k]==='bad'?'var(--color-neutral-500)':'var(--color-divider)';const v=pn(p[k]);sl[k]=isNaN(v)?SLMIN[k]:v;so[k]=ss[k]==='empty'?.45:1;er[k]=ss[k]==='bad';}
+    const tabs=[['analysis','Анализ',''],['data','Набор данных','30'],['rules','Правила','13'],['models','Модели','3']].map(([k,l,c])=>({label:l,count:c,onClick:()=>this.setState({tab:k}),bg:st.tab===k?'var(--color-surface)':'transparent',sh:st.tab===k?'0 1px 2px rgba(70,55,40,.12)':'none'}));
+    const matOpts=MATS.map(([c,l,r])=>({label:l,risk:r,...segA(p.material===c),onClick:()=>this.setP({material:c})}));
+    const flowModes=[['simple','Простой'],['precise','Точный']].map(([k,l])=>{const on=p.flowMode===k;return {label:l,bg:on?'var(--color-surface)':'transparent',sh:on?'0 1px 2px rgba(70,55,40,.12)':'none',onClick:()=>this.setP(k==='simple'?{flowMode:k,flow:FLOWS.some(f=>f[2]===pn(p.flow))?p.flow:''}:{flowMode:k})};});
+    const flowOpts=FLOWS.map(([k,l,v])=>({label:l,v,...segA(pn(p.flow)===v&&p.flow!==''),onClick:()=>this.setP({flow:String(v)})}));
+    const gravOpts=[['earth','Земля'],['microgravity','Микрогравитация']].map(([k,l])=>({label:l,...segA(p.gravity===k),onClick:()=>this.setP({gravity:k})}));
+    const checklist=keys.map(k=>({name:NAMES[k],dot:ss[k]==='ok'?'var(--color-accent-700)':'var(--color-neutral-400)',bg:ss[k]==='ok'?'var(--color-accent-100)':'transparent',
+      val:ss[k]==='ok'?(k==='sector'?SEC[this.state.cur].code+' · '+SEC[this.state.cur].name:k==='material'?MAT[p.material].l:k==='gravity'?(p.gravity==='earth'?'Земля':'микрогравитация'):p[k]+UNITS[k]):(ss[k]==='bad'?'вне диапазона':'не заполнено')}));
+    const base={filledCount:filled.length,checklist,hasResult,noResult:!hasResult};
+    // result
+    let R={};
+    if(act){
+      const rp=act.p,rs=score(rp),sig=this.sigOf(rs.level);
+      const form=toForm(rp);const stale=['material','thickness','o2','flow','gravity','temp','time'].some(k=>form[k]!==p[k])||act.sector!==st.cur;
+      const {why,whyExt}=this.explain(rp,rs);
+      const cells=(v,max)=>Array.from({length:max},(_,i)=>({bg:i<v?'var(--color-accent-700)':'var(--color-neutral-300)'}));
+      const riskRows=[['Материал','MaterialRisk',MAT[rp.material].l,rs.t.mat,3],['Кислород','OxygenRisk',f1(rp.o2)+' %',rs.t.o2,3],['Поток воздуха','FlowRisk',f1(rp.flow)+' см/с',rs.t.flow,3],['Температура','TemperatureRisk',rp.temp+' °C',rs.t.temp,3],['Время горения','TimeRisk',rp.time+' с',rs.t.time,3],['Гравитация','GravityRisk',rp.gravity==='earth'?'Земля':'микрогравитация',rs.t.grav,1]].map(([name,code,input,v,max])=>({name,code,input,v,cells:cells(v,max)}));
+      const extRows=[['Дефицит O₂','OxygenDeficit',f1(rp.o2)+' %',rs.t.od,3],['Слабый поток','LowFlowPenalty',f1(rp.flow)+' см/с',rs.t.lf,2],['Толщина','ThicknessBonus',f1(rp.thickness)+' мм',rs.t.th,3]].map(([name,code,input,v,max])=>({name,code,input,v,cells:cells(v,max)}));
+      const zone=n=>n<=3?'low':n<=6?'medium':'high';
+      const riskCells=Array.from({length:14},(_,i)=>{const n=i+3,z=this.sigOf(zone(n));return {bg:n<=rs.risk?z.fill:z.tint};});
+      const extCells=Array.from({length:9},(_,i)=>({bg:i<=rs.ext-1?'var(--color-accent-500)':(i<2?'var(--color-accent-100)':i<4?'var(--color-accent-200)':'var(--color-accent-300)')}));
+      const c=CARDS[rp.material];
+      const notes=[];
+      if([16,18,19,21].includes(rp.o2)||(rp.o2>18&&rp.o2<19))notes.push({ref:'16.1',text:`O₂ = ${f1(rp.o2)} % на неопределённой границе: OxygenRisk = ${rs.t.o2}, OxygenDeficit = ${rs.t.od}.`});
+      if([1,5,15].includes(rp.flow))notes.push({ref:'16.1',text:`Поток ${f1(rp.flow)} см/с на границе диапазонов: FlowRisk = ${rs.t.flow}, LowFlowPenalty = ${rs.t.lf}.`});
+      if([50,100,200].includes(rp.temp))notes.push({ref:'16.1',text:`Температура ${rp.temp} °C на границе: TemperatureRisk = ${rs.t.temp}.`});
+      if([10,30,60].includes(rp.time))notes.push({ref:'16.1',text:`Время ${rp.time} с на границе: TimeRisk = ${rs.t.time}.`});
+      if([0.5,2].includes(rp.thickness))notes.push({ref:'16.1',text:`Толщина ${f1(rp.thickness)} мм на границе: ThicknessBonus = ${rs.t.th}.`});
+      if(rp.material==='other')notes.push({ref:'16.6',text:'«Другое»: базовый риск 2, описание в расчёте не учитывается.'});
+      notes.push({ref:'16.4',text:'Уровень «низкий» достижим только при RiskScore = 3 — шкала смещена к «высокому».'});
+      notes.push({ref:'—',text:'Гравитация учитывается как категория. Прогноз по уровню g и размеру пламени не строится.'});
+      const bnd=notes.filter(n=>n.ref==='16.1').length;
+      const stab=rs.ext<=1?2:(rs.ext>=4?-1:0),danger=rs.risk+stab;
+      const vKey=danger>=10?'high':danger>=6?'medium':'low';
+      const vSig=this.sigOf(vKey),VRD={low:'Безопасно',medium:'Требует внимания',high:'Опасно'};
+      const SUB={low:'условия не поддерживают развитие пламени',medium:'возможно развитие или нестабильное горение',high:'высокая вероятность быстрого распространения'};
+      let conf=94-bnd*8-(rp.material==='other'?14:0)-((rp.o2>30||rp.flow>15)?10:0);conf=Math.max(45,Math.min(94,conf));
+      const cNote=[];if(bnd)cNote.push(`${bnd} знач. на неопределённых границах (16.1)`);if(rp.material==='other')cNote.push('свойства материала не заданы');if(rp.o2>30||rp.flow>15)cNote.push('значения вне проверенных диапазонов NASA (16.13)');
+      const ch=(v,max)=>Array.from({length:max},(_,i)=>({bg:i<v?'var(--color-accent-700)':'var(--color-neutral-300)'}));
+      const aiSum=rs.level==='high'&&rs.extLevel==='high'
+        ? `Горение нестабильно: условия одновременно поддерживают быстрое распространение и срыв пламени. Нужен контроль — после срыва возможно повторное воспламенение.`
+        : rs.level==='high'
+          ? `Сочетание материала, кислорода и потока создаёт условия для быстрого распространения пламени. Затухание маловероятно — требуется вмешательство.`
+          : rs.level==='medium'
+            ? `Отдельные параметры повышают опасность, но условия для устойчивого быстрого горения не сложились. Достаточно наблюдения и устранения ведущего фактора.`
+            : `Все составляющие на минимальных значениях. Угрозы для модуля при текущих показаниях нет.`;
+      const ai={model:'модель состояния · v0.1',verdict:VRD[vKey],subtitle:SUB[vKey],fill:vSig.fill,ink:vSig.ink,summary:aiSum,
+        conf:String(conf),confW:conf+'%',confNote:cNote.length?'Снижена: '+cNote.join('; ')+'.':'Все показания в определённых диапазонах.',
+        channels:[{name:'Материал',val:MAT[rp.material].l,cells:ch(rs.t.mat,3)},{name:'Толщина',val:f1(rp.thickness)+' мм',cells:ch(rs.t.th,3)},
+          {name:'Кислород',val:f1(rp.o2)+' %',cells:ch(rs.t.o2,3)},{name:'Поток воздуха',val:f1(rp.flow)+' см/с',cells:ch(rs.t.flow,3)},
+          {name:'Температура',val:rp.temp+' °C',cells:ch(rs.t.temp,3)},{name:'Время горения',val:rp.time+' с',cells:ch(rs.t.time,3)},
+          {name:'Гравитация',val:rp.gravity==='earth'?'Земля':'μg',cells:ch(rs.t.grav,1)}]};
+      R={ai,res:{id:pad(act.id),ts:act.ts,sector:SEC[act.sector].code+' · '+SEC[act.sector].name,summary:`${MAT[rp.material].l} ${f1(rp.thickness)} мм · O₂ ${f1(rp.o2)} % · ${f1(rp.flow)} см/с · ${rp.temp} °C · ${rp.time} с · ${rp.gravity==='earth'?'Земля':'микрогравитация'}`,
+        risk:rs.risk,ext:rs.ext,levelRu:LV[rs.level],extRu:LVE[rs.extLevel],why,whyExt,combo:rs.level==='high'&&rs.extLevel==='high',recs:this.recs(rp,rs,sig),riskRows,extRows},
+        stale,sig,riskCells,extCells,card:{title:MAT[rp.material].l,flam:`MaterialRisk ${MAT[rp.material].r} / 3`,body:c.body,facts:c.facts.map(([k,v])=>({k,v:rp.material==='other'&&k==='Описание'?(rp.desc||'—'):v}))},notes,notesCount:String(notes.length)};
+    }
+    const hist=st.hist.slice().reverse().map(h=>({id:pad(h.id),ts:h.ts,risk:h.risk,ext:h.ext,fill:this.sigOf(h.level).fill,bg:act&&h.id===act.id?'var(--color-accent-100)':'transparent',
+      line:`${SEC[h.sector].code} · ${MAT[h.p.material].l} ${f1(h.p.thickness)} мм · O₂ ${f1(h.p.o2)} · ${f1(h.p.flow)} см/с · ${h.p.gravity==='earth'?'Земля':'μg'}`,
+      onClick:()=>{if(!this.state.running)this.setState({activeId:h.id,cur:h.sector,p:toForm(h.p)});}}));
+    // dataset
+    const dsList=DS.filter(r=>(st.dsMat==='all'||r.p.material===st.dsMat)&&(!st.dsMis||!r.ok));
+    const dsRows=dsList.map(r=>({n:r.n,mat:MAT[r.p.material].l,th:f1(r.p.thickness),o2:r.p.o2,flow:r.p.flow,temp:r.p.temp,time:r.p.time,size:r.size,rate:r.rate,
+      riskLbl:LV[r.risk].toLowerCase(),extLbl:LVE[r.ext].toLowerCase(),res:r.res,fill:this.sigOf(r.risk).fill,
+      check:r.ok?'совпадает':`по формулам: затухание ${LVE[r.s.extLevel].toLowerCase()} (E=${r.s.ext})`,checkColor:r.ok?'var(--color-neutral-700)':'oklch(0.46 0.1 30)',bg:r.ok?'transparent':'oklch(0.97 0.015 30)',
+      onLoad:()=>this.setState({tab:'analysis',p:toForm(r.p)})}));
+    const dsMatFilter=[['all','Все'],...MATS.filter(m=>m[0]!=='other').map(m=>[m[0],m[1]])].map(([k,l])=>({label:l,...segA(st.dsMat===k),onClick:()=>this.setState({dsMat:k})}));
+    const mis=DS.filter(r=>!r.ok).length;
+    const dsFacts=[{v:'30',k:'строк · цель 50–100'},{v:'0',k:'строк с gravity = earth'},{v:'1',k:'класс risk_level (только high)'},{v:String(mis),k:'расхождения с формулами',color:mis?'oklch(0.46 0.1 30)':'var(--color-text)'},{v:'30',k:'недопустимый data_source',color:'oklch(0.46 0.1 30)'}];
+    // rules (highlight only for valid fields)
+    const B=(range,score,on)=>({range,score,bg:on?'var(--color-accent-100)':'transparent',dot:on?'var(--color-accent-700)':'var(--color-neutral-300)'});
+    const o=ss.o2==='ok'?N.o2:NaN,fl=ss.flow==='ok'?N.flow:NaN;
+    const rules=[
+      {name:'Материал',code:'MaterialRisk',input:ss.material==='ok'?MAT[p.material].l:'—',bands:[B('бумага, пластик, изоляция',3,T.mat===3),B('ткань, дерево, другое',2,T.mat===2)]},
+      {name:'Кислород',code:'OxygenRisk',input:ss.o2==='ok'?f1(o)+' %':'—',bands:[B('< 16 %',0,T.o2===0),B('16–18 %',1,T.o2===1),B('18–21 % (разрыв 18–19)',2,T.o2===2),B('> 21 %',3,T.o2===3)]},
+      {name:'Поток',code:'FlowRisk',input:ss.flow==='ok'?f1(fl)+' см/с':'—',bands:[B('= 0',1,fl===0),B('0–5 см/с',2,fl>0&&fl<=5),B('5–15 см/с',3,fl>5&&fl<=15),B('15–30 см/с',2,fl>15)]},
+      {name:'Температура',code:'TemperatureRisk',input:ss.temp==='ok'?N.temp+' °C':'—',bands:[B('20–50 °C',0,T.temp===0),B('50–100 °C',1,T.temp===1),B('100–200 °C',2,T.temp===2),B('> 200 °C',3,T.temp===3)]},
+      {name:'Время',code:'TimeRisk',input:ss.time==='ok'?N.time+' с':'—',bands:[B('0–10 с',0,T.time===0),B('10–30 с',1,T.time===1),B('30–60 с',2,T.time===2),B('> 60 с',3,T.time===3)]},
+      {name:'Гравитация',code:'GravityRisk',input:ss.gravity==='ok'?(p.gravity==='earth'?'Земля':'μg'):'—',bands:[B('микрогравитация',1,T.grav===1),B('Земля',0,T.grav===0)]},
+      {name:'Дефицит O₂',code:'OxygenDeficit',input:ss.o2==='ok'?f1(o)+' %':'—',bands:[B('< 16 %',3,T.od===3),B('16–18 %',2,T.od===2),B('18–19 %',1,T.od===1),B('≥ 19 %',0,T.od===0)]},
+      {name:'Слабый поток',code:'LowFlowPenalty',input:ss.flow==='ok'?f1(fl)+' см/с':'—',bands:[B('< 1 см/с',2,T.lf===2),B('1–3 см/с',1,T.lf===1),B('≥ 3 см/с',0,T.lf===0)]},
+      {name:'Толщина',code:'ThicknessBonus',input:ss.thickness==='ok'?f1(N.thickness)+' мм':'—',bands:[B('< 0.2 мм',3,T.th===3),B('0.2–0.5 мм',2,T.th===2),B('0.5–2 мм',1,T.th===1),B('> 2 мм',0,T.th===0)]}];
+    let totRisk='—',totExt='—';
+    if(complete){const s=score(toNum(p));totRisk=String(s.risk);totExt=String(s.ext);}
+    const issues=ISSUES.map(([id,tt,done])=>({id,t:tt,s:done?'решён':'открыт',color:done?'var(--color-neutral-700)':'var(--color-text)',bg:done?'var(--color-neutral-200)':'var(--color-accent-100)'}));
+    const cant=running||!complete;
+    // models tab
+    const classes=new Set(DS.map(r=>r.risk)),srcOk=0;
+    const ml={checks:[
+      {name:'Строк в наборе',v:'30 / 50',note:'минимум для обучения по разделу 13 не достигнут',color:'oklch(0.46 0.1 30)',bg:'oklch(0.97 0.015 30)'},
+      {name:'Классов risk_level',v:classes.size+' / 3',note:'все строки — high, классификатор обучить нельзя (16.4)',color:'oklch(0.46 0.1 30)',bg:'oklch(0.97 0.015 30)'},
+      {name:'Корректный data_source',v:srcOk+' / 30',note:'значение simulated_rule_based отсутствует в схеме 12.1',color:'oklch(0.46 0.1 30)',bg:'oklch(0.97 0.015 30)'},
+      {name:'Строк с gravity = earth',v:'0 / 30',note:'признак не варьируется, вклад оценить невозможно',color:'var(--color-neutral-800)',bg:'transparent'}],
+      blocker:'Обучение недоступно: набор данных не проходит три проверки из четырёх.',
+      outputs:[{name:'Прогноз уровня риска',note:'выдаётся только обученной моделью'},{name:'Прогноз вероятности затухания',note:'выдаётся только обученной моделью'}]};
+    const d0=pn(st.d0),K=pn(st.k);
+    const okD0=st.d0!==''&&!isNaN(d0)&&d0>=0.1&&d0<=5,okK=st.k!==''&&!isNaN(K)&&K>=0.01&&K<=5;
+    const ready=okD0&&okK;let d2x={};
+    if(ready){const tB=d0*d0/K,xE=624,sq=d0*d0;
+      let dp='';for(let i=0;i<=40;i++){const t=tB*i/40,d=Math.sqrt(Math.max(0,sq-K*t));dp+=(i?'L':'M')+(52+(xE-52)*i/40).toFixed(1)+' '+(192-d/d0*172).toFixed(1);}
+      d2x={tBurn:tB.toFixed(1)+' с',tbColor:'var(--color-text)',yMax:sq.toFixed(2),xMax:tB.toFixed(1),xEnd:String(xE),dPath:dp};}
+    else d2x={tBurn:'—',tbColor:'var(--color-neutral-700)',yMax:'',xMax:'',xEnd:'52',dPath:''};
+    const d2={d0:st.d0,k:st.k,ready,idle:!ready,...d2x,
+      missing:[{t:'перенос массы'},{t:'перенос компонентов'},{t:'уравнение энергии'},{t:'реакция'},{t:'излучение q_rad'},{t:'момент затухания'}]};
+    const ANN=[['size','Размер',['малое','среднее','большое']],['bright','Яркость',['тусклое','умеренное','яркое']],['shape','Форма',['вытянутое','округлое']]];
+    const hasPhoto=!!st.photo;
+    const ann=ANN.map(([k,name,opts])=>({name,opts:opts.map(l=>{const on=st.ann[k]===l;return {label:l,off:!hasPhoto,cursor:hasPhoto?'pointer':'not-allowed',
+      bg:on?'var(--color-accent-100)':'transparent',fg:hasPhoto?(on?'var(--color-accent-900)':'var(--color-text)'):'var(--color-neutral-500)',bc:on?'var(--color-accent)':'var(--color-divider)',
+      onClick:()=>this.setState(s=>({ann:{...s.ann,[k]:s.ann[k]===l?'':l}}))};})}));
+    const photo=st.photo?{has:true,url:st.photo.url,name:st.photo.name,size:st.photo.size}:{has:false,url:'',name:'',size:''};
+    const V=this.viewVals();
+    return {...base,...R,...V,isAnalysis:st.tab==='analysis',isData:st.tab==='data',isRules:st.tab==='rules',isModels:st.tab==='models',
+      ml,d2,onD0:e=>this.setState({d0:e.target.value}),onK:e=>this.setState({k:e.target.value}),
+      photo,ann,annNote:hasPhoto?'Наблюдения оператора. В расчёт риска и затухания не входят.':'Заполняется после загрузки снимка.',
+      onPhoto:e=>{const f=e.target.files&&e.target.files[0];if(!f)return;if(st.photo)URL.revokeObjectURL(st.photo.url);
+        this.setState({photo:{url:URL.createObjectURL(f),name:f.name,size:(f.size/1024).toFixed(0)+' КБ'},ann:{size:'',bright:'',shape:''}});},
+      clearPhoto:()=>{if(this.state.photo)URL.revokeObjectURL(this.state.photo.url);this.setState({photo:null,ann:{size:'',bright:'',shape:''}});},
+      p,cm,showContrib,running,formOpacity:running?.55:1,resOpacity:running?.4:1,matOpts,isOther:p.material==='other',onDesc:e=>this.setP({desc:e.target.value}),errDesc:p.material==='other'&&!p.desc.trim(),descBorder:'var(--color-divider)',
+      bd,sl,so,er,warnO2:ss.o2==='ok'&&N.o2<16,warnFlow0:ss.flow==='ok'&&N.flow===0,warnFlowHi:ss.flow==='ok'&&N.flow>15,
+      onThickness:this.inp('thickness'),onO2:this.inp('o2'),onFlow:this.inp('flow'),onTemp:this.inp('temp'),onTime:this.inp('time'),setAir:()=>this.setP({o2:'21'}),
+      flowModes,flowOpts,flowPrecise:p.flowMode==='precise',flowSimple:p.flowMode==='simple',gravOpts,
+      reset:()=>this.setState({p:{...EMPTY},activeId:null}),analyze:()=>this.analyze(),cantRun:cant,runBg:cant?'var(--color-neutral-300)':'var(--color-accent-700)',runFg:cant?'var(--color-neutral-700)':'#fff',runCursor:cant?'not-allowed':'pointer',
+      runLabel:running?'Расчёт…':'Анализ',
+      runHint:running?'Параметры зафиксированы до конца расчёта.':anyBad?'Есть значения вне допустимого диапазона. Расчёт недоступен.':!complete?`Не хватает: ${missing.join(', ')}. Без всех параметров оценка не выдаётся.`:(hasResult&&R.stale?'Форма изменена. Запустите анализ, чтобы обновить результат.':'Все параметры заданы.'),
+      hist,noHist:!st.hist.length,histCount:String(st.hist.length),exportCsv:()=>this.exportCsv(),
+      dsRows,dsMatFilter,dsFacts,dsShown:`показано ${dsRows.length} из 30`,toggleMismatch:()=>this.setState(s=>({dsMis:!s.dsMis})),mmBg:st.dsMis?'var(--color-accent-100)':'transparent',mmFg:st.dsMis?'var(--color-accent-900)':'var(--color-text)',mmBc:st.dsMis?'var(--color-accent)':'var(--color-divider)',
+      rules,totRisk,totExt,issues,issuesSummary:`${ISSUES.filter(i=>!i[2]).length} открыто · ${ISSUES.filter(i=>i[2]).length} решено`};
+  }
+  viewVals(){
+    const st=this.state,hist=st.hist,cur=st.cur,L={};hist.forEach(h=>{L[h.sector]=h;});
+    const stOf=id=>L[id]?L[id].v:'none',nA=Object.keys(L).length;
+    const FILL={none:['#ebe6e0','var(--color-neutral-700)','var(--color-neutral-400)'],low:['oklch(0.90 0.05 155)','oklch(0.32 0.07 155)','oklch(0.62 0.08 155)'],medium:['oklch(0.91 0.08 88)','oklch(0.34 0.08 75)','oklch(0.68 0.1 85)'],high:['oklch(0.5 0.17 28)','#fff','oklch(0.42 0.17 28)']};
+    const WORD={none:'нет данных',low:'норма',medium:'внимание',high:'опасно'};
+    const sentTxt=h=>h.sent?`Передан на Землю · ${h.sent}`:'В очереди на передачу';
+    const go=tab=>()=>this.setState({tab}),pick=id=>()=>this.setState({cur:id});
+    const dangers=SECT.filter(s=>stOf(s.id)==='high');
+    const T1=[['overview','Обзор',dangers.length?`${dangers.length} опасн.`:''],['map','Карта',''],['analysis','Анализ',''],['reports','Отчёты',hist.length?String(hist.length):'']];
+    const tabs=T1.map(([k,l,c])=>{const red=k==='overview'&&dangers.length;return {label:l,hasCount:!!c,count:c,cbg:red?'oklch(0.5 0.17 28)':'var(--color-neutral-300)',cfg:red?'#fff':'var(--color-neutral-800)',onClick:go(k),bg:st.tab===k?'var(--color-surface)':'transparent',sh:st.tab===k?'0 1px 2px rgba(70,55,40,.12)':'none'};});
+    const tabs2=[['data','Данные'],['rules','Правила'],['models','Модели']].map(([k,l])=>({label:l,onClick:go(k),bg:st.tab===k?'var(--color-neutral-200)':'transparent',fg:st.tab===k?'var(--color-text)':'var(--color-neutral-700)'}));
+    const mkMap=mini=>SECT.map(s=>{const k=stOf(s.id),f=FILL[k],on=cur===s.id,cx=s.x+s.w/2,cy=s.y+s.h/2;
+      return {x:s.x,y:s.y,w:s.w,h:s.h,code:s.code,name:s.name,word:WORD[k],bg:f[0],fg:f[1],sc:on?'var(--color-accent-900)':f[2],sw:on?4:1.5,cx,y1:mini?cy+9:cy-6,y2:cy+11,y3:cy+27,onClick:pick(s.id)};});
+    const legend=['none','low','medium','high'].map(k=>({label:{none:'Нет данных',low:'Безопасно',medium:'Внимание',high:'Опасно'}[k],bg:FILL[k][0],bc:FILL[k][2]}));
+    const secOpts=SECT.map(s=>{const on=cur===s.id;return {code:s.code,name:s.name,dot:DOT[stOf(s.id)],bg:on?'var(--color-accent-100)':'transparent',bc:on?'var(--color-accent)':'var(--color-divider)',onClick:pick(s.id)};});
+    const openEntry=(e,view)=>()=>this.setState({modal:{id:e.id,view}});
+    const loadEntry=e=>()=>this.setState({tab:'analysis',activeId:e.id,cur:e.sector,p:toForm(e.p)});
+    const latestDanger=dangers.map(s=>L[s.id]).sort((a,b)=>b.id-a.id)[0];
+    const tile=(label,v,color)=>({label,v:String(v),color:color||'var(--color-text)'});
+    let ov;
+    if(!cur){
+      const cnt=k=>SECT.filter(s=>stOf(s.id)===k).length,names=k=>SECT.filter(s=>stOf(s.id)===k).map(s=>s.code).join(', ');
+      ov={head:'Общая оценка корабля',title:'все сектора',cta:'Новый анализ',sectorData:false,noData:!nA,hasData:!!nA,noText:'Запустите анализ в любом секторе — результат появится здесь и окрасит сектор на карте.'};
+      if(nA){const worst=dangers.length?'high':cnt('medium')?'medium':'low',sg=this.sigOf(worst),cov=nA/SECT.length;
+        const conf=Math.round(Object.values(L).reduce((a,e)=>a+e.conf,0)/nA*(0.6+0.4*cov));
+        const sum=worst==='high'?`Опасность в секторах: ${names('high')}. ${cnt('medium')?`Внимания требуют: ${names('medium')}. `:''}Приоритет — нейтрализовать опасность в указанных секторах.`:worst==='medium'?`Критических секторов нет. Внимания требуют: ${names('medium')}.`:'Во всех проанализированных секторах условия безопасны.';
+        Object.assign(ov,{verdict:VERD[worst],subtitle:nA<SECT.length?`по ${nA} из ${SECT.length} секторов — картина неполная`:'по всем секторам',fill:sg.fill,ink:sg.ink,summary:sum,conf:String(conf),confW:conf+'%',
+          confNote:nA<SECT.length?'Снижена: проанализированы не все сектора.':'Проанализированы все сектора.',note:`Данные последних анализов по ${nA} из ${SECT.length} секторов.`,
+          tiles:[tile('Опасно',cnt('high'),cnt('high')?'oklch(0.46 0.15 28)':null),tile('Требуют внимания',cnt('medium')),tile('Безопасно',cnt('low')),tile('Нет данных',SECT.length-nA)]});}
+    }else{
+      const s=SEC[cur],e=L[cur];
+      ov={head:'Оценка сектора',title:`${s.code} · ${s.name}`,cta:'Анализ в секторе',sectorData:!!e,noData:!e,hasData:!!e,noText:`В секторе ${s.code} анализ ещё не проводился.`};
+      if(e){const rs=score(e.p),sg=this.sigOf(e.v),bn=bndCount(e.p);
+        Object.assign(ov,{verdict:VERD[e.v],subtitle:VSUBT[e.v],fill:sg.fill,ink:sg.ink,summary:aiSumOf(rs),conf:String(e.conf),confW:e.conf+'%',confNote:bn?`Снижена: ${bn} знач. на неопределённых границах (16.1).`:'Все показания в определённых диапазонах.',
+          note:`Анализ #${pad(e.id)} · ${e.ts}.`,tiles:[tile('RiskScore',`${rs.risk} / 16`),tile('ExtinctionScore',`${rs.ext} / 8`),tile('Риск',LV[rs.level]),tile('Затухание',LVE[rs.extLevel])],
+          openResult:loadEntry(e),openRecs:openEntry(e,'recs'),openRep:()=>this.setState({tab:'reports',repId:e.id})});}
+    }
+    const scopeChips=[{label:'Весь корабль',x:'',bg:!cur?'var(--color-accent-100)':'transparent',fg:!cur?'var(--color-accent-900)':'var(--color-text)',bc:!cur?'var(--color-accent)':'var(--color-divider)',onClick:()=>this.setState({cur:null})}];
+    if(cur)scopeChips.push({label:`${SEC[cur].code} · ${SEC[cur].name}`,x:'×',bg:'var(--color-accent-100)',fg:'var(--color-accent-900)',bc:'var(--color-accent)',onClick:()=>this.setState({cur:null})});
+    const secRows=SECT.map(s=>{const e=L[s.id],k=stOf(s.id),rs=e?score(e.p):null;return {code:s.code,name:s.name,verdict:e?VERD[k]:'Нет данных',dot:DOT[k],rs:e?`R${rs.risk} · E${rs.ext}`:'—',time:e?e.ts:'—',rep:e?(e.sent?'передан':'в очереди'):'—',bg:cur===s.id?'var(--color-accent-100)':'transparent',onClick:pick(s.id),onAnalyze:ev=>{ev.stopPropagation();this.setState({cur:s.id,tab:'analysis'});}};});
+    // map tab
+    let mp={none:true,has:false};
+    if(cur){const s=SEC[cur],e=L[cur],k=stOf(cur),rs=e?score(e.p):null,p=e&&e.p,sh=hist.filter(h=>h.sector===cur).slice().reverse().slice(0,5);
+      mp={none:false,has:true,code:s.code,name:s.name,desc:s.desc,verdict:e?VERD[k]:'Нет данных',dot:DOT[k],hasA:!!e,noA:!e,rs:e?`R${rs.risk} · E${rs.ext}`:'—',summary:e?aiSumOf(rs):'',
+        params:e?[{k:'Материал',v:MAT[p.material].l},{k:'Толщина',v:f1(p.thickness)+' мм'},{k:'Кислород',v:f1(p.o2)+' %'},{k:'Поток воздуха',v:f1(p.flow)+' см/с'},{k:'Температура',v:p.temp+' °C'},{k:'Время горения',v:p.time+' с'},{k:'Гравитация',v:p.gravity==='earth'?'Земля':'микрогравитация'}]:[],
+        hasHist:sh.length>0,hist:sh.map(h=>({id:pad(h.id),ts:h.ts,dot:DOT[h.v],verdict:VERD[h.v],onClick:loadEntry(h)}))};}
+    // reports
+    const rsel=hist.find(h=>h.id===st.repId)||hist[hist.length-1]||null;
+    const repList=hist.slice().reverse().map(h=>({no:'RPT-'+pad(h.id),ts:h.ts,code:SEC[h.sector].code,name:SEC[h.sector].name,verdict:VERD[h.v],dot:DOT[h.v],status:h.sent?'передан':'в очереди',bg:rsel&&h.id===rsel.id?'var(--color-accent-100)':'transparent',onClick:()=>this.setState({repId:h.id})}));
+    let rd={has:false};
+    if(rsel){const d=this.reportDoc(rsel,sentTxt(rsel));rd={has:true,...d,download:()=>this.downloadReport(d)};}
+    // analysis strip
+    const act=hist.find(h=>h.id===st.activeId);
+    const rep=act?{no:'RPT-'+pad(act.id),status:sentTxt(act),dot:act.sent?'var(--color-accent-700)':DOT.medium}:{no:'',status:'',dot:''};
+    // modal
+    let modal={};const me=st.modal&&hist.find(h=>h.id===st.modal.id);
+    if(me){const rs=score(me.p),sec=SEC[me.sector],rc=recSteps(me.p,rs,me.sector,me.v),ex=this.explain(me.p,rs),hi=me.v==='high';
+      modal={isAlert:st.modal.view==='alert',isRecs:st.modal.view==='recs',code:sec.code,name:sec.name,why:ex.why+' '+ex.whyExt,risk:rs.risk,ext:rs.ext,conf:me.conf,no:'RPT-'+pad(me.id),status:sentTxt(me),intro:rc.intro,steps:rc.steps,headBg:hi?'oklch(0.5 0.17 28)':'var(--color-accent-800)',headLabel:hi?'ОПАСНОСТЬ':VERD[me.v]};}
+    return {tabs,tabs2,isOverview:st.tab==='overview',isMap:st.tab==='map',isReports:st.tab==='reports',
+      hasDanger:dangers.length>0,dangerText:dangers.length===1?`Сектор ${dangers[0].code} · ${dangers[0].name}. Требуются немедленные действия.`:`Секторы: ${dangers.map(s=>s.code).join(', ')}. Требуются немедленные действия.`,
+      openDanger:()=>{if(latestDanger)this.setState({modal:{id:latestDanger.id,view:'recs'}});},
+      ov,scopeChips,mapMini:mkMap(true),mapFull:mkMap(false),legend,secOpts,secRows,mp,repList,rd,rep,modal,modalOpen:!!me,
+      goMap:()=>this.setState({tab:'map'}),startAnalysis:()=>this.setState({tab:'analysis'}),showOnOverview:()=>this.setState({tab:'overview'}),
+      openRecs:act?openEntry(act,'recs'):()=>{},openRep:act?()=>this.setState({tab:'reports',repId:act.id}):()=>{},
+      closeModal:()=>this.setState({modal:null}),toRecs:()=>this.setState(s=>({modal:{...s.modal,view:'recs'}})),modalToReport:()=>this.setState(s=>({modal:null,tab:'reports',repId:s.modal.id}))};
+  }
+  reportDoc(h,statusTxt){const rs=score(h.p),sec=SEC[h.sector],rc=recSteps(h.p,rs,h.sector,h.v),p=h.p;
+    const params=`${MAT[p.material].l}, ${f1(p.thickness)} мм; O₂ ${f1(p.o2)} %; поток ${f1(p.flow)} см/с; ${p.temp} °C; ${p.time} с; ${p.gravity==='earth'?'Земля':'микрогравитация'}.`;
+    return {no:'RPT-'+pad(h.id),title:`${sec.code} · ${sec.name}`,verdict:VERD[h.v],dot:DOT[h.v],
+      meta:[{k:'Сектор',v:`${sec.code} · ${sec.name}`},{k:'Сформирован',v:h.ts},{k:'Автор',v:'ИИ-модуль состояния (макет генерации)'},{k:'Передача',v:statusTxt},{k:'Канал связи',v:'макет, реальной передачи нет'},{k:'Анализ',v:'#'+pad(h.id)}],
+      sections:[{h:'Заключение',t:`${VERD[h.v]}. ${aiSumOf(rs)}`},{h:'Входные параметры',t:params},{h:'Оценки',t:`RiskScore ${rs.risk} из 16 (${LV[rs.level].toLowerCase()}); ExtinctionScore ${rs.ext} из 8 (${LVE[rs.extLevel].toLowerCase()}). Уверенность оценки ${h.conf} %.`},{h:'Ограничения',t:'Оценка построена по правилам раздела 9; обученная ML-модель не подключена. Диапазоны NASA не проверены. Гравитация учитывается как категория. Рекомендации носят рекомендательный характер.'}],
+      intro:rc.intro,steps:rc.steps};}
+  downloadReport(d){const t=[`ОТЧЁТ ${d.no}`,`Сектор: ${d.title}`,`Заключение: ${d.verdict}`,'',...d.meta.map(m=>`${m.k}: ${m.v}`),'',...d.sections.flatMap(s=>[s.h.toUpperCase(),s.t,'']),'РЕКОМЕНДАЦИИ',d.intro,...d.steps.map(s=>`${s.n}. ${s.title} — ${s.detail}`)].join('\n');
+    const b=new Blob([t],{type:'text/plain;charset=utf-8'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=d.no+'.txt';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}
+  exportCsv(){const h='id,time,sector,material_type,thickness_mm,gravity,oxygen_percent,air_flow_cm_s,temperature_C,time_s,risk_score,risk_level,extinction_score,extinction_probability';
+    const rows=this.state.hist.map(r=>[r.id,r.ts,r.sector,r.p.material,r.p.thickness,r.p.gravity,r.p.o2,r.p.flow,r.p.temp,r.p.time,r.risk,r.level,r.ext,r.extLevel].join(','));
+    const b=new Blob([[h,...rows].join('\n')],{type:'text/csv'}),a=document.createElement('a');a.href=URL.createObjectURL(b);a.download='xscience_history.csv';a.click();setTimeout(()=>URL.revokeObjectURL(a.href),1000);}
+}
+</script>
+</body>
+</html>

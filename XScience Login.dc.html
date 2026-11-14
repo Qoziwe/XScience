@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="stylesheet" href="industry.css">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap&subset=cyrillic">
+<style>
+:root{--color-bg:#f5f2ee;--color-surface:#fbf9f6;--color-text:#383b3f;--color-divider:#e6e1da;--color-neutral-100:#f1ede8;--color-neutral-200:#ebe6e0;--color-neutral-300:#ddd7cf;--color-neutral-400:#c9c3bb;--color-neutral-500:#aaa59e;--color-neutral-600:#85817b;--color-neutral-700:#68645f;--color-neutral-800:#4d4a46;--color-accent:#86a3bd;--color-accent-100:#e8eef3;--color-accent-200:#d9e3eb;--color-accent-300:#c5d4e0;--color-accent-500:#92aec6;--color-accent-700:#4f7090;--color-accent-800:#3f5d7a;--color-accent-900:#324b63}
+body{margin:0;background:var(--color-bg);color:var(--color-text);font-family:"IBM Plex Sans",system-ui,sans-serif;font-size:14px;line-height:1.5;-webkit-font-smoothing:antialiased}
+a{color:var(--color-accent-700)}a:hover{color:var(--color-accent-900)}
+button:focus-visible,input:focus-visible,a:focus-visible{outline:2px solid var(--color-accent);outline-offset:2px}
+</style>
+</helmet>
+<div style="min-height:100vh;display:flex;flex-direction:column">
+  <header style="display:flex;align-items:center;gap:10px;padding:18px 24px">
+    <div style="width:30px;height:30px;border-radius:9px;background:var(--color-accent-200);color:var(--color-accent-900);display:grid;place-items:center;font:600 14px 'IBM Plex Sans',sans-serif">X</div>
+    <div style="display:flex;flex-direction:column;line-height:1.2">
+      <span style="font-weight:600;font-size:16px">XScience</span>
+      <span style="font-size:12px;color:var(--color-neutral-700)">Пожарная обстановка · микрогравитация</span>
+    </div>
+  </header>
+
+  <main style="flex:1;display:grid;place-items:center;padding:16px 20px 40px">
+    <div style="width:100%;max-width:400px;display:flex;flex-direction:column;gap:16px">
+
+      <sc-if value="{{ isLogin }}" hint-placeholder-val="{{ true }}">
+      <form onSubmit="{{ submitLogin }}" style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:16px;box-shadow:0 1px 2px rgba(70,55,40,.04),0 8px 24px rgba(70,55,40,.05);padding:28px;display:flex;flex-direction:column;gap:18px">
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <h1 style="margin:0;font-weight:600;font-size:22px">Вход в систему</h1>
+          <p style="margin:0;font-size:13px;color:var(--color-neutral-700)">Доступ только для сотрудников. Учётную запись выдаёт администратор.</p>
+        </div>
+
+        <sc-if value="{{ errorMsg }}" hint-placeholder-val="{{ false }}">
+          <div role="alert" style="padding:10px 12px;border-radius:10px;background:oklch(0.96 0.02 30);color:oklch(0.42 0.1 30);font-size:13px">{{ errorMsg }}</div>
+        </sc-if>
+
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <label for="login" style="font-weight:500;font-size:13px">Логин</label>
+          <input id="login" type="text" autocomplete="username" autocapitalize="off" spellcheck="false" value="{{ login }}" onInput="{{ onLogin }}" disabled="{{ locked }}" style="height:42px;padding:0 12px;font:14px 'IBM Plex Sans',sans-serif;background:#fffdfb;border:1px solid var(--color-divider);border-radius:10px;color:var(--color-text)">
+        </div>
+
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <div style="display:flex;align-items:baseline">
+            <label for="pwd" style="font-weight:500;font-size:13px">Пароль</label>
+            <a href="#" onClick="{{ forgot }}" style="margin-left:auto;font-size:12px">Забыли пароль?</a>
+          </div>
+          <div style="position:relative;display:flex">
+            <input id="pwd" type="{{ pwdType }}" autocomplete="current-password" value="{{ pwd }}" onInput="{{ onPwd }}" onKeyUp="{{ onCaps }}" onKeyDown="{{ onCaps }}" disabled="{{ locked }}" style="flex:1;min-width:0;height:42px;padding:0 64px 0 12px;font:14px 'IBM Plex Sans',sans-serif;background:#fffdfb;border:1px solid var(--color-divider);border-radius:10px;color:var(--color-text)">
+            <button type="button" onClick="{{ togglePwd }}" style="position:absolute;right:6px;top:6px;height:30px;padding:0 10px;border:0;border-radius:7px;background:transparent;font:500 12px 'IBM Plex Sans',sans-serif;color:var(--color-accent-800);cursor:pointer" style-hover="background:var(--color-accent-100)">{{ pwdToggleLabel }}</button>
+          </div>
+          <sc-if value="{{ caps }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:oklch(0.45 0.08 70)">Включён Caps Lock</span></sc-if>
+        </div>
+
+        <button type="submit" disabled="{{ cantSubmit }}" style="height:44px;border:0;border-radius:11px;background:{{ btnBg }};color:{{ btnFg }};font:600 15px 'IBM Plex Sans',sans-serif;cursor:{{ btnCursor }}" style-hover="filter:brightness(.95)">{{ btnLabel }}</button>
+
+        <sc-if value="{{ showAttempts }}" hint-placeholder-val="{{ false }}"><span style="font-size:12px;color:var(--color-neutral-700);text-align:center">{{ attemptsNote }}</span></sc-if>
+      </form>
+      </sc-if>
+
+      <sc-if value="{{ isCode }}" hint-placeholder-val="{{ false }}">
+      <form onSubmit="{{ submitCode }}" style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:16px;box-shadow:0 1px 2px rgba(70,55,40,.04),0 8px 24px rgba(70,55,40,.05);padding:28px;display:flex;flex-direction:column;gap:18px">
+        <div style="display:flex;flex-direction:column;gap:4px">
+          <span style="font:500 12px 'IBM Plex Mono',monospace;color:var(--color-neutral-700)">шаг 2 из 2</span>
+          <h1 style="margin:0;font-weight:600;font-size:22px">Код подтверждения</h1>
+          <p style="margin:0;font-size:13px;color:var(--color-neutral-700);text-wrap:pretty">Введите 6-значный код из приложения-аутентификатора.</p>
+        </div>
+        <sc-if value="{{ codeError }}" hint-placeholder-val="{{ false }}">
+          <div role="alert" style="padding:10px 12px;border-radius:10px;background:oklch(0.96 0.02 30);color:oklch(0.42 0.1 30);font-size:13px">{{ codeError }}</div>
+        </sc-if>
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <label for="code" style="font-weight:500;font-size:13px">Код</label>
+          <input id="code" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" placeholder="000000" value="{{ code }}" onInput="{{ onCode }}" style="height:48px;padding:0 12px;font:500 22px 'IBM Plex Mono',monospace;letter-spacing:.4em;text-align:center;background:#fffdfb;border:1px solid var(--color-divider);border-radius:10px;color:var(--color-text)">
+        </div>
+        <button type="submit" disabled="{{ cantCode }}" style="height:44px;border:0;border-radius:11px;background:{{ codeBg }};color:{{ codeFg }};font:600 15px 'IBM Plex Sans',sans-serif;cursor:{{ codeCursor }}" style-hover="filter:brightness(.95)">Подтвердить</button>
+        <button type="button" onClick="{{ backToLogin }}" style="height:36px;border:1px solid var(--color-divider);border-radius:10px;background:transparent;font:500 13px 'IBM Plex Sans',sans-serif;color:var(--color-neutral-800);cursor:pointer" style-hover="background:var(--color-neutral-200)">Назад</button>
+      </form>
+      </sc-if>
+
+      <sc-if value="{{ isDone }}" hint-placeholder-val="{{ false }}">
+      <div style="background:var(--color-surface);border:1px solid var(--color-divider);border-radius:16px;box-shadow:0 1px 2px rgba(70,55,40,.04),0 8px 24px rgba(70,55,40,.05);padding:28px;display:flex;flex-direction:column;gap:16px">
+        <h1 style="margin:0;font-weight:600;font-size:22px">Вход выполнен</h1>
+        <p style="margin:0;font-size:13px;color:var(--color-neutral-700)">Сессия активна до {{ sessionEnd }} или до выхода. При бездействии 15 минут вход потребуется снова.</p>
+        <a href="XScience Console.dc.html" style="display:flex;align-items:center;justify-content:center;height:44px;border-radius:11px;background:var(--color-accent-700);color:#fff;font:600 15px 'IBM Plex Sans',sans-serif;text-decoration:none">Открыть панель</a>
+      </div>
+      </sc-if>
+
+      <ul style="margin:0;padding:0 8px;list-style:none;display:flex;flex-direction:column;gap:4px;font-size:12px;color:var(--color-neutral-700)">
+        <li>Ошибка входа не уточняет, что именно неверно: логин или пароль.</li>
+        <li>После 5 неверных попыток вход блокируется на 30 секунд.</li>
+        <li>Пароль не сохраняется в браузере и не попадает в историю анализов.</li>
+      </ul>
+      <p style="margin:0;padding:0 8px;font-size:11.5px;color:var(--color-neutral-600);text-wrap:pretty">Прототип интерфейса. Проверка логина, пароля и кода должна выполняться на сервере (Flask) по HTTPS. Для проверки макета: логин demo, пароль xscience-demo, код 123456.</p>
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+const MAX=5,LOCK=30;
+class Component extends DCLogic {
+  state={step:'login',login:'',pwd:'',show:false,caps:false,fails:0,lockLeft:0,err:'',code:'',codeErr:'',codeFails:0,sessionEnd:''};
+  componentDidMount(){this._i=setInterval(()=>{if(this.state.lockLeft>0)this.setState(s=>({lockLeft:s.lockLeft-1,fails:s.lockLeft-1<=0?0:s.fails,err:s.lockLeft-1<=0?'':s.err}));},1000);}
+  componentWillUnmount(){clearInterval(this._i);}
+  submitLogin=e=>{e.preventDefault();const s=this.state;if(s.lockLeft>0||!s.login.trim()||!s.pwd)return;
+    if(s.login.trim()==='demo'&&s.pwd==='xscience-demo'){this.setState({step:'code',pwd:'',err:'',fails:0,show:false});return;}
+    const f=s.fails+1;
+    if(f>=MAX)this.setState({fails:f,pwd:'',lockLeft:LOCK,err:'Слишком много попыток. Вход временно заблокирован.'});
+    else this.setState({fails:f,pwd:'',err:'Неверный логин или пароль.'});};
+  submitCode=e=>{e.preventDefault();const s=this.state;if(s.code.length!==6)return;
+    if(s.code==='123456'){const d=new Date(Date.now()+8*3600e3);this.setState({step:'done',code:'',codeErr:'',sessionEnd:d.toTimeString().slice(0,5)});return;}
+    const f=s.codeFails+1;
+    if(f>=3)this.setState({step:'login',code:'',codeErr:'',codeFails:0,login:'',err:'Код введён неверно три раза. Войдите заново.'});
+    else this.setState({codeFails:f,code:'',codeErr:`Неверный код. Осталось попыток: ${3-f}.`});};
+  renderVals(){
+    const s=this.state,locked=s.lockLeft>0,cantSubmit=locked||!s.login.trim()||!s.pwd;
+    const cantCode=s.code.length!==6;
+    return {isLogin:s.step==='login',isCode:s.step==='code',isDone:s.step==='done',
+      login:s.login,pwd:s.pwd,locked,errorMsg:s.err,caps:s.caps,pwdType:s.show?'text':'password',pwdToggleLabel:s.show?'Скрыть':'Показать',
+      onLogin:e=>this.setState({login:e.target.value}),onPwd:e=>this.setState({pwd:e.target.value}),
+      onCaps:e=>{if(e.getModifierState)this.setState({caps:e.getModifierState('CapsLock')});},
+      togglePwd:()=>this.setState(x=>({show:!x.show})),forgot:e=>e.preventDefault(),
+      submitLogin:this.submitLogin,cantSubmit,btnBg:cantSubmit?'var(--color-neutral-300)':'var(--color-accent-700)',btnFg:cantSubmit?'var(--color-neutral-700)':'#fff',btnCursor:cantSubmit?'not-allowed':'pointer',
+      btnLabel:locked?`Повторите через ${s.lockLeft} с`:'Войти',
+      showAttempts:s.fails>0&&!locked,attemptsNote:`Осталось попыток: ${MAX-s.fails}`,
+      code:s.code,onCode:e=>this.setState({code:e.target.value.replace(/\D/g,'').slice(0,6)}),codeError:s.codeErr,submitCode:this.submitCode,cantCode,
+      codeBg:cantCode?'var(--color-neutral-300)':'var(--color-accent-700)',codeFg:cantCode?'var(--color-neutral-700)':'#fff',codeCursor:cantCode?'not-allowed':'pointer',
+      backToLogin:()=>this.setState({step:'login',code:'',codeErr:'',codeFails:0}),sessionEnd:s.sessionEnd};
+  }
+}
+</script>
+</body>
+</html>

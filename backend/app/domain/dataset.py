@@ -1,0 +1,143 @@
+"""
+Набор данных (§19) и сверка с формулами §14.
+Порт frontend/src/domain/dataset.ts + загрузка расширения из app/data/.
+
+Исходные 30 строк (v1) оставлены как есть — на них опирается вкладка
+«Данные» (§12) и проверки готовности §17.1. Расширение (v2) лежит в
+app/data/dataset_extra.csv и генерируется scripts/gen_dataset.py.
+"""
+from __future__ import annotations
+
+import csv
+from pathlib import Path
+from typing import Any
+
+from .scoring import score
+
+DATA_DIR = Path(__file__).resolve().parent.parent / 'data'
+EXTRA_CSV = DATA_DIR / 'dataset_extra.csv'
+
+#: §19.1 — допустимые значения data_source. Значение из v1 в них не входит.
+VALID_DATA_SOURCE = ('NASA_article', 'estimated', 'simulated')
+
+COLUMNS = ('material_type', 'thickness_mm', 'gravity', 'oxygen_percent', 'air_flow_cm_s',
+           'temperature_C', 'time_s', 'flame_size_cm', 'flame_spread_rate_cm_s',
+           'risk_level', 'extinction_probability', 'expected_result', 'data_source')
+
+#: §19.2 — все строки: gravity = microgravity, data_source = simulated_rule_based.
+RAW_V1 = """\
+paper,0.1,20,2,150,10,3.78,0.14,high,high,possible_extinction
+paper,0.2,16,20,40,90,3.42,0.34,high,high,possible_extinction
+fabric,0.5,26,0,200,45,5.68,0.21,high,high,possible_extinction
+plastic,0.8,15,1,150,120,2.35,0.06,high,high,possible_extinction
+wood,2,16,3,40,240,1.72,0.06,high,medium,unstable
+wire_insulation,0.4,21,0,250,20,4.85,0.15,high,high,possible_extinction
+paper,0.1,18,30,250,10,7.05,1.09,high,high,possible_extinction
+paper,0.2,26,25,150,10,7.68,1.47,high,medium,fast_flame_spread
+fabric,0.5,18,0,200,30,3.55,0.09,high,high,possible_extinction
+plastic,0.8,19,10,60,240,3.42,0.25,high,low,fast_flame_spread
+wood,2,16,25,100,240,4.52,0.53,high,medium,unstable
+wire_insulation,0.4,28,2,40,300,4.82,0.26,high,medium,fast_flame_spread
+paper,0.1,26,30,80,90,7.48,1.67,high,high,fast_flame_spread
+paper,0.2,16,20,40,300,3.42,0.34,high,high,possible_extinction
+fabric,0.5,15,25,80,180,4.05,0.45,high,high,possible_extinction
+plastic,0.8,28,20,150,90,7.72,1.34,high,low,fast_flame_spread
+wood,2,22,25,180,90,6.92,1.12,high,low,fast_flame_spread
+wire_insulation,0.4,19,3,60,45,2.72,0.11,high,medium,fast_flame_spread
+paper,0.1,16,25,100,240,4.52,0.53,high,high,possible_extinction
+paper,0.2,22,8,180,60,5.22,0.38,high,medium,fast_flame_spread
+fabric,0.5,26,1,40,240,4.18,0.18,high,medium,fast_flame_spread
+plastic,0.8,21,2,120,30,3.75,0.15,high,medium,fast_flame_spread
+wood,2,22,10,25,20,3.87,0.32,high,low,fast_flame_spread
+wire_insulation,0.4,24,25,120,90,6.85,1.21,high,medium,fast_flame_spread
+paper,0.1,30,8,250,180,8.05,0.81,high,medium,fast_flame_spread
+paper,0.2,26,15,40,20,5.58,0.73,high,medium,fast_flame_spread
+fabric,0.5,19,15,40,10,3.72,0.35,high,medium,fast_flame_spread
+plastic,0.8,30,5,250,180,7.75,0.61,high,low,fast_flame_spread
+wood,2,19,10,120,10,4.02,0.29,high,low,fast_flame_spread
+wire_insulation,0.4,22,8,60,300,4.02,0.29,high,medium,fast_flame_spread"""
+
+
+def _row(p: dict[str, Any], n: int, *, size: str, rate: str, risk: str, ext: str,
+         res: str, data_source: str, dataset: str) -> dict[str, Any]:
+    s = score(p)
+    return {
+        'n': n,
+        'dataset': dataset,
+        'p': p,
+        'input': {
+            'material_type': p['material'], 'thickness_mm': p['thickness'],
+            'gravity': p['gravity'], 'oxygen_percent': p['o2'],
+            'air_flow_cm_s': p['flow'], 'temperature_C': p['temp'], 'time_s': p['time'],
+        },
+        'flame_size_cm': size,
+        'flame_spread_rate_cm_s': rate,
+        'risk_level': risk,
+        'extinction_probability': ext,
+        'expected_result': res,
+        'data_source': data_source,
+        'computed': {'risk': s['risk'], 'level': s['level'],
+                     'ext': s['ext'], 'extLevel': s['extLevel']},
+        # Совпали и risk_level, и extinction_probability (§12).
+        'ok': s['level'] == risk and s['extLevel'] == ext,
+        'data_source_valid': data_source in VALID_DATA_SOURCE,
+    }
+
+
+def _load_v1() -> list[dict[str, Any]]:
+    rows = []
+    for i, line in enumerate(RAW_V1.split('\n')):
+        a = line.split(',')
+        p = {'material': a[0], 'desc': '', 'thickness': float(a[1]),
+             'gravity': 'microgravity', 'o2': float(a[2]), 'flow': float(a[3]),
+             'temp': float(a[4]), 'time': float(a[5])}
+        rows.append(_row(p, i + 1, size=a[6], rate=a[7], risk=a[8], ext=a[9], res=a[10],
+                         data_source='simulated_rule_based', dataset='v1'))
+    return rows
+
+
+def _load_extra(start_n: int) -> list[dict[str, Any]]:
+    if not EXTRA_CSV.exists():
+        return []
+    rows = []
+    with EXTRA_CSV.open(encoding='utf-8', newline='') as fh:
+        for i, rec in enumerate(csv.DictReader(fh)):
+            p = {'material': rec['material_type'], 'desc': '',
+                 'thickness': float(rec['thickness_mm']), 'gravity': rec['gravity'],
+                 'o2': float(rec['oxygen_percent']), 'flow': float(rec['air_flow_cm_s']),
+                 'temp': float(rec['temperature_C']), 'time': float(rec['time_s'])}
+            rows.append(_row(p, start_n + i,
+                             size=rec.get('flame_size_cm', ''),
+                             rate=rec.get('flame_spread_rate_cm_s', ''),
+                             risk=rec['risk_level'], ext=rec['extinction_probability'],
+                             res=rec.get('expected_result', ''),
+                             data_source=rec['data_source'], dataset='v2'))
+    return rows
+
+
+def all_rows() -> list[dict[str, Any]]:
+    v1 = _load_v1()
+    return v1 + _load_extra(len(v1) + 1)
+
+
+def training_rows() -> list[dict[str, Any]]:
+    """
+    Строки, пригодные для обучения: только с допустимым data_source (§19.1).
+    Решение: строки v1 с `simulated_rule_based` в обучение не идут — значение
+    вне схемы, и проверка §17.1 по ним не проходит.
+    """
+    return [r for r in all_rows() if r['data_source_valid']]
+
+
+def summary() -> dict[str, Any]:
+    rows = all_rows()
+    return {
+        'rows': len(rows),
+        'by_dataset': {'v1': sum(1 for r in rows if r['dataset'] == 'v1'),
+                       'v2': sum(1 for r in rows if r['dataset'] == 'v2')},
+        'risk_classes': sorted({r['risk_level'] for r in rows}),
+        'ext_classes': sorted({r['extinction_probability'] for r in rows}),
+        'earth_rows': sum(1 for r in rows if r['p']['gravity'] == 'earth'),
+        'valid_data_source': sum(1 for r in rows if r['data_source_valid']),
+        'mismatches': sum(1 for r in rows if not r['ok']),
+    }
