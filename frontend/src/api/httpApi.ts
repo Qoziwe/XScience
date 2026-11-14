@@ -29,7 +29,10 @@ import type {
 } from './types';
 import { AuthError, NotConfiguredError, ValidationError } from './types';
 
-const BASE = '/api';
+// Пусто (dev) — Vite проксирует /api на бэкенд (vite.config.ts). На проде,
+// когда фронт и бэк на разных хостах (GitHub Pages + свой сервер), собирается
+// с VITE_API_BASE_URL — полный адрес бэкенда (см. .github/workflows/pages.yml).
+const BASE = import.meta.env?.VITE_API_BASE_URL || '/api';
 /** Период опроса истории — §11.4 (смена статуса передачи) и чужие анализы. */
 const POLL_MS = 1500;
 const CSRF_COOKIE = 'xsci_csrf';

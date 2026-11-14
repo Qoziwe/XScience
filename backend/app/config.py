@@ -34,6 +34,11 @@ class Config:
     CSRF_COOKIE = 'xsci_csrf'
     # Secure выключается только в dev (Vite проксирует по http). В проде — HTTPS (§6.5).
     COOKIE_SECURE = _bool('XSCI_COOKIE_SECURE', PRODUCTION)
+    # Нужен только когда фронт и бэк — разные поддомены одного домена (например
+    # фронт на xscience.andatra.space, бэк на xscienceapi.andatra.space): без
+    # него CSRF-cookie будет виден только хосту бэкенда, и клиентский JS не
+    # сможет его прочитать. Пусто — cookie хост-ориентированная (как сейчас).
+    COOKIE_DOMAIN = os.environ.get('XSCI_COOKIE_DOMAIN', '') or None
 
     # §6.5 — лимиты входа.
     PASSWORD_MAX_ATTEMPTS = _int('XSCI_PASSWORD_MAX_ATTEMPTS', 5)

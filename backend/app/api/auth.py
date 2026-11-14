@@ -21,21 +21,25 @@ def _json() -> dict[str, Any]:
 
 def _set_cookies(resp, session_id: str, csrf: str):
     cfg = current_app.config
-    # §6.5 — HttpOnly; Secure; SameSite=Strict.
+    # §6.5 — HttpOnly; Secure; SameSite=Strict. domain пуст, если фронт и бэк
+    # на одном хосте; иначе — общий поддомен (XSCI_COOKIE_DOMAIN), чтобы
+    # клиентский JS на другом поддомене мог прочитать CSRF-cookie.
     resp.set_cookie(cfg['SESSION_COOKIE'], session_id, httponly=True,
                     secure=cfg['COOKIE_SECURE'], samesite='Strict', path='/',
-                    max_age=cfg['SESSION_ABSOLUTE_S'])
+                    domain=cfg['COOKIE_DOMAIN'], max_age=cfg['SESSION_ABSOLUTE_S'])
     # CSRF-токен читает клиент и присылает заголовком — поэтому без HttpOnly.
     resp.set_cookie(cfg['CSRF_COOKIE'], csrf, httponly=False,
                     secure=cfg['COOKIE_SECURE'], samesite='Strict', path='/',
-                    max_age=cfg['SESSION_ABSOLUTE_S'])
+                    domain=cfg['COOKIE_DOMAIN'], max_age=cfg['SESSION_ABSOLUTE_S'])
     return resp
 
 
 def _clear_cookies(resp):
     cfg = current_app.config
-    resp.delete_cookie(cfg['SESSION_COOKIE'], path='/')
-    resp.delete_cookie(cfg['CSRF_COOKIE'], path='/')
+    # domain должен совпадать с тем, что было при установке — иначе браузер
+    # не найдёт cookie для удаления и просто выставит новую, уже пустую.
+    resp.delete_cookie(cfg['SESSION_COOKIE'], path='/', domain=cfg['COOKIE_DOMAIN'])
+    resp.delete_cookie(cfg['CSRF_COOKIE'], path='/', domain=cfg['COOKIE_DOMAIN'])
     return resp
 
 
