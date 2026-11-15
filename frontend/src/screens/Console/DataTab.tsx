@@ -1,4 +1,4 @@
-/** Вкладка «Данные». FUNCTIONAL_SPEC.md §12. */
+/** "Data" tab. FUNCTIONAL_SPEC.md §12. */
 import {
   ALERT_INK,
   ALERT_TINT,
@@ -29,43 +29,43 @@ export function DataTab() {
       <div className="stack">
         <Card>
           <CardHead
-            title="Набор данных"
+            title="Dataset"
             kicker={
               ds.loading
-                ? 'загрузка…'
+                ? 'loading…'
                 : ds.origin === 'server'
-                  ? 'значения из набора на сервере, расчёт — только для сверки'
-                  : 'simulated_rule_based · значения из файла, расчёт — только для сверки'
+                  ? 'values from the server-side dataset, calculation is for cross-check only'
+                  : 'simulated_rule_based · values from file, calculation is for cross-check only'
             }
           />
           <div className="card__body">
             <div className="tiles" style={{ gridTemplateColumns: 'repeat(5, minmax(0,1fr))' }}>
               <Tile
-                k="строк · цель 50–100"
+                k="rows · target 50–100"
                 v={String(total)}
                 color={total < 50 ? ALERT_INK : undefined}
               />
               <Tile
-                k="строк с gravity = earth"
+                k="rows with gravity = earth"
                 v={String(ds.summary.earthRows)}
                 color={ds.summary.earthRows ? undefined : ALERT_INK}
               />
               <Tile
                 k={
                   ds.summary.riskClasses.length < 3
-                    ? `класс risk_level (${ds.summary.riskClasses.join(', ')})`
-                    : 'класса risk_level · все три'
+                    ? `risk_level classes (${ds.summary.riskClasses.join(', ')})`
+                    : 'risk_level classes · all three'
                 }
                 v={String(ds.summary.riskClasses.length)}
                 color={ds.summary.riskClasses.length < 3 ? ALERT_INK : undefined}
               />
               <Tile
-                k="расхождения с формулами"
+                k="discrepancies with formulas"
                 v={String(ds.summary.mismatches)}
                 color={ds.summary.mismatches ? ALERT_INK : undefined}
               />
               <Tile
-                k="недопустимый data_source"
+                k="invalid data_source"
                 v={String(total - ds.summary.validDataSource)}
                 color={total - ds.summary.validDataSource ? ALERT_INK : undefined}
               />
@@ -78,7 +78,7 @@ export function DataTab() {
                 aria-pressed={dsMat === 'all'}
                 onClick={() => dispatch({ type: 'dsMat', mat: 'all' })}
               >
-                Все
+                All
               </button>
               {MATERIALS.filter((m) => m.code !== 'other').map((m) => (
                 <button
@@ -97,10 +97,10 @@ export function DataTab() {
                 aria-pressed={dsMismatchOnly}
                 onClick={() => dispatch({ type: 'toggleMismatch' })}
               >
-                Только расхождения с расчётом
+                Discrepancies with calculation only
               </button>
               <span className="card__spacer muted mono" style={{ fontSize: 12 }}>
-                показано {rows.length} из {total}
+                showing {rows.length} of {total}
               </span>
             </div>
           </div>
@@ -110,18 +110,18 @@ export function DataTab() {
               <thead>
                 <tr>
                   <th>#</th>
-                  <th>Материал</th>
-                  <th>мм</th>
+                  <th>Material</th>
+                  <th>mm</th>
                   <th>O₂ %</th>
-                  <th>см/с</th>
+                  <th>cm/s</th>
                   <th>°C</th>
-                  <th>с</th>
-                  <th>Пламя (см)</th>
-                  <th>Скор. (см/с)</th>
-                  <th>Риск</th>
-                  <th>Затухание</th>
-                  <th>Результат</th>
-                  <th>Сверка</th>
+                  <th>s</th>
+                  <th>Flame (cm)</th>
+                  <th>Rate (cm/s)</th>
+                  <th>Risk</th>
+                  <th>Extinction</th>
+                  <th>Result</th>
+                  <th>Check</th>
                   <th />
                 </tr>
               </thead>
@@ -149,13 +149,13 @@ export function DataTab() {
                     </td>
                     <td style={{ fontSize: 12, color: r.ok ? 'var(--color-neutral-700)' : ALERT_INK }}>
                       {r.ok
-                        ? 'совпадает'
-                        : `по формулам: затухание ${EXT_LEVEL_RU[
+                        ? 'matches'
+                        : `per formulas: extinction ${EXT_LEVEL_RU[
                             r.computed.extLevel
                           ].toLowerCase()} (E=${r.computed.ext})`}
                     </td>
                     <td style={{ textAlign: 'right' }}>
-                      {/* Сектор не меняется, анализ не запускается (§12). */}
+                      {/* The sector is not changed, the analysis is not run (§12). */}
                       <button
                         type="button"
                         className="btn"
@@ -164,7 +164,7 @@ export function DataTab() {
                           dispatch({ type: 'tab', tab: 'analysis' });
                         }}
                       >
-                        В форму →
+                        To Form →
                       </button>
                     </td>
                   </tr>

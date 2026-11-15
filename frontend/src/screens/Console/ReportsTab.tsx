@@ -1,4 +1,4 @@
-/** Вкладка «Отчёты». FUNCTIONAL_SPEC.md §11. */
+/** "Reports" tab. FUNCTIONAL_SPEC.md §11. */
 import { DOT, SEC, VERDICT_RU, sentShort } from '@/domain/reference';
 import { reportDoc, reportTxt } from '@/domain/report';
 import { useStore } from '@/state/store';
@@ -8,12 +8,12 @@ import { download } from '@/lib/download';
 export function ReportsTab() {
   const { state, dispatch } = useStore();
   const { repId } = state;
-  // [ПРОТОТИП] показания имитации датчиков между отчётными кругами не
-  // заводят отчёт (hasReport=false) — вкладка их не показывает, иначе список
-  // заполнялся бы каждые 30 с. У обычных анализов hasReport всегда true.
+  // [PROTOTYPE] sensor-simulation readings between reporting cycles do not
+  // create a report (hasReport=false) — the tab doesn't show them, otherwise the
+  // list would fill up every 30 s. Regular analyses always have hasReport=true.
   const hist = state.hist.filter((h) => h.hasReport !== false);
 
-  // Выбранный по умолчанию — последний (§11.1).
+  // The default selection is the latest one (§11.1).
   const selected = hist.find((h) => h.id === repId) ?? hist[hist.length - 1] ?? null;
   const doc = selected ? reportDoc(selected) : null;
 
@@ -21,7 +21,7 @@ export function ReportsTab() {
     <main className="main">
       <div className="rep-side">
         <Card>
-          <CardHead title="Отчёты для Земли" kicker={String(hist.length)} />
+          <CardHead title="Reports to Earth" kicker={String(hist.length)} />
           <div className="list">
             {hist.length ? (
               hist
@@ -50,7 +50,7 @@ export function ReportsTab() {
                 ))
             ) : (
               <div className="card__foot">
-                Отчёт создаётся автоматически при каждом анализе.
+                A report is created automatically on every analysis.
               </div>
             )}
           </div>
@@ -61,7 +61,7 @@ export function ReportsTab() {
         {doc ? (
           <Card>
             <header className="card__head">
-              <h2 className="card__title">Отчёт {doc.no}</h2>
+              <h2 className="card__title">Report {doc.no}</h2>
               <span className="card__kicker">{doc.title}</span>
               <span className="chip" aria-pressed={false} style={{ cursor: 'default' }}>
                 <Dot color={DOT[doc.verdictKey]} />
@@ -73,7 +73,7 @@ export function ReportsTab() {
                   className="btn"
                   onClick={() => download(`${doc.no}.txt`, reportTxt(doc))}
                 >
-                  Скачать TXT
+                  Download TXT
                 </button>
               </span>
             </header>
@@ -96,7 +96,7 @@ export function ReportsTab() {
 
               <section>
                 <h3 style={{ fontSize: 13, letterSpacing: '0.06em', textTransform: 'uppercase' }}>
-                  Рекомендации
+                  Recommendations
                 </h3>
                 <p className="muted" style={{ margin: '4px 0 12px', fontSize: 13 }}>
                   {doc.intro}
@@ -117,10 +117,10 @@ export function ReportsTab() {
           </Card>
         ) : (
           <Card>
-            <CardHead title="Отчётов пока нет" />
+            <CardHead title="No Reports Yet" />
             <div className="card__body">
               <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-                Запустите анализ в одном из секторов.
+                Run an analysis in one of the sectors.
               </p>
             </div>
           </Card>

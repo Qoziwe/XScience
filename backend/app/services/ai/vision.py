@@ -1,10 +1,11 @@
 """
-Распознавание фото пламени (§17.3).
+Flame photo recognition (§17.3).
 
-Модель заполняет те же три признака, что оператор ставит руками
-(размер / яркость / форма), строго из словаря §17.3. Это наблюдение, а не
-измерение: в расчёт риска и затухания признаки не входят, вердикт от них
-не зависит. Разметку оператора распознавание не затирает — хранится отдельно.
+The model fills in the same three traits the operator sets by hand
+(size / brightness / shape), strictly from the §17.3 vocabulary. This is an
+observation, not a measurement: these traits are not part of the risk and
+extinction calculation, and the verdict does not depend on them. Recognition
+does not overwrite the operator's annotation — it is stored separately.
 """
 from __future__ import annotations
 
@@ -14,38 +15,38 @@ from . import config
 from .base import ImagePart, LlmError, TextPart
 from .client import complete_json
 
-#: §17.3 — допустимые значения признаков.
+#: §17.3 — allowed trait values.
 VOCAB: dict[str, tuple[str, ...]] = {
-    'size': ('малое', 'среднее', 'большое'),
-    'brightness': ('тусклое', 'умеренное', 'яркое'),
-    'shape': ('вытянутое', 'округлое'),
+    'size': ('small', 'medium', 'large'),
+    'brightness': ('dim', 'moderate', 'bright'),
+    'shape': ('elongated', 'round'),
 }
 
 SYSTEM = """\
-Ты описываешь снимок пламени с борта космического корабля для карточки
-наблюдения. Отвечаешь только тем, что видно на снимке.
+You describe a photo of a flame from aboard a spacecraft for an observation
+card. You answer based only on what is visible in the photo.
 
-Правила:
-1. Значения выбираешь строго из словаря, своих слов не придумываешь:
-   size: малое | среднее | большое
-   brightness: тусклое | умеренное | яркое
-   shape: вытянутое | округлое
-2. Если на снимке нет пламени или кадр непригоден — все три поля null,
-   а в note одним предложением сказано, что видно.
-3. Не оцениваешь опасность, не даёшь рекомендаций, не называешь чисел:
-   риск считает инженерный расчёт, а не ты.
-4. note — одно короткое предложение по-русски о том, что на снимке.
+Rules:
+1. Choose values strictly from the vocabulary, do not invent your own words:
+   size: small | medium | large
+   brightness: dim | moderate | bright
+   shape: elongated | round
+2. If there is no flame in the photo or the frame is unusable — all three
+   fields are null, and note states in one sentence what is visible.
+3. Do not assess danger, give recommendations, or cite numbers: risk is
+   computed by the engineering calculation, not by you.
+4. note — one short sentence in English about what is in the photo.
 
-Ответ — только объект JSON:
+Respond with a JSON object only:
 {"size": "...|null", "brightness": "...|null", "shape": "...|null",
- "note": "одно предложение", "flame_visible": true|false}"""
+ "note": "one sentence", "flame_visible": true|false}"""
 
-PROMPT = 'Опиши пламя на снимке по карточке наблюдения.'
+PROMPT = 'Describe the flame in the photo using the observation card.'
 
 
 def validate(data: Any) -> dict[str, Any]:
     if not isinstance(data, dict):
-        raise LlmError('ответ не объект')
+        raise LlmError('response is not an object')
     out: dict[str, Any] = {}
     for key, allowed in VOCAB.items():
         value = data.get(key)
@@ -53,14 +54,14 @@ def validate(data: Any) -> dict[str, Any]:
             out[key] = None
             continue
         if not isinstance(value, str):
-            raise LlmError(f'поле {key} не строка')
+            raise LlmError(f'field {key} is not a string')
         value = value.strip().lower()
         if value not in allowed:
-            raise LlmError(f'поле {key}: «{value}» вне словаря §17.3')
+            raise LlmError(f'field {key}: "{value}" is outside the §17.3 vocabulary')
         out[key] = value
     note = data.get('note')
     if not isinstance(note, str) or not note.strip():
-        raise LlmError('пустое поле note')
+        raise LlmError('empty note field')
     out['note'] = ' '.join(note.split())[:300]
     out['flame_visible'] = bool(data.get('flame_visible',
                                          any(out[k] for k in VOCAB)))
@@ -75,21 +76,21 @@ def available() -> bool:
 
 
 def recognize(image_bytes: bytes, mime: str, logger=None) -> dict[str, Any]:
-    """Признаки по снимку. Нет настроек или сбой модели — LlmError."""
+    """Traits from the photo. No config or model failure — LlmError."""
     import base64
 
     cfg = config.load('vision')
     if not cfg:
-        raise LlmError('распознавание не настроено (XSCI_AI_VISION_*)')
+        raise LlmError('recognition is not configured (XSCI_AI_VISION_*)')
     parts = [ImagePart(mime, base64.b64encode(image_bytes).decode()), TextPart(PROMPT)]
     try:
         data = complete_json(SYSTEM, parts, cfg)
     except LlmError:
         raise
     except Exception as e:  # pragma: no cover
-        raise LlmError(f'сбой распознавания: {e}') from e
+        raise LlmError(f'recognition failure: {e}') from e
     out = validate(data)
     out['model'] = cfg.label()
     if logger:
-        logger.info('фото распознано моделью %s', cfg.label())
+        logger.info('photo recognized by model %s', cfg.label())
     return out

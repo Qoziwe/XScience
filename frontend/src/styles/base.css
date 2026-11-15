@@ -56,7 +56,7 @@ h4 {
   font-weight: 600;
 }
 
-/* Числа и коды — моноширинным (§21.3). */
+/* Numbers and codes — monospace (§21.3). */
 .mono {
   font-family: var(--font-mono);
   font-variant-numeric: tabular-nums;

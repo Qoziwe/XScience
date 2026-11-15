@@ -1,4 +1,4 @@
-"""§18.7 — фото пламени."""
+"""§18.7 — flame photos."""
 from __future__ import annotations
 
 from flask import Blueprint, jsonify, request, send_file
@@ -11,12 +11,12 @@ bp = Blueprint('photos', __name__, url_prefix='/api')
 
 @bp.post('/photos')
 def upload():
-    """multipart: file + необязательный analysis_id → метаданные снимка."""
+    """multipart: file + optional analysis_id → photo metadata."""
     row = auth.require_auth()
     auth.require_csrf(row)
     upload_file = request.files.get('file')
     if upload_file is None:
-        raise validation_error({'file': 'Выберите снимок'})
+        raise validation_error({'file': 'Select a photo'})
 
     raw = request.form.get('analysis_id')
     analysis_id = None
@@ -24,7 +24,7 @@ def upload():
         try:
             analysis_id = int(raw)
         except ValueError:
-            raise validation_error({'analysis_id': 'Ожидается номер анализа'})
+            raise validation_error({'analysis_id': 'Expected an analysis ID'})
 
     return jsonify(photos.save(upload_file.filename or 'photo', upload_file.read(),
                                analysis_id, row['user_id'])), 201
@@ -46,7 +46,7 @@ def one(photo_id: str):
 
 @bp.get('/photos/<photo_id>/file')
 def file(photo_id: str):
-    """Сам снимок — только по сессии; файлы лежат вне веб-корня."""
+    """The photo itself — session-only; files live outside the web root."""
     auth.require_auth()
     path, mime, name = photos.file_path(photo_id)
     return send_file(path, mimetype=mime, download_name=name)
@@ -54,7 +54,7 @@ def file(photo_id: str):
 
 @bp.patch('/photos/<photo_id>')
 def patch(photo_id: str):
-    """Разметка оператора (§17.3) и привязка к анализу."""
+    """Operator annotation (§17.3) and linking to an analysis."""
     row = auth.require_auth()
     auth.require_csrf(row)
     body = request.get_json(silent=True)
@@ -65,7 +65,7 @@ def patch(photo_id: str):
 
 @bp.post('/photos/<photo_id>/recognize')
 def recognize(photo_id: str):
-    """Распознавание признаков vision-моделью. Без настроек — 409."""
+    """Feature recognition via the vision model. 409 if not configured."""
     row = auth.require_auth()
     auth.require_csrf(row)
     return jsonify(photos.recognize(photo_id))

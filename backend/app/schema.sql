@@ -1,6 +1,6 @@
--- Модель данных бэкенда (§4.4, §4.2, §4.3, §16.3).
--- Анализы и отчёты не удаляются и не редактируются (журнал безопасности):
--- для них разрешён только INSERT, кроме статуса передачи отчёта (§11.4).
+-- Backend data model (§4.4, §4.2, §4.3, §16.3).
+-- Analyses and reports are never deleted or edited (safety log):
+-- only INSERT is allowed for them, except for the report transmission status (§11.4).
 
 CREATE TABLE IF NOT EXISTS users (
   id            TEXT PRIMARY KEY,
@@ -15,7 +15,7 @@ CREATE TABLE IF NOT EXISTS users (
 CREATE TABLE IF NOT EXISTS sessions (
   id            TEXT PRIMARY KEY,
   user_id       TEXT NOT NULL REFERENCES users(id),
-  -- password_ok = пройден шаг 1, ждём код; authenticated = вход завершён (§4.4)
+  -- password_ok = step 1 passed, awaiting code; authenticated = login complete (§4.4)
   stage         TEXT NOT NULL,
   csrf_token    TEXT NOT NULL,
   code_attempts INTEGER NOT NULL DEFAULT 0,
@@ -26,7 +26,7 @@ CREATE TABLE IF NOT EXISTS sessions (
 );
 CREATE INDEX IF NOT EXISTS idx_sessions_user ON sessions(user_id);
 
--- §6.5 — журнал всех попыток входа.
+-- §6.5 — log of all login attempts.
 CREATE TABLE IF NOT EXISTS login_attempts (
   id     INTEGER PRIMARY KEY AUTOINCREMENT,
   login  TEXT NOT NULL,
@@ -37,8 +37,8 @@ CREATE TABLE IF NOT EXISTS login_attempts (
 CREATE INDEX IF NOT EXISTS idx_attempts_login ON login_attempts(login, at);
 CREATE INDEX IF NOT EXISTS idx_attempts_ip ON login_attempts(ip, at);
 
--- Полная запись анализа (§4.2). record — весь объект JSON; отдельные столбцы
--- вынесены для выборок (список, фильтр по сектору, агрегация корабля).
+-- The full analysis record (§4.2). record is the entire JSON object; individual
+-- columns are broken out for queries (listing, filtering by sector, ship aggregation).
 CREATE TABLE IF NOT EXISTS analyses (
   id          INTEGER PRIMARY KEY AUTOINCREMENT,
   created_at  TEXT NOT NULL,
@@ -55,7 +55,7 @@ CREATE TABLE IF NOT EXISTS analyses (
 );
 CREATE INDEX IF NOT EXISTS idx_analyses_sector ON analyses(sector, id);
 
--- §4.3 — отчёт для Земли. Меняется только статус передачи (§11.4).
+-- §4.3 — report for Earth. Only the transmission status changes (§11.4).
 CREATE TABLE IF NOT EXISTS reports (
   id          TEXT PRIMARY KEY,
   analysis_id INTEGER NOT NULL REFERENCES analyses(id),
@@ -71,7 +71,7 @@ CREATE TABLE IF NOT EXISTS reports (
 CREATE INDEX IF NOT EXISTS idx_reports_analysis ON reports(analysis_id);
 CREATE INDEX IF NOT EXISTS idx_reports_status ON reports(status);
 
--- §18.3 — защита от дублей при двойном клике/ретрае.
+-- §18.3 — protection against duplicates from double-clicks/retries.
 CREATE TABLE IF NOT EXISTS idempotency (
   key          TEXT NOT NULL,
   user_id      TEXT NOT NULL,
@@ -81,7 +81,7 @@ CREATE TABLE IF NOT EXISTS idempotency (
   PRIMARY KEY (key, user_id)
 );
 
--- §17.1 — обученные ML-модели (веса + метрики). Активная одна.
+-- §17.1 — trained ML models (weights + metrics). Only one is active.
 CREATE TABLE IF NOT EXISTS ml_models (
   id         INTEGER PRIMARY KEY AUTOINCREMENT,
   created_at TEXT NOT NULL,
@@ -92,7 +92,7 @@ CREATE TABLE IF NOT EXISTS ml_models (
   active     INTEGER NOT NULL DEFAULT 0
 );
 
--- §4.5, §17.3, §18.7 — фото пламени. Файл лежит вне веб-корня, в БД только метаданные.
+-- §4.5, §17.3, §18.7 — flame photos. The file lives outside the web root; the DB holds only metadata.
 CREATE TABLE IF NOT EXISTS photos (
   id          TEXT PRIMARY KEY,
   analysis_id INTEGER REFERENCES analyses(id),

@@ -1,8 +1,8 @@
 /**
- * Набор данных для вкладки «Данные» (§12, §19).
- * Источник — сервер (`GET /api/dataset`): там набор расширен и его состав
- * может меняться. Если раздела нет (прототип, VITE_API=local) или сервер
- * недоступен — остаётся локальный набор §19.2 из 30 строк.
+ * Dataset for the "Data" tab (§12, §19).
+ * Source: the server (`GET /api/dataset`) — there the dataset is extended and its
+ * composition can change. If the section is absent (prototype, VITE_API=local) or the
+ * server is unavailable, it falls back to the local §19.2 set of 30 rows.
  */
 import { useEffect, useState } from 'react';
 import { api, type DatasetRow, type DatasetSummary } from '@/api';
@@ -11,12 +11,12 @@ import { DATASET, DATASET_MISMATCHES } from '@/domain/dataset';
 export interface DatasetState {
   rows: DatasetRow[];
   summary: DatasetSummary;
-  /** 'server' | 'local' — что показано; local значит, что это набор прототипа. */
+  /** 'server' | 'local' — what is shown; local means it's the prototype's dataset. */
   origin: 'server' | 'local';
   loading: boolean;
 }
 
-/** Локальный набор §19.2 в той же форме, что приходит с сервера. */
+/** The local §19.2 set in the same shape as what comes from the server. */
 function localRows(): DatasetRow[] {
   return DATASET.map((r) => ({
     n: r.n,
@@ -62,7 +62,7 @@ export function useDataset(): DatasetState {
         if (alive) setState({ rows, summary, origin: 'server', loading: false });
       })
       .catch(() => {
-        // Сервер недоступен — показываем локальный набор, не пустую таблицу.
+        // Server unavailable — show the local dataset, not an empty table.
         if (alive) setState(LOCAL);
       });
     return () => {

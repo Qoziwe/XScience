@@ -1,4 +1,4 @@
-/** Типы предметной области. Соответствуют FUNCTIONAL_SPEC.md §3, §4. */
+/** Domain types. Correspond to FUNCTIONAL_SPEC.md §3, §4. */
 
 export type MaterialType =
   | 'paper'
@@ -14,7 +14,7 @@ export type SectorId = 'sh' | 'km' | 'zh' | 'l1' | 'l2' | 'sk' | 'ep';
 
 export type Level = 'low' | 'medium' | 'high';
 
-/** Статус сектора на карте: уровни вердикта + «нет данных». */
+/** Sector status on the map: verdict levels + "no data". */
 export type SectorStatus = Level | 'none';
 
 export type FieldKey =
@@ -31,7 +31,7 @@ export type NumericKey = 'thickness' | 'o2' | 'flow' | 'temp' | 'time';
 
 export type FieldStatus = 'ok' | 'empty' | 'bad';
 
-/** Числовые параметры анализа (§4.2, имена полей прототипа). */
+/** Numeric analysis parameters (§4.2, prototype field names). */
 export interface AnalysisParams {
   material: MaterialType;
   desc: string;
@@ -43,7 +43,7 @@ export interface AnalysisParams {
   time: number;
 }
 
-/** Вход анализа для API (§4.1). */
+/** Analysis input for the API (§4.1). */
 export interface AnalysisInput {
   sector: SectorId;
   material_type: MaterialType;
@@ -56,7 +56,7 @@ export interface AnalysisInput {
   time_s: number;
 }
 
-/** Частичные баллы (§14.1, §14.2). */
+/** Partial scores (§14.1, §14.2). */
 export interface PartialScores {
   mat: number;
   o2: number;
@@ -77,7 +77,7 @@ export interface Scores {
   extLevel: Level;
 }
 
-/** Запись анализа (§4.2). Неизменяема после создания. */
+/** Analysis record (§4.2). Immutable after creation. */
 export interface Analysis {
   id: number;
   ts: string;
@@ -89,15 +89,15 @@ export interface Analysis {
   extLevel: Level;
   v: Level;
   conf: number;
-  /** null = в очереди на передачу; строка времени = передан. */
+  /** null = queued for transmission; a time string = transmitted. */
   sent: string | null;
-  /** «Принято» оператором (§10.2). Необязательно: прототип это не хранил. */
+  /** "Acknowledged" by the operator (§10.2). Optional: the prototype did not store this. */
   acked?: boolean;
   /**
-   * Есть ли у записи отчёт (§11). У показаний имитации датчиков (httpApi,
-   * [ПРОТОТИП]) между отчётными кругами отчёта нет — они только двигают
-   * дашборд, не засоряя вкладку «Отчёты». У localApi и обычных ручных
-   * анализов отчёт есть всегда.
+   * Whether the record has a report (§11). Readings from the sensor simulation
+   * (httpApi, [PROTOTYPE]) between report cycles have no report — they only
+   * move the dashboard without cluttering the "Reports" tab. localApi and
+   * regular manual analyses always have a report.
    */
   hasReport?: boolean;
 }

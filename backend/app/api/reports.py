@@ -1,4 +1,4 @@
-"""§18.4 — отчёты."""
+"""§18.4 — reports."""
 from __future__ import annotations
 
 from flask import Blueprint, Response, jsonify, request
@@ -29,7 +29,7 @@ def txt(report_id: str):
 
 @bp.get('/reports/<report_id>')
 def document(report_id: str):
-    """§11.2 — документ отчёта."""
+    """§11.2 — report document."""
     auth.require_auth()
     return jsonify(svc.document(report_id))
 

@@ -1,9 +1,9 @@
 """
-Google AI Studio / Gemini, нативный эндпоинт
+Google AI Studio / Gemini, native endpoint
 `POST {base_url}/v1beta/models/{model}:generateContent?key=…`.
 
-Ключ AI Studio передаётся query-параметром, поэтому URL никогда не пишется
-в логи и в текст ошибок (см. http._host).
+The AI Studio key is passed as a query parameter, so the URL is never
+written to logs or into error text (see http._host).
 """
 from __future__ import annotations
 
@@ -29,7 +29,7 @@ def _parts(parts: list[Part]) -> list[dict[str, Any]]:
 
 def complete(system: str, parts: list[Part], cfg: ProviderConfig) -> str:
     if not cfg.api_key:
-        raise LlmError('для google нужен api_key (ключ AI Studio)')
+        raise LlmError('google requires an api_key (AI Studio key)')
     generation: dict[str, Any] = {'maxOutputTokens': cfg.max_tokens}
     extra = dict(cfg.extra)
     generation.update(extra.pop('generationConfig', {}))
@@ -46,10 +46,10 @@ def complete(system: str, parts: list[Part], cfg: ProviderConfig) -> str:
 
     candidates = data.get('candidates')
     if not isinstance(candidates, list) or not candidates:
-        raise LlmError(f'ответ без candidates: {str(data)[:200]}')
+        raise LlmError(f'response has no candidates: {str(data)[:200]}')
     content = candidates[0].get('content') or {}
     text = ''.join(p.get('text', '') for p in content.get('parts', [])
                    if isinstance(p, dict))
     if not text.strip():
-        raise LlmError(f'пустой ответ (finishReason={candidates[0].get("finishReason")})')
+        raise LlmError(f'empty response (finishReason={candidates[0].get("finishReason")})')
     return text

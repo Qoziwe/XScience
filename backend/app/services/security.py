@@ -1,8 +1,8 @@
 """
-Пароли и второй фактор (§6.5).
-Пароли — argon2id, если установлен argon2-cffi (см. requirements.txt),
-иначе scrypt из стандартной библиотеки. Обратимого шифрования нет.
-TOTP — RFC 6238 на hmac/hashlib, без внешних зависимостей.
+Passwords and the second factor (§6.5).
+Passwords use argon2id if argon2-cffi is installed (see requirements.txt),
+otherwise scrypt from the standard library. There is no reversible encryption.
+TOTP — RFC 6238 on hmac/hashlib, no external dependencies.
 """
 from __future__ import annotations
 
@@ -13,17 +13,17 @@ import secrets
 import struct
 import time
 
-try:  # предпочтительный вариант по §6.5
+try:  # preferred option per §6.5
     from argon2 import PasswordHasher
     from argon2.exceptions import VerifyMismatchError
 
     _ph = PasswordHasher()
     ARGON2 = True
-except Exception:  # pragma: no cover — зависимость не установлена
+except Exception:  # pragma: no cover — dependency not installed
     _ph = None
     ARGON2 = False
 
-# n=2^14, r=8 → 16 МиБ на проверку: укладывается в лимит памяти OpenSSL по умолчанию.
+# n=2^14, r=8 → 16 MiB per check: fits OpenSSL's default memory limit.
 _SCRYPT = {'n': 2 ** 14, 'r': 8, 'p': 1, 'dklen': 32, 'maxmem': 64 * 1024 * 1024}
 
 
@@ -58,13 +58,13 @@ def verify_password(stored: str, password: str) -> bool:
     return False
 
 
-#: Пароль-пустышка: сравнение выполняется и когда логина нет, чтобы время
-#: ответа не выдавало существование учётной записи (§6.5).
+#: Dummy password: the comparison runs even when there is no such login, so
+#: response time does not leak whether the account exists (§6.5).
 DUMMY_HASH = hash_password('xscience-dummy-password')
 
 
 def new_totp_secret() -> str:
-    """Секрет в base32 — как его ждут приложения-аутентификаторы."""
+    """Secret in base32 — the format authenticator apps expect."""
     return base64.b32encode(secrets.token_bytes(20)).decode().rstrip('=')
 
 
@@ -78,7 +78,7 @@ def totp(secret_b32: str, counter: int, digits: int = 6) -> str:
 
 def verify_totp(secret_b32: str, code: str, step: int = 30, window: int = 1,
                 now: float | None = None) -> bool:
-    """RFC 6238, 6 цифр, окно ±1 шаг (§6.5)."""
+    """RFC 6238, 6 digits, ±1 step window (§6.5)."""
     code = (code or '').strip()
     if not code.isdigit() or len(code) != 6:
         return False
@@ -96,7 +96,7 @@ def new_id(prefix: str) -> str:
 
 
 def body_hash(raw: bytes) -> str:
-    """Отпечаток тела запроса для ключа идемпотентности (§18.3)."""
+    """Fingerprint of the request body for the idempotency key (§18.3)."""
     return hashlib.sha256(raw or b'').hexdigest()
 
 

@@ -1,7 +1,7 @@
 /**
- * Смоук-прогон рендера всех экранов без браузера (react-dom/server).
- * Ловит ошибки хуков и обращения к undefined до запуска в браузере.
- * Запуск: npm run smoke
+ * Smoke-test render of every screen without a browser (react-dom/server).
+ * Catches hook errors and undefined accesses before running in the browser.
+ * Usage: npm run smoke
  */
 import { renderToString } from 'react-dom/server';
 import { StaticRouter } from 'react-router';
@@ -52,7 +52,7 @@ let fails = 0;
 const run = (label: string, el: ReactElement) => {
   try {
     const html = renderToString(<StaticRouter location="/console">{el}</StaticRouter>);
-    console.log(`OK   ${label}  (${html.length} символов)`);
+    console.log(`OK   ${label}  (${html.length} characters)`);
   } catch (e) {
     fails++;
     console.log(`FAIL ${label}: ${(e as Error).message}`);
@@ -64,7 +64,7 @@ run('login', <LoginPage />);
 for (const tab of TABS) {
   for (const seeded of [false, true]) {
     const seed: Partial<State> = { tab, ...(seeded ? withData : {}) };
-    run(`${tab}${seeded ? ' + данные' : ' (пусто)'}`,
+    run(`${tab}${seeded ? ' + data' : ' (empty)'}`,
       <StoreProvider seed={seed}>
         <ConsolePage />
       </StoreProvider>);
@@ -72,11 +72,11 @@ for (const tab of TABS) {
 }
 
 for (const view of ['alert', 'recs'] as const) {
-  run(`модальное окно: ${view}`,
+  run(`modal: ${view}`,
     <StoreProvider seed={{ tab: 'analysis', ...withData, modal: { id: entry.id, view } }}>
       <ConsolePage />
     </StoreProvider>);
 }
 
-console.log(fails ? `\n${fails} FAILED` : '\nвсе экраны рендерятся без ошибок');
+console.log(fails ? `\n${fails} FAILED` : '\nall screens render without errors');
 if (fails) process.exit(1);

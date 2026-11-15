@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """
-Создание учётной записи оператора (§6.5 — регистрации нет, учётки создаёт
-администратор). Пароль читается из аргумента или из окружения XSCI_SEED_PASSWORD.
+Creates an operator account (§6.5 — there is no self-registration; accounts are
+created by an administrator). The password is read from the argument or from
+the XSCI_SEED_PASSWORD environment variable.
 
-    python3 seed.py                       # демо-учётка demo/xscience-demo (только dev)
-    python3 seed.py --login ivanov        # пароль спросит через XSCI_SEED_PASSWORD
+    python3 seed.py                       # demo account demo/xscience-demo (dev only)
+    python3 seed.py --login ivanov        # the password is requested via XSCI_SEED_PASSWORD
 """
 from __future__ import annotations
 
@@ -21,7 +22,7 @@ DEMO = ('demo', 'xscience-demo')
 
 
 def main() -> int:
-    ap = argparse.ArgumentParser(description='Создать или обновить учётную запись')
+    ap = argparse.ArgumentParser(description='Create or update an account')
     ap.add_argument('--login', default=DEMO[0])
     ap.add_argument('--password', default=None)
     ap.add_argument('--role', default='operator')
@@ -31,10 +32,10 @@ def main() -> int:
     password = args.password or os.environ.get('XSCI_SEED_PASSWORD')
     if not password:
         if args.login != DEMO[0]:
-            print('Укажите --password или XSCI_SEED_PASSWORD', file=sys.stderr)
+            print('Provide --password or XSCI_SEED_PASSWORD', file=sys.stderr)
             return 2
         password = DEMO[1]
-        print('[ПРОТОТИП] демо-учётка: в рабочей среде её быть не должно (§6.5)')
+        print('[PROTOTYPE] demo account: must not exist in a production environment (§6.5)')
 
     app = create_app({'REPORT_WORKER': False})
     con = connect(app.config['DB_PATH'])
@@ -44,16 +45,16 @@ def main() -> int:
         if row:
             con.execute('UPDATE users SET password_hash = ?, role = ?, is_active = 1 '
                         'WHERE id = ?', (hash_password(password), args.role, row['id']))
-            print(f'Обновлена учётка {args.login} (роль {args.role})')
+            print(f'Updated account {args.login} (role {args.role})')
         else:
             con.execute('INSERT INTO users (id, login, password_hash, totp_secret, role, '
                         'is_active, created_at) VALUES (?,?,?,?,?,1,?)',
                         (new_id('u'), args.login, hash_password(password), secret,
                          args.role, iso(utc_now())))
-            print(f'Создана учётка {args.login} (роль {args.role})')
-            print(f'Секрет TOTP (base32, для приложения-аутентификатора): {secret}')
+            print(f'Created account {args.login} (role {args.role})')
+            print(f'TOTP secret (base32, for the authenticator app): {secret}')
         if app.config['DEMO_CODE']:
-            print(f'[ПРОТОТИП] статический код второго фактора: {app.config["DEMO_CODE"]}')
+            print(f'[PROTOTYPE] static second-factor code: {app.config["DEMO_CODE"]}')
     finally:
         con.close()
     return 0

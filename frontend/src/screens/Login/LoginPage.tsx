@@ -1,4 +1,4 @@
-/** Страница входа. FUNCTIONAL_SPEC.md §6. */
+/** Login page. FUNCTIONAL_SPEC.md §6. */
 import { useEffect, useState, type FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { api, AuthError } from '@/api';
@@ -25,7 +25,7 @@ export function LoginPage() {
   const [codeFails, setCodeFails] = useState(0);
   const [sessionEnd, setSessionEnd] = useState('');
 
-  // Обратный отсчёт блокировки; по окончании счётчик попыток сбрасывается.
+  // Lockout countdown; the attempt counter resets once it reaches zero.
   useEffect(() => {
     if (lockLeft <= 0) return;
     const t = setTimeout(() => {
@@ -60,10 +60,10 @@ export function LoginPage() {
       setPwd('');
       if (f >= MAX_PASSWORD_ATTEMPTS) {
         setLockLeft(LOCK_SECONDS);
-        setErr('Слишком много попыток. Вход временно заблокирован.');
+        setErr('Too many attempts. Login is temporarily locked.');
       } else {
-        // Сообщение никогда не уточняет, что именно неверно (§6.1).
-        setErr('Неверный логин или пароль.');
+        // The message never clarifies what exactly is wrong (§6.1).
+        setErr('Incorrect login or password.');
       }
     }
   };
@@ -86,10 +86,10 @@ export function LoginPage() {
         setCodeFails(0);
         setCodeErr('');
         setLogin('');
-        setErr('Код введён неверно три раза. Войдите заново.');
+        setErr('The code was entered incorrectly three times. Please log in again.');
       } else {
         setCodeFails(f);
-        setCodeErr(`Неверный код. Осталось попыток: ${MAX_CODE_ATTEMPTS - f}.`);
+        setCodeErr(`Incorrect code. Attempts remaining: ${MAX_CODE_ATTEMPTS - f}.`);
       }
     }
   };
@@ -101,7 +101,7 @@ export function LoginPage() {
           <div className="brand__mark">X</div>
           <div className="brand__text">
             <span className="brand__name">XScience</span>
-            <span className="brand__sub">Пожарная обстановка · микрогравитация</span>
+            <span className="brand__sub">Fire situation · microgravity</span>
           </div>
         </div>
       </header>
@@ -112,15 +112,15 @@ export function LoginPage() {
             <Card>
               <form className="login__form" onSubmit={submitLogin}>
                 <div>
-                  <div className="login__title">Вход в систему</div>
+                  <div className="login__title">Sign In</div>
                   <div className="login__sub">
-                    Доступ только для сотрудников. Учётную запись выдаёт администратор.
+                    Access for staff only. Accounts are issued by the administrator.
                   </div>
                 </div>
 
                 <div className="login__field">
                   <label className="login__label" htmlFor="login">
-                    Логин
+                    Username
                   </label>
                   <input
                     id="login"
@@ -136,7 +136,7 @@ export function LoginPage() {
 
                 <div className="login__field">
                   <label className="login__label" htmlFor="pwd">
-                    Пароль
+                    Password
                   </label>
                   <div className="login__pwd">
                     <input
@@ -155,28 +155,28 @@ export function LoginPage() {
                       onClick={() => setShowPwd((v) => !v)}
                       disabled={locked}
                     >
-                      {showPwd ? 'Скрыть' : 'Показать'}
+                      {showPwd ? 'Hide' : 'Show'}
                     </button>
                   </div>
-                  {caps ? <span className="login__sub">Включён Caps Lock</span> : null}
+                  {caps ? <span className="login__sub">Caps Lock is on</span> : null}
                 </div>
 
                 <div className="login__row">
-                  {/* [ПРОТОТИП] ничего не делает. [ВОПРОС] процедура восстановления. */}
+                  {/* [PROTOTYPE] does nothing. [QUESTION] recovery procedure. */}
                   <button type="button" className="btn--link" onClick={(e) => e.preventDefault()}>
-                    Забыли пароль?
+                    Forgot password?
                   </button>
                 </div>
 
                 {err ? <span className="login__error">{err}</span> : null}
 
                 <button type="submit" className="btn btn--primary btn--run" disabled={cantSubmit}>
-                  {locked ? `Повторите через ${lockLeft} с` : 'Войти'}
+                  {locked ? `Try again in ${lockLeft} s` : 'Sign in'}
                 </button>
 
                 {fails > 0 && !locked ? (
                   <span className="login__sub">
-                    Осталось попыток: {MAX_PASSWORD_ATTEMPTS - fails}
+                    Attempts remaining: {MAX_PASSWORD_ATTEMPTS - fails}
                   </span>
                 ) : null}
               </form>
@@ -187,16 +187,16 @@ export function LoginPage() {
             <Card>
               <form className="login__form" onSubmit={submitCode}>
                 <div>
-                  <div className="login__step">шаг 2 из 2</div>
-                  <div className="login__title">Код подтверждения</div>
+                  <div className="login__step">step 2 of 2</div>
+                  <div className="login__title">Verification Code</div>
                   <div className="login__sub">
-                    Введите 6-значный код из приложения-аутентификатора.
+                    Enter the 6-digit code from the authenticator app.
                   </div>
                 </div>
 
                 <div className="login__field">
                   <label className="login__label" htmlFor="code">
-                    Код
+                    Code
                   </label>
                   <input
                     id="code"
@@ -212,7 +212,7 @@ export function LoginPage() {
                 {codeErr ? <span className="login__error">{codeErr}</span> : null}
 
                 <button type="submit" className="btn btn--primary btn--run" disabled={cantCode}>
-                  Подтвердить
+                  Confirm
                 </button>
                 <button
                   type="button"
@@ -224,7 +224,7 @@ export function LoginPage() {
                     setCodeFails(0);
                   }}
                 >
-                  Назад
+                  Back
                 </button>
               </form>
             </Card>
@@ -233,34 +233,34 @@ export function LoginPage() {
           {step === 'done' ? (
             <Card>
               <div className="login__form">
-                <div className="login__title">Вход выполнен</div>
+                <div className="login__title">Signed In</div>
                 <div className="login__sub">
-                  Сессия активна до {sessionEnd} или до выхода. При бездействии 15 минут вход
-                  потребуется снова.
+                  Session active until {sessionEnd} or until logout. After 15 minutes of inactivity,
+                  you will need to sign in again.
                 </div>
                 <button
                   type="button"
                   className="btn btn--primary btn--run"
                   onClick={() => navigate('/console')}
                 >
-                  Открыть панель
+                  Open Console
                 </button>
               </div>
             </Card>
           ) : null}
 
           <div className="login__tips">
-            <span>Ошибка входа не уточняет, что именно неверно: логин или пароль.</span>
-            <span>После 5 неверных попыток вход блокируется на 30 секунд.</span>
-            <span>Пароль не сохраняется в браузере и не попадает в историю анализов.</span>
+            <span>A login error never clarifies what exactly is wrong: username or password.</span>
+            <span>After 5 failed attempts, login is locked for 30 seconds.</span>
+            <span>The password is not stored in the browser and is not included in analysis history.</span>
             <span>
-              Прототип интерфейса. Проверка логина, пароля и кода должна выполняться на сервере
-              (Flask) по HTTPS. Для проверки макета: логин <code>demo</code>, пароль{' '}
-              <code>xscience-demo</code>, код <code>123456</code>.
+              UI prototype. Validation of the username, password, and code should be performed on
+              the server (Flask) over HTTPS. To test the mock-up: username <code>demo</code>, password{' '}
+              <code>xscience-demo</code>, code <code>123456</code>.
             </span>
             <span>
-              <Link to="/console">Открыть панель без входа</Link> — [ПРОТОТИП] панель не защищена
-              сессией (§22).
+              <Link to="/console">Open the console without signing in</Link> — [PROTOTYPE] the console
+              is not protected by a session (§22).
             </span>
           </div>
         </div>

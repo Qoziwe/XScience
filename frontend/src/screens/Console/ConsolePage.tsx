@@ -1,4 +1,4 @@
-/** Панель. Вкладки и общие элементы. FUNCTIONAL_SPEC.md §5. */
+/** Console. Tabs and shared elements. FUNCTIONAL_SPEC.md §5. */
 import { useEffect } from 'react';
 import { Footer, Header } from '@/components/Header';
 import { AlertModal } from '@/components/AlertModal';
@@ -33,7 +33,7 @@ export function ConsolePage() {
   );
 }
 
-/** §5.4 — Ctrl/Cmd+Enter запускает анализ, Esc закрывает модальное окно. */
+/** §5.4 — Ctrl/Cmd+Enter runs the analysis, Esc closes the modal window. */
 function useKeyboard() {
   const { state, dispatch, runAnalysis } = useStore();
   const model = useFormModel();
@@ -47,7 +47,7 @@ function useKeyboard() {
       }
       if ((e.ctrlKey || e.metaKey) && e.key === 'Enter' && tab === 'analysis' && !modal) {
         e.preventDefault();
-        // Повторный запуск во время расчёта игнорируется (§23).
+        // A repeated run during calculation is ignored (§23).
         if (model.complete && !running && cur) runAnalysis(cur, toParams(form));
       }
     };

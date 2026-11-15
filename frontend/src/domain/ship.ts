@@ -1,8 +1,8 @@
-/** Агрегация состояния корабля. FUNCTIONAL_SPEC.md §7.4. [БЭКЕНД] GET /api/ship/status. */
+/** Ship status aggregation. FUNCTIONAL_SPEC.md §7.4. [BACKEND] GET /api/ship/status. */
 import { SECTORS, VERDICT_RU } from './reference';
 import type { Analysis, Level, SectorId, SectorStatus } from './types';
 
-/** Последний анализ каждого сектора (по порядку истории). */
+/** The latest analysis for each sector (in history order). */
 export function latestBySector(hist: Analysis[]): Partial<Record<SectorId, Analysis>> {
   const last: Partial<Record<SectorId, Analysis>> = {};
   hist.forEach((h) => {
@@ -14,12 +14,12 @@ export function latestBySector(hist: Analysis[]): Partial<Record<SectorId, Analy
 export interface ShipStatus {
   analysed: number;
   total: number;
-  /** Статус каждого сектора (вердикт последнего анализа или 'none'). */
+  /** Status of each sector (latest analysis verdict, or 'none'). */
   statusOf: (id: SectorId) => SectorStatus;
   counts: Record<SectorStatus, number>;
-  /** Сектора с вердиктом «Опасно». */
+  /** Sectors with a "Dangerous" verdict. */
   dangers: SectorId[];
-  /** Самый свежий (наибольший id) из последних опасных анализов. */
+  /** The most recent (highest id) of the latest dangerous analyses. */
   latestDanger: Analysis | null;
   worst: Level | null;
   verdict: string | null;
@@ -80,12 +80,12 @@ export function shipStatus(hist: Analysis[]): ShipStatus {
 
   const summary =
     worst === 'high'
-      ? `Опасность в секторах: ${codesWith('high')}. ` +
-        (counts.medium ? `Внимания требуют: ${codesWith('medium')}. ` : '') +
-        'Приоритет — нейтрализовать опасность в указанных секторах.'
+      ? `Danger in sectors: ${codesWith('high')}. ` +
+        (counts.medium ? `Attention required: ${codesWith('medium')}. ` : '') +
+        'Priority — neutralize the danger in the listed sectors.'
       : worst === 'medium'
-        ? `Критических секторов нет. Внимания требуют: ${codesWith('medium')}.`
-        : 'Во всех проанализированных секторах условия безопасны.';
+        ? `No critical sectors. Attention required: ${codesWith('medium')}.`
+        : 'Conditions are safe in all analyzed sectors.';
 
   return {
     analysed,
@@ -97,12 +97,12 @@ export function shipStatus(hist: Analysis[]): ShipStatus {
     worst,
     verdict: VERDICT_RU[worst],
     subtitle:
-      analysed < total ? `по ${analysed} из ${total} секторов — картина неполная` : 'по всем секторам',
+      analysed < total ? `based on ${analysed} of ${total} sectors — picture is incomplete` : 'based on all sectors',
     summary,
     confidence,
     confNote:
       analysed < total
-        ? 'Снижена: проанализированы не все сектора.'
-        : 'Проанализированы все сектора.',
+        ? 'Reduced: not all sectors have been analyzed.'
+        : 'All sectors have been analyzed.',
   };
 }

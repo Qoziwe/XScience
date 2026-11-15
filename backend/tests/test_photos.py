@@ -1,4 +1,4 @@
-"""§17.3, §18.7 — загрузка фото, разметка оператора, распознавание моделью."""
+"""§17.3, §18.7 — photo upload, operator annotation, model recognition."""
 from __future__ import annotations
 
 import io
@@ -15,7 +15,7 @@ from tests.test_api import ApiCase, INPUT_A
 
 
 def png_bytes(width: int = 2, height: int = 2) -> bytes:
-    """Минимальный валидный PNG — чтобы проверка подписи файла была настоящей."""
+    """A minimal valid PNG — so the file-signature check is exercised for real."""
     def chunk(tag: bytes, data: bytes) -> bytes:
         return (struct.pack('>I', len(data)) + tag + data
                 + struct.pack('>I', zlib.crc32(tag + data) & 0xFFFFFFFF))
@@ -26,8 +26,8 @@ def png_bytes(width: int = 2, height: int = 2) -> bytes:
             + chunk(b'IDAT', zlib.compress(raw)) + chunk(b'IEND', b''))
 
 
-GOOD_VISION = json.dumps({'size': 'среднее', 'brightness': 'яркое',
-                          'shape': 'округлое', 'note': 'В кадре округлое яркое пламя.',
+GOOD_VISION = json.dumps({'size': 'medium', 'brightness': 'bright',
+                          'shape': 'round', 'note': 'A round, bright flame is in frame.',
                           'flame_visible': True}, ensure_ascii=False)
 
 
@@ -62,14 +62,14 @@ class TestUpload(PhotoCase):
         self.assertGreater(body['size_bytes'], 0)
         self.assertIsNone(body['analysis_id'])
         self.assertIsNone(body['recognition'])
-        self.assertIn('не входят', body['note'])
+        self.assertIn('part of the risk and extinction calculation', body['note'])
 
         got = self.client.get(f'/api/photos/{body["id"]}')
         self.assertEqual(got.status_code, 200)
         raw = self.client.get(body['file_url'])
         self.assertEqual(raw.status_code, 200)
         self.assertEqual(raw.mimetype, 'image/png')
-        raw.close()  # send_file держит файл открытым до закрытия ответа
+        raw.close()  # send_file keeps the file open until the response is closed
 
     def test_file_requires_session(self):
         body = self.upload().get_json()
@@ -107,16 +107,16 @@ class TestAnnotation(PhotoCase):
     def test_operator_annotation_vocabulary(self):
         pid = self.upload().get_json()['id']
         r = self.client.patch(f'/api/photos/{pid}',
-                              json={'size': 'среднее', 'shape': 'вытянутое'},
+                              json={'size': 'medium', 'shape': 'elongated'},
                               headers=self.auth_headers())
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.get_json()['annotation'],
-                         {'size': 'среднее', 'shape': 'вытянутое'})
-        # Повторное пустое значение снимает выбор (§17.3).
+                         {'size': 'medium', 'shape': 'elongated'})
+        # Setting an empty value again clears the choice (§17.3).
         r = self.client.patch(f'/api/photos/{pid}', json={'shape': ''},
                               headers=self.auth_headers())
-        self.assertEqual(r.get_json()['annotation'], {'size': 'среднее'})
-        r = self.client.patch(f'/api/photos/{pid}', json={'brightness': 'ослепительное'},
+        self.assertEqual(r.get_json()['annotation'], {'size': 'medium'})
+        r = self.client.patch(f'/api/photos/{pid}', json={'brightness': 'blinding'},
                               headers=self.auth_headers())
         self.assertEqual(r.status_code, 422)
 
@@ -136,7 +136,7 @@ class TestRecognition(PhotoCase):
 
     def test_recognize_fills_features_and_keeps_operator_annotation(self):
         pid = self.upload().get_json()['id']
-        self.client.patch(f'/api/photos/{pid}', json={'size': 'малое'},
+        self.client.patch(f'/api/photos/{pid}', json={'size': 'small'},
                           headers=self.auth_headers())
         self.llm.reply = GOOD_VISION
         with mock.patch.dict('os.environ', self.env(), clear=True):
@@ -144,11 +144,11 @@ class TestRecognition(PhotoCase):
                                  headers=self.auth_headers())
         self.assertEqual(r.status_code, 200)
         body = r.get_json()
-        self.assertEqual(body['recognition']['size'], 'среднее')
+        self.assertEqual(body['recognition']['size'], 'medium')
         self.assertEqual(body['recognition']['model'], 'openai_compat:vision-test')
-        # Разметка оператора не затёрта распознаванием.
-        self.assertEqual(body['annotation'], {'size': 'малое'})
-        # Снимок действительно ушёл в модель картинкой.
+        # The operator's annotation is not overwritten by recognition.
+        self.assertEqual(body['annotation'], {'size': 'small'})
+        # The photo was actually sent to the model as an image.
         parts = self.llm.requests[-1]['body']['messages'][1]['content']
         self.assertEqual(parts[0]['type'], 'image_url')
         self.assertIn('data:image/png;base64,', parts[0]['image_url']['url'])
@@ -172,8 +172,8 @@ class TestRecognition(PhotoCase):
 
     def test_no_flame_clears_features(self):
         pid = self.upload().get_json()['id']
-        self.llm.reply = json.dumps({'size': 'большое', 'brightness': None,
-                                     'shape': None, 'note': 'Пламени не видно.',
+        self.llm.reply = json.dumps({'size': 'large', 'brightness': None,
+                                     'shape': None, 'note': 'No flame is visible.',
                                      'flame_visible': False}, ensure_ascii=False)
         with mock.patch.dict('os.environ', self.env(), clear=True):
             body = self.client.post(f'/api/photos/{pid}/recognize',
@@ -186,12 +186,12 @@ class TestRecognition(PhotoCase):
 class TestVisionValidation(unittest.TestCase):
     def test_rejects_words_outside_vocabulary(self):
         with self.assertRaises(LlmError):
-            vision.validate({'size': 'гигантское', 'note': 'x'})
+            vision.validate({'size': 'gigantic', 'note': 'x'})
         with self.assertRaises(LlmError):
-            vision.validate({'size': 'малое', 'note': ''})
+            vision.validate({'size': 'small', 'note': ''})
 
     def test_nulls_allowed(self):
         out = vision.validate({'size': None, 'brightness': None, 'shape': None,
-                               'note': 'Кадр смазан.', 'flame_visible': False})
+                               'note': 'The frame is blurry.', 'flame_visible': False})
         self.assertEqual(out['size'], None)
         self.assertFalse(out['flame_visible'])

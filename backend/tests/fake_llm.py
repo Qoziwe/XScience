@@ -1,7 +1,7 @@
 """
-Локальный HTTP-сервер, изображающий провайдера модели.
-Нужен, чтобы тесты проходили через настоящие адаптеры и настоящий HTTP,
-но без сети и без ключей.
+A local HTTP server impersonating a model provider.
+Needed so tests exercise the real adapters and real HTTP, but without the
+network or real keys.
 """
 from __future__ import annotations
 
@@ -51,7 +51,7 @@ class FakeLlm:
                 raw = self.rfile.read(length).decode('utf-8')
                 server.requests.append({
                     'path': self.path,
-                    # urllib меняет регистр имён — приводим к нижнему.
+                    # urllib changes the case of header names — normalize to lowercase.
                     'headers': {k.lower(): v for k, v in self.headers.items()},
                     'body': json.loads(raw) if raw else {},
                 })
@@ -62,7 +62,7 @@ class FakeLlm:
                 self.end_headers()
                 self.wfile.write(payload)
 
-            def log_message(self, *_args):  # тишина в выводе тестов
+            def log_message(self, *_args):  # keep test output quiet
                 pass
 
         return Handler

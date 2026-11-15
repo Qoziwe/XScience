@@ -1,21 +1,21 @@
 #!/usr/bin/env python3
 """
-Генератор расширения набора данных (§19) → app/data/dataset_extra.csv.
+Dataset-extension generator (§19) → app/data/dataset_extra.csv.
 
-Зачем: исходные 30 строк не проходят проверки §17.1 — один класс risk_level,
-нет строк с gravity = earth, недопустимый data_source, толщина жёстко
-привязана к материалу (§19.3). Этот скрипт добавляет строки, в которых
-risk_level и gravity варьируются, а data_source допустим по схеме §19.1.
+Why: the original 30 rows fail the §17.1 checks — a single risk_level class,
+no rows with gravity = earth, an invalid data_source, and thickness rigidly
+tied to the material (§19.3). This script adds rows where risk_level and
+gravity vary, and data_source is valid per the §19.1 schema.
 
-ЧЕСТНОЕ ОГРАНИЧЕНИЕ: метки risk_level и extinction_probability считаются
-формулами §14, то есть набор остаётся `simulated`. Модель, обученная на нём,
-воспроизводит правила, а не независимые наблюдения, и доказательством
-физики не является. Поля flame_size_cm, flame_spread_rate_cm_s и
-expected_result остаются пустыми: правило для них не задано (§19.1), а
-выдумывать значения в наборе данных нельзя.
+HONEST LIMITATION: the risk_level and extinction_probability labels are
+computed by the §14 formulas, so the dataset remains `simulated`. A model
+trained on it reproduces the rules, not independent observations, and is not
+proof of the underlying physics. The flame_size_cm, flame_spread_rate_cm_s,
+and expected_result fields are left empty: no rule is defined for them
+(§19.1), and values must not be invented for the dataset.
 
-Запуск: python3 scripts/gen_dataset.py [--rows 90] [--seed 20261114]
-Результат детерминирован при одном и том же seed.
+Usage: python3 scripts/gen_dataset.py [--rows 90] [--seed 20261114]
+The result is deterministic for a given seed.
 """
 from __future__ import annotations
 
@@ -37,7 +37,7 @@ DATA_SOURCE = 'simulated'
 
 
 def grid(key: str, rnd: random.Random) -> float:
-    """Случайное значение по шагу интерфейса (§9.2) — как если бы его ввёл оператор."""
+    """A random value on the UI's step grid (§9.2) — as if entered by an operator."""
     lo, hi = RANGES[key]
     step = STEPS[key]
     steps = int(round((hi - lo) / step))
@@ -58,18 +58,18 @@ def sample(rnd: random.Random) -> dict:
     }
 
 
-#: Материалы с базовым риском 2 — только с ними достижим уровень «низкий».
+#: Materials with base risk 2 — only these can reach the "low" level.
 LOW_RISK_MATERIALS = [m['code'] for m in MATERIALS if m['risk'] == 2]
 
 
 def sample_low_risk(rnd: random.Random) -> dict:
     """
-    Направленная выборка для уровня «низкий».
-    R ≤ 3 достижим единственным семейством условий (§16.4 — шкала смещена
-    к «высокому»): материал с базовым риском 2, кислород ниже 16 %, поток 0,
-    температура не выше 50 °C, горение не дольше 10 с, Земля. Случайный
-    перебор по всей сетке в эту область практически не попадает, поэтому
-    строки этого класса набираются отдельно.
+    Targeted sampling for the "low" level.
+    R ≤ 3 is reachable by only a single family of conditions (§16.4 — the scale
+    is skewed toward "high"): a material with base risk 2, oxygen below 16%,
+    zero flow, temperature no higher than 50 °C, burning no longer than 10 s,
+    Earth gravity. Random sampling over the full grid almost never lands in
+    this region, so rows of this class are collected separately.
     """
     return {
         'material': rnd.choice(LOW_RISK_MATERIALS),
@@ -85,15 +85,15 @@ def sample_low_risk(rnd: random.Random) -> dict:
 
 def main() -> int:
     ap = argparse.ArgumentParser(description=__doc__)
-    ap.add_argument('--rows', type=int, default=90, help='сколько строк сгенерировать')
+    ap.add_argument('--rows', type=int, default=90, help='how many rows to generate')
     ap.add_argument('--seed', type=int, default=20261114)
     ap.add_argument('--out', type=Path, default=EXTRA_CSV)
     ap.add_argument('--tries', type=int, default=200000)
     args = ap.parse_args()
 
     rnd = random.Random(args.seed)
-    # Квоты по парам (risk_level, extinction_probability): набор должен
-    # покрывать все достижимые сочетания, а не только «high/high».
+    # Quotas per (risk_level, extinction_probability) pair: the dataset must
+    # cover every reachable combination, not just "high/high".
     combos = [(r, e) for r in LEVELS for e in LEVELS]
     quota = max(1, args.rows // len(combos))
     picked: dict[tuple[str, str], list[dict]] = {c: [] for c in combos}
@@ -102,8 +102,8 @@ def main() -> int:
     for i in range(args.tries):
         if sum(len(v) for v in picked.values()) >= args.rows:
             break
-        # Каждый четвёртый кандидат — из направленной выборки, иначе класс
-        # «низкий» в набор не попадёт (см. sample_low_risk).
+        # Every fourth candidate comes from the targeted sample, otherwise the
+        # "low" class would never make it into the dataset (see sample_low_risk).
         need_low = any(len(picked[c]) < quota for c in combos if c[0] == 'low')
         p = sample_low_risk(rnd) if (need_low and i % 4 == 0) else sample(rnd)
         s = score(p)
@@ -119,8 +119,8 @@ def main() -> int:
         bucket.append({'p': p, 's': s})
 
     rows = [item for combo in combos for item in picked[combo]]
-    # Добираем остаток, не ограничивая себя квотой: редкие сочетания
-    # (например low/low) могут быть недостижимы по шкале §14.
+    # Top up the remainder without the quota constraint: rare combinations
+    # (e.g. low/low) may be unreachable under the §14 scale.
     for _ in range(args.tries):
         if len(rows) >= args.rows:
             break
@@ -148,11 +148,11 @@ def main() -> int:
                 'air_flow_cm_s': p['flow'],
                 'temperature_C': p['temp'],
                 'time_s': int(p['time']),
-                'flame_size_cm': '',            # правило не задано (§19.1)
-                'flame_spread_rate_cm_s': '',   # правило не задано (§19.1)
+                'flame_size_cm': '',            # no rule defined (§19.1)
+                'flame_spread_rate_cm_s': '',   # no rule defined (§19.1)
                 'risk_level': s['level'],
                 'extinction_probability': s['extLevel'],
-                'expected_result': '',          # правило не задано (§19.1)
+                'expected_result': '',          # no rule defined (§19.1)
                 'data_source': DATA_SOURCE,
             })
 
@@ -161,9 +161,9 @@ def main() -> int:
         k = f'{r["s"]["level"]}/{r["s"]["extLevel"]}'
         dist[k] = dist.get(k, 0) + 1
     earth = sum(1 for r in rows if r['p']['gravity'] == 'earth')
-    print(f'{args.out}: {len(rows)} строк, seed {args.seed}')
+    print(f'{args.out}: {len(rows)} rows, seed {args.seed}')
     print('  risk/ext:', ', '.join(f'{k}={v}' for k, v in sorted(dist.items())))
-    print(f'  gravity=earth: {earth}, классов risk_level: '
+    print(f'  gravity=earth: {earth}, risk_level classes: '
           f'{len({r["s"]["level"] for r in rows})}')
     return 0
 

@@ -1,4 +1,4 @@
-"""Вызов модели: выбор адаптера по конфигу + разбор JSON-ответа."""
+"""Model call: pick the adapter from config + parse the JSON response."""
 from __future__ import annotations
 
 import json
@@ -14,15 +14,16 @@ _FENCE = re.compile(r'^\s*```(?:json)?\s*|\s*```\s*$', re.IGNORECASE)
 def complete(system: str, parts: list[Part], cfg: ProviderConfig) -> str:
     fn = REGISTRY.get(cfg.provider)
     if not fn:
-        raise LlmError(f'неизвестный провайдер: {cfg.provider}')
+        raise LlmError(f'unknown provider: {cfg.provider}')
     return fn(system, parts, cfg)
 
 
 def complete_json(system: str, parts: list[Part], cfg: ProviderConfig) -> dict[str, Any]:
     """
-    Ответ модели как объект JSON. Модели любят обрамлять JSON пояснениями и
-    ```-блоками, поэтому разбор терпимый: снимаем рамку, иначе берём самый
-    внешний {...}. Непригодный ответ — LlmError, вызывающий код уходит на правила.
+    The model's response as a JSON object. Models like to wrap JSON in
+    explanations and ``` blocks, so parsing is lenient: strip the fence, or
+    else take the outermost {...}. An unusable response raises LlmError, and
+    the calling code falls back to the rules.
     """
     raw = complete(system, parts, cfg).strip()
     for candidate in (_FENCE.sub('', raw), _outermost_object(raw)):
@@ -34,7 +35,7 @@ def complete_json(system: str, parts: list[Part], cfg: ProviderConfig) -> dict[s
             continue
         if isinstance(value, dict):
             return value
-    raise LlmError(f'ответ не разобран как JSON: {raw[:200]}')
+    raise LlmError(f'response could not be parsed as JSON: {raw[:200]}')
 
 
 def _outermost_object(text: str) -> str:

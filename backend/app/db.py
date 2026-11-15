@@ -1,4 +1,4 @@
-"""Доступ к SQLite. Без ORM: запросов мало, схема в app/schema.sql."""
+"""SQLite access. No ORM: few queries, schema lives in app/schema.sql."""
 from __future__ import annotations
 
 import sqlite3
@@ -29,7 +29,7 @@ def init_db(path: str) -> None:
 
 
 def db() -> sqlite3.Connection:
-    """Соединение на время запроса."""
+    """Connection scoped to the request."""
     if 'db' not in g:
         g.db = connect(current_app.config['DB_PATH'])
     return g.db

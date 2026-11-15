@@ -1,4 +1,4 @@
-"""§18.1 — авторизация."""
+"""§18.1 — authentication."""
 from __future__ import annotations
 
 import time
@@ -21,13 +21,13 @@ def _json() -> dict[str, Any]:
 
 def _set_cookies(resp, session_id: str, csrf: str):
     cfg = current_app.config
-    # §6.5 — HttpOnly; Secure; SameSite=Strict. domain пуст, если фронт и бэк
-    # на одном хосте; иначе — общий поддомен (XSCI_COOKIE_DOMAIN), чтобы
-    # клиентский JS на другом поддомене мог прочитать CSRF-cookie.
+    # §6.5 — HttpOnly; Secure; SameSite=Strict. domain is empty if the frontend
+    # and backend are on the same host; otherwise — a shared subdomain
+    # (XSCI_COOKIE_DOMAIN) so client JS on another subdomain can read the CSRF cookie.
     resp.set_cookie(cfg['SESSION_COOKIE'], session_id, httponly=True,
                     secure=cfg['COOKIE_SECURE'], samesite='Strict', path='/',
                     domain=cfg['COOKIE_DOMAIN'], max_age=cfg['SESSION_ABSOLUTE_S'])
-    # CSRF-токен читает клиент и присылает заголовком — поэтому без HttpOnly.
+    # The CSRF token is read by the client and sent back as a header — hence no HttpOnly.
     resp.set_cookie(cfg['CSRF_COOKIE'], csrf, httponly=False,
                     secure=cfg['COOKIE_SECURE'], samesite='Strict', path='/',
                     domain=cfg['COOKIE_DOMAIN'], max_age=cfg['SESSION_ABSOLUTE_S'])
@@ -36,8 +36,8 @@ def _set_cookies(resp, session_id: str, csrf: str):
 
 def _clear_cookies(resp):
     cfg = current_app.config
-    # domain должен совпадать с тем, что было при установке — иначе браузер
-    # не найдёт cookie для удаления и просто выставит новую, уже пустую.
+    # domain must match what was used when setting the cookie — otherwise the
+    # browser won't find the cookie to delete and will just set a new, empty one.
     resp.delete_cookie(cfg['SESSION_COOKIE'], path='/', domain=cfg['COOKIE_DOMAIN'])
     resp.delete_cookie(cfg['CSRF_COOKIE'], path='/', domain=cfg['COOKIE_DOMAIN'])
     return resp
@@ -45,13 +45,13 @@ def _clear_cookies(resp):
 
 @bp.post('/auth/login')
 def login():
-    """Шаг 1: {login, password} → 200 {stage:"code_required"}."""
+    """Step 1: {login, password} → 200 {stage:"code_required"}."""
     started = time.monotonic()
     body = _json()
     try:
         sess = auth.login_step1(str(body.get('login', '')), str(body.get('password', '')))
     finally:
-        # §6.5 — одинаковое время ответа независимо от причины отказа.
+        # §6.5 — same response time regardless of the failure reason.
         rest = current_app.config['LOGIN_MIN_RESPONSE_S'] - (time.monotonic() - started)
         if rest > 0:
             time.sleep(rest)
@@ -61,7 +61,7 @@ def login():
 
 @bp.post('/auth/code')
 def code():
-    """Шаг 2: {code} → 200 {user:{login, role}, expires_at}."""
+    """Step 2: {code} → 200 {user:{login, role}, expires_at}."""
     body = _json()
     row = auth.current_session()
     if not row:

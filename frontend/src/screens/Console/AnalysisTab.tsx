@@ -1,4 +1,4 @@
-/** Вкладка «Анализ»: три колонки. FUNCTIONAL_SPEC.md §9. */
+/** "Analysis" tab: three columns. FUNCTIONAL_SPEC.md §9. */
 import { AnalysisForm } from './AnalysisForm';
 import { AnalysisResult } from './AnalysisResult';
 import { AnalysisSide } from './AnalysisSide';

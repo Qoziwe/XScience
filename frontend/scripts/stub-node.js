@@ -1,4 +1,4 @@
-// Минимальный браузерный контекст для прогона httpApi.ts в Node.
+// Minimal browser context for running httpApi.ts under Node.
 const jar = new Map();
 globalThis.document = {
   get cookie() {

@@ -1,4 +1,4 @@
-/** Форма параметров на вкладке «Анализ». FUNCTIONAL_SPEC.md §9.1–9.5. */
+/** Parameters form on the "Analysis" tab. FUNCTIONAL_SPEC.md §9.1–9.5. */
 import {
   DOT,
   FLOW_PRESETS,
@@ -20,7 +20,7 @@ import { useFormModel, type LiveScores } from '@/state/useForm';
 import { useResult } from '@/state/useResult';
 import { Card, Dot } from '@/components/ui';
 
-/** Правая метка статуса поля (§9.2). */
+/** Right-hand field status label (§9.2). */
 function statusText(
   status: FieldStatus,
   contribution: string,
@@ -28,8 +28,8 @@ function statusText(
 ): { text: string; cls: string } {
   if (status === 'ok')
     return { text: showContrib ? contribution : '', cls: 'field__status field__status--ok' };
-  if (status === 'bad') return { text: 'вне диапазона', cls: 'field__status field__status--off' };
-  return { text: 'не заполнено', cls: 'field__status field__status--off' };
+  if (status === 'bad') return { text: 'out of range', cls: 'field__status field__status--off' };
+  return { text: 'not filled in', cls: 'field__status field__status--off' };
 }
 
 function FieldHead({
@@ -74,7 +74,7 @@ function NumericField({
   const [min, max] = RANGES[fieldKey];
   const step = STEPS[fieldKey];
   const parsed = pn(value);
-  // Пока поле пустое, ползунок стоит на минимуме с прозрачностью 45 % (§9.2).
+  // While the field is empty, the slider sits at the minimum with 45% opacity (§9.2).
   const sliderValue = Number.isNaN(parsed) ? min : parsed;
 
   return (
@@ -104,7 +104,7 @@ function NumericField({
           step={step}
           value={value}
           placeholder="—"
-          aria-label={`${label}, значение`}
+          aria-label={`${label}, value`}
           onChange={(e) => onChange(e.target.value)}
         />
         <span className="unit">{UNITS[fieldKey].trim()}</span>
@@ -130,16 +130,16 @@ export function AnalysisForm() {
 
   const canRun = model.complete && !running && !locked;
   const hint = locked
-    ? 'Датчики активны — ручной ввод заблокирован. Включите переопределение, чтобы ввести данные вручную.'
+    ? 'Sensors are active — manual input is locked. Enable override to enter data manually.'
     : running
-      ? 'Параметры зафиксированы до конца расчёта.'
+      ? 'Parameters are locked until the calculation finishes.'
       : model.anyBad
-        ? 'Есть значения вне допустимого диапазона. Расчёт недоступен.'
+        ? 'Some values are out of the allowed range. Calculation unavailable.'
         : !model.complete
-          ? `Не хватает: ${model.missing.join(', ')}. Без всех параметров оценка не выдаётся.`
+          ? `Missing: ${model.missing.join(', ')}. The assessment requires all parameters.`
           : result?.stale
-            ? 'Форма изменена. Запустите анализ, чтобы обновить результат.'
-            : 'Все параметры заданы.';
+            ? 'The form has changed. Run the analysis to refresh the result.'
+            : 'All parameters are set.';
 
   const run = () => {
     if (!canRun || !cur) return;
@@ -149,20 +149,20 @@ export function AnalysisForm() {
   return (
     <Card className="col--form" style={{ display: 'flex', flexDirection: 'column' }}>
       <header className="card__head">
-        <h2 className="card__title">Параметры</h2>
+        <h2 className="card__title">Parameters</h2>
         <span className="mono muted" style={{ fontSize: 12 }}>
-          {model.filledCount} из 8
+          {model.filledCount} of 8
         </span>
         <span className="card__spacer">
           {sensors.enabled ? (
-            <div className="seg" role="group" aria-label="Ручной ввод">
+            <div className="seg" role="group" aria-label="Manual input">
               <button
                 type="button"
                 className="seg__opt"
                 aria-pressed={!sensors.manualOverride}
                 onClick={() => setManualOverride(false)}
               >
-                Авто
+                Auto
               </button>
               <button
                 type="button"
@@ -170,7 +170,7 @@ export function AnalysisForm() {
                 aria-pressed={sensors.manualOverride}
                 onClick={() => setManualOverride(true)}
               >
-                Ручной ввод
+                Manual Input
               </button>
             </div>
           ) : null}
@@ -180,20 +180,20 @@ export function AnalysisForm() {
             disabled={running}
             onClick={() => dispatch({ type: 'resetForm' })}
           >
-            Очистить
+            Clear
           </button>
         </span>
       </header>
 
       <fieldset className="form-fields" disabled={running || locked}>
-        {/* 0. Сектор корабля */}
+        {/* 0. Ship sector */}
         <div className="card__section">
           <div className="field__head">
-            <span className="field__label">Сектор корабля</span>
+            <span className="field__label">Ship Sector</span>
             <span
               className={`field__status field__status--${status.sector === 'ok' ? 'ok' : 'off'}`}
             >
-              {status.sector === 'ok' ? SEC[cur as SectorId].code : 'не заполнено'}
+              {status.sector === 'ok' ? SEC[cur as SectorId].code : 'not filled in'}
             </span>
           </div>
           <div className="grid2">
@@ -219,18 +219,18 @@ export function AnalysisForm() {
               className="btn--link"
               onClick={() => dispatch({ type: 'tab', tab: 'map' })}
             >
-              Выбрать на карте
+              Choose on the map
             </button>
             <span className="field__note">
-              Анализ идёт внутри одного сектора и входит в общую оценку корабля.
+              The analysis runs within a single sector and feeds into the overall ship assessment.
             </span>
           </div>
         </div>
 
-        {/* 1. Материал */}
+        {/* 1. Material */}
         <div className="card__section">
           <FieldHead
-            label="Материал"
+            label="Material"
             status={status.material}
             contribution={contrib.mat}
             showContrib={showContrib}
@@ -245,35 +245,35 @@ export function AnalysisForm() {
                 onClick={() => setP({ material: m.code })}
               >
                 <span>{m.label}</span>
-                <span className="opt__meta">риск {m.risk}</span>
+                <span className="opt__meta">risk {m.risk}</span>
               </button>
             ))}
           </div>
           {form.material === 'other' ? (
             <div className="login__field">
               <label className="login__label" htmlFor="matdesc">
-                Описание материала
+                Material Description
               </label>
               <textarea
                 id="matdesc"
                 className="textarea"
                 value={form.desc}
-                placeholder="Состав, плотность, наличие покрытия…"
+                placeholder="Composition, density, coating…"
                 onChange={(e) => setP({ desc: e.target.value })}
               />
               {!form.desc.trim() ? (
                 <span className="field__hint">
-                  Опишите материал — без описания расчёт недоступен
+                  Describe the material — the calculation is unavailable without a description
                 </span>
               ) : null}
             </div>
           ) : null}
         </div>
 
-        {/* 2. Толщина */}
+        {/* 2. Thickness */}
         <NumericField
           fieldKey="thickness"
-          label="Толщина"
+          label="Thickness"
           value={form.thickness}
           status={status.thickness}
           contribution={contrib.th}
@@ -281,10 +281,10 @@ export function AnalysisForm() {
           onChange={(v) => setP({ thickness: v })}
         />
 
-        {/* 3. Кислород */}
+        {/* 3. Oxygen */}
         <NumericField
           fieldKey="o2"
-          label="Кислород"
+          label="Oxygen"
           value={form.o2}
           status={status.o2}
           contribution={contrib.o2}
@@ -297,9 +297,9 @@ export function AnalysisForm() {
               type="button"
               className="o2-scale__air"
               onClick={() => setP({ o2: '21' })}
-              title="Поставить 21 % — состав воздуха"
+              title="Set to 21% — air composition"
             >
-              21 · воздух
+              21 · air
             </button>
             <span className="o2-scale__max">35</span>
           </div>
@@ -308,15 +308,15 @@ export function AnalysisForm() {
           ) : null}
         </NumericField>
 
-        {/* 4. Поток воздуха */}
+        {/* 4. Air flow */}
         <div className="card__section">
           <FieldHead
-            label="Поток воздуха"
+            label="Air Flow"
             status={status.flow}
             contribution={contrib.flow}
             showContrib={showContrib}
           />
-          <div className="seg" role="group" aria-label="Режим ввода потока">
+          <div className="seg" role="group" aria-label="Flow input mode">
             {(['simple', 'precise'] as const).map((mode) => (
               <button
                 key={mode}
@@ -328,8 +328,8 @@ export function AnalysisForm() {
                     mode === 'simple'
                       ? {
                           flowMode: mode,
-                          // Переход Точный → Простой: значение сохраняется только
-                          // если равно пресету, иначе поле очищается (§9.2).
+                          // Precise → Simple transition: the value is kept only if it
+                          // matches a preset, otherwise the field is cleared (§9.2).
                           flow: FLOW_PRESETS.some((f) => f.value === pn(form.flow))
                             ? form.flow
                             : '',
@@ -338,7 +338,7 @@ export function AnalysisForm() {
                   )
                 }
               >
-                {mode === 'simple' ? 'Простой' : 'Точный'}
+                {mode === 'simple' ? 'Simple' : 'Precise'}
               </button>
             ))}
           </div>
@@ -352,7 +352,7 @@ export function AnalysisForm() {
                 max={RANGES.flow[1]}
                 step={STEPS.flow}
                 value={Number.isNaN(pn(form.flow)) ? RANGES.flow[0] : pn(form.flow)}
-                aria-label="Поток воздуха"
+                aria-label="Air Flow"
                 onChange={(e) => setP({ flow: e.target.value })}
               />
               <input
@@ -363,10 +363,10 @@ export function AnalysisForm() {
                 step={STEPS.flow}
                 value={form.flow}
                 placeholder="—"
-                aria-label="Поток воздуха, значение"
+                aria-label="Air Flow, value"
                 onChange={(e) => setP({ flow: e.target.value })}
               />
-              <span className="unit">см/с</span>
+              <span className="unit">cm/s</span>
             </div>
           ) : (
             <div className="grid4">
@@ -395,10 +395,10 @@ export function AnalysisForm() {
           ) : null}
         </div>
 
-        {/* 5. Гравитация */}
+        {/* 5. Gravity */}
         <div className="card__section">
           <FieldHead
-            label="Гравитация"
+            label="Gravity"
             status={status.gravity}
             contribution={contrib.grav}
             showContrib={showContrib}
@@ -416,13 +416,13 @@ export function AnalysisForm() {
               </button>
             ))}
           </div>
-          <span className="field__note">Только категория. Уровень g не оценивается.</span>
+          <span className="field__note">Category only. The g-level itself is not assessed.</span>
         </div>
 
-        {/* 6. Температура */}
+        {/* 6. Temperature */}
         <NumericField
           fieldKey="temp"
-          label="Температура в зоне горения"
+          label="Temperature in the Combustion Zone"
           value={form.temp}
           status={status.temp}
           contribution={contrib.temp}
@@ -430,10 +430,10 @@ export function AnalysisForm() {
           onChange={(v) => setP({ temp: v })}
         />
 
-        {/* 7. Время горения */}
+        {/* 7. Burn time */}
         <NumericField
           fieldKey="time"
-          label="Время горения"
+          label="Burn Time"
           value={form.time}
           status={status.time}
           contribution={contrib.time}
@@ -442,10 +442,10 @@ export function AnalysisForm() {
         />
       </fieldset>
 
-      {/* §9.4 — кнопка «Анализ» */}
+      {/* §9.4 — "Analyze" button */}
       <div className="run-box">
         <button type="button" className="btn btn--primary btn--run" disabled={!canRun} onClick={run}>
-          {running ? 'Расчёт…' : 'Анализ'}
+          {running ? 'Calculating…' : 'Analyze'}
           {running ? null : <span className="kbd">Ctrl ↵</span>}
         </button>
         <span className="run-hint">{hint}</span>
@@ -454,7 +454,7 @@ export function AnalysisForm() {
   );
 }
 
-/** Подписи вклада поля (§9.2). */
+/** Field contribution labels (§9.2). */
 function contributions(live: LiveScores) {
   return {
     mat: `R +${live.mat}`,

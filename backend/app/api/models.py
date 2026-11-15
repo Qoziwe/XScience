@@ -1,4 +1,4 @@
-"""§18.5–18.6 — набор данных, ML-модель риска/затухания и закон d²."""
+"""§18.5–18.6 — dataset, risk/extinction ML model, and the d² law."""
 from __future__ import annotations
 
 from flask import Blueprint, jsonify, request
@@ -14,7 +14,7 @@ bp = Blueprint('models', __name__, url_prefix='/api')
 
 @bp.get('/dataset')
 def dataset():
-    """§18.5 — строки набора с результатом сверки по формулам §14."""
+    """§18.5 — dataset rows with the §14 formula cross-check result."""
     auth.require_auth()
     rows = all_rows()
     if request.args.get('only_mismatches') in ('1', 'true', 'yes'):
@@ -26,14 +26,14 @@ def dataset():
 
 @bp.get('/models/ml/readiness')
 def readiness():
-    """§17.1 — четыре проверки готовности данных и состояние модели."""
+    """§17.1 — the four data-readiness checks and model state."""
     auth.require_auth()
     return jsonify(ml.readiness())
 
 
 @bp.post('/models/ml/train')
 def train():
-    """§17.1 — обучение доступно только при пройденных обязательных проверках."""
+    """§17.1 — training is only available once all required checks pass."""
     row = auth.require_auth()
     auth.require_csrf(row)
     state = ml.readiness()
@@ -50,27 +50,27 @@ def train():
 
 @bp.post('/models/ml/predict')
 def predict():
-    """§17.1 — прогноз только при обученной модели, иначе 409."""
+    """§17.1 — prediction only when a model is trained, otherwise 409."""
     auth.require_auth()
     body = request.get_json(silent=True)
     if body is None:
         raise bad_json()
     errors, clean = validate_input({'sector': 'l1', **body} if 'sector' not in body
                                    else body)
-    # Сектор для прогноза не нужен — ошибку по нему не показываем.
+    # The sector is not needed for prediction — don't surface an error for it.
     errors.pop('sector', None)
     if errors:
         raise validation_error(errors)
     out = ml.predict(to_params(clean))
     if not out:
         raise ApiError(409, 'model_not_trained',
-                       detail='Прогноз выдаётся только обученной моделью (§17.1).')
+                       detail='A prediction is only returned by a trained model (§17.1).')
     return jsonify(out)
 
 
 @bp.post('/models/d2')
 def law_d2():
-    """§17.2 — сокращённая форма закона d²."""
+    """§17.2 — reduced form of the d² law."""
     auth.require_auth()
     body = request.get_json(silent=True)
     if body is None:

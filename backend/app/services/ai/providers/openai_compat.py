@@ -1,10 +1,9 @@
 """
-OpenAI-совместимый Chat Completions (`POST {base_url}/chat/completions`).
+OpenAI-compatible Chat Completions (`POST {base_url}/chat/completions`).
 
-Этим адаптером подключается почти всё: OpenRouter и прочие роутеры, Groq,
-Together, DeepSeek, локальные Ollama / LM Studio / vLLM, а также шлюзы,
-которые выставляют OpenAI-совместимый эндпоинт. Отличается только
-base_url + model + ключ.
+This adapter connects to almost everything: OpenRouter and other routers,
+Groq, Together, DeepSeek, local Ollama / LM Studio / vLLM, and any gateway
+that exposes an OpenAI-compatible endpoint. Only base_url + model + key differ.
 """
 from __future__ import annotations
 
@@ -24,7 +23,7 @@ def _content(parts: list[Part]) -> Any:
         else:
             out.append({'type': 'image_url',
                         'image_url': {'url': f'data:{p.media_type};base64,{p.data_b64}'}})
-    # Текст без картинок отдаём строкой — так принимают и самые простые шлюзы.
+    # Send plain text without images as a string — even the simplest gateways accept that.
     if len(out) == 1 and out[0]['type'] == 'text':
         return out[0]['text']
     return out
@@ -32,7 +31,7 @@ def _content(parts: list[Part]) -> Any:
 
 def complete(system: str, parts: list[Part], cfg: ProviderConfig) -> str:
     if not cfg.base_url:
-        raise LlmError('для openai_compat нужен base_url (например .../v1)')
+        raise LlmError('openai_compat requires a base_url (e.g. .../v1)')
     payload: dict[str, Any] = {
         'model': cfg.model,
         'max_tokens': cfg.max_tokens,
@@ -50,11 +49,11 @@ def complete(system: str, parts: list[Part], cfg: ProviderConfig) -> str:
 
     choices = data.get('choices')
     if not isinstance(choices, list) or not choices:
-        raise LlmError(f'ответ без choices: {str(data)[:200]}')
+        raise LlmError(f'response has no choices: {str(data)[:200]}')
     message = choices[0].get('message') or {}
     content = message.get('content')
-    if isinstance(content, list):  # некоторые шлюзы отдают массив блоков
+    if isinstance(content, list):  # some gateways return an array of blocks
         content = ''.join(b.get('text', '') for b in content if isinstance(b, dict))
     if not isinstance(content, str) or not content.strip():
-        raise LlmError('пустой ответ модели')
+        raise LlmError('empty model response')
     return content

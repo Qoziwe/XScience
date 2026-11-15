@@ -1,7 +1,7 @@
 """
-Создание и чтение анализов (§4.2, §18.3).
-Расчёт, тексты и отчёт выполняет сервер; клиент присылает только сырой
-вход §4.1. Запись после создания не изменяется.
+Creating and reading analyses (§4.2, §18.3).
+The server performs the calculation, texts, and report; the client only
+sends the raw §4.1 input. The record is not modified after creation.
 """
 from __future__ import annotations
 
@@ -26,9 +26,9 @@ from ..errors import ApiError
 def build_record(params: dict[str, Any], sector: str, analysis_id: int,
                  created_at, operator_id: str | None, source: str = 'manual') -> dict[str, Any]:
     """
-    Полная запись анализа (§4.2) — всё, что считает сервер, включая тексты.
-    Баллы и вердикт — всегда правила §14; тексты — ИИ-модуль, если он настроен,
-    иначе правила §15 (см. services/ai/texts.py).
+    Full analysis record (§4.2) — everything the server computes, texts included.
+    Scores and verdict always come from the §14 rules; texts come from the AI
+    module if configured, otherwise the §15 rules (see services/ai/texts.py).
     """
     s = score(params)
     v = verdict_of_scores(s)
@@ -39,7 +39,7 @@ def build_record(params: dict[str, Any], sector: str, analysis_id: int,
     return {
         'id': analysis_id,
         'created_at': iso(created_at),
-        # Время завершения расчёта в том виде, в котором его показывает клиент (§4.2).
+        # Calculation completion time in the form the client displays it (§4.2).
         'ts': hhmmss(created_at),
         'operator_id': operator_id,
         'sector': sector,
@@ -54,7 +54,7 @@ def build_record(params: dict[str, Any], sector: str, analysis_id: int,
             'risk_score': s['risk'], 'risk_level': s['level'],
             'extinction_score': s['ext'], 'extinction_probability': s['extLevel'],
         },
-        # Короткие имена прототипа — их читает клиент (§4.2).
+        # Short prototype names — the client reads these (§4.2).
         'risk': s['risk'], 'ext': s['ext'], 'level': s['level'], 'extLevel': s['extLevel'],
         'v': v, 'conf': conf,
         'verdict': v,
@@ -64,7 +64,7 @@ def build_record(params: dict[str, Any], sector: str, analysis_id: int,
         'confidence_note': confidence_note(params),
         'notes': notes_of(params, s),
         'texts': texts,
-        # Чем написаны тексты: llm (ИИ-модуль) или rules (правила §15).
+        # What produced the texts: llm (AI module) or rules (§15 rules).
         'texts_source': texts_source,
         'texts_model': texts_version,
         'model_version': current_app.config['MODEL_VERSION'],
@@ -78,12 +78,12 @@ def create(params: dict[str, Any], sector: str, operator_id: str | None,
            idem_key: str | None, request_hash: str, source: str = 'manual',
            make_report: bool = True) -> dict[str, Any]:
     """
-    Создаёт анализ и (если make_report) отчёт в одной транзакции.
-    §18.3 — повтор с тем же Idempotency-Key возвращает прежнюю запись;
-    тот же ключ с другим телом — 409. make_report=False и source='sensor'
-    используются имитацией датчиков (services/sensors.py) — показание
-    пишется как обычный анализ, но без немедленного отчёта: сводный отчёт
-    по кораблю собирает отдельный периодический воркер.
+    Creates an analysis and (if make_report) a report in a single transaction.
+    §18.3 — a retry with the same Idempotency-Key returns the previous record;
+    the same key with a different body — 409. make_report=False with
+    source='sensor' is used by the sensor simulation (services/sensors.py) —
+    the reading is written as a regular analysis but without an immediate
+    report: a separate periodic worker assembles the ship-wide report.
     """
     if idem_key:
         prev = query('SELECT * FROM idempotency WHERE key = ? AND user_id = ?',
@@ -130,7 +130,7 @@ def _row_to_record(row: Any) -> dict[str, Any]:
 
 
 def _attach_sent(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
-    """Статус передачи отчёта (§11.4): sent = время передачи или null."""
+    """Report transmission status (§11.4): sent = transmission time or null."""
     if not records:
         return records
     ids = [r['id'] for r in records]
@@ -154,7 +154,7 @@ def get(analysis_id: int) -> dict[str, Any] | None:
 
 def listing(sector: str | None = None, limit: int = 100,
             before_id: int | None = None) -> list[dict[str, Any]]:
-    """§18.3 — новые сверху; пагинация по before_id."""
+    """§18.3 — newest first; pagination via before_id."""
     sql = 'SELECT * FROM analyses WHERE 1 = 1'
     args: list[Any] = []
     if sector:
@@ -169,13 +169,13 @@ def listing(sector: str | None = None, limit: int = 100,
 
 
 def all_ascending() -> list[dict[str, Any]]:
-    """Вся история по возрастанию id — для агрегации корабля и CSV."""
+    """Full history in ascending id order — for ship aggregation and CSV."""
     return _attach_sent([_row_to_record(r)
                          for r in query('SELECT * FROM analyses ORDER BY id ASC')])
 
 
 def ack(analysis_id: int, operator_id: str | None) -> dict[str, Any]:
-    """Подтверждение «Принято» оператором (§18.3). Саму запись не меняет."""
+    """Operator's "Acknowledged" confirmation (§18.3). Does not change the record itself."""
     row = query('SELECT id, acked_at FROM analyses WHERE id = ?', (analysis_id,), one=True)
     if not row:
         raise ApiError(404, 'not_found')

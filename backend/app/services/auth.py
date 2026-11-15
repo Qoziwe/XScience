@@ -1,6 +1,6 @@
 """
-Авторизация: два шага (пароль → код), сессии, лимиты, журнал (§6.1–6.5, §18.1).
-Регистрации нет — учётки создаёт администратор (seed.py).
+Authorization: two steps (password → code), sessions, limits, log (§6.1–6.5, §18.1).
+There is no registration — accounts are created by the administrator (seed.py).
 """
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ from .security import (
     DUMMY_HASH, client_ip, new_id, new_token, verify_password, verify_totp,
 )
 
-#: Уровни результата в журнале попыток (§4.4).
+#: Result levels in the attempts log (§4.4).
 OK, BAD_PASSWORD, BAD_CODE, LOCKED = 'ok', 'bad_password', 'bad_code', 'locked'
 
 
@@ -31,11 +31,11 @@ def ip() -> str:
 
 def _failures_since(column: str, value: str, seconds: int) -> tuple[int, str | None]:
     """
-    Неудачные вводы пароля за последние `seconds` секунд по логину или IP (§6.5).
-    Решение (окно блокировки): считаем неудачи в скользящем окне длиной
-    PASSWORD_LOCK_S; при достижении лимита блокировка отсчитывается от
-    последней неудачи. Так правило «5 неудач → 30 с» однозначно и
-    самосбрасывается без отдельной таблицы блокировок.
+    Failed password attempts in the last `seconds` seconds, by login or IP (§6.5).
+    Design (lockout window): failures are counted in a sliding window of length
+    PASSWORD_LOCK_S; once the limit is reached, the lockout is measured from the
+    last failure. This makes the "5 failures → 30 s" rule unambiguous and
+    self-resetting without a separate lockout table.
     """
     since = iso(utc_now() - timedelta(seconds=seconds))
     row = query(f'SELECT COUNT(*) AS n, MAX(at) AS last FROM login_attempts '
@@ -64,14 +64,14 @@ def attempts_left(login: str) -> int:
 
 def login_step1(login: str, password: str) -> dict[str, Any]:
     """
-    Шаг 1 (§6.1). Создаёт сессию со стадией password_ok.
-    Ответ на «нет такого логина» и «неверный пароль» одинаков (§6.5).
+    Step 1 (§6.1). Creates a session with stage password_ok.
+    The response to "no such login" and "wrong password" is identical (§6.5).
     """
     login = (login or '').strip()
     _check_lock(login)
 
     row = query('SELECT * FROM users WHERE login = ? AND is_active = 1', (login,), one=True)
-    # Проверку хеша выполняем всегда — иначе время ответа выдаёт наличие учётки.
+    # Always run the hash check — otherwise response time leaks whether the account exists.
     ok = verify_password(row['password_hash'] if row else DUMMY_HASH, password or '')
 
     if not row or not ok:
@@ -106,7 +106,7 @@ def _load(session_id: str | None) -> Any:
     if not row or not row['is_active']:
         return None
     now = utc_now()
-    # §6.5 — абсолютный срок 8 ч и бездействие 15 мин.
+    # §6.5 — 8 h absolute lifetime and 15 min idle timeout.
     if now >= parse_iso(row['expires_at']):
         return None
     idle = (now - parse_iso(row['last_seen_at'])).total_seconds()
@@ -117,8 +117,8 @@ def _load(session_id: str | None) -> Any:
 
 def verify_code(session_id: str | None, code: str) -> dict[str, Any]:
     """
-    Шаг 2 (§6.2). 3 неудачи → сессия шага 1 аннулируется (§6.5).
-    TOTP ±1 шаг; в dev допускается статический демо-код (конфиг DEMO_CODE).
+    Step 2 (§6.2). 3 failures → the step-1 session is revoked (§6.5).
+    TOTP ±1 step; a static demo code (config DEMO_CODE) is allowed in dev.
     """
     row = _load(session_id)
     if not row or row['stage'] != 'password_ok':
@@ -146,7 +146,7 @@ def verify_code(session_id: str | None, code: str) -> dict[str, Any]:
 
 
 def current_session() -> Any:
-    """Сессия текущего запроса (любой стадии) или None."""
+    """The current request's session (any stage), or None."""
     if 'session_row' not in g:
         g.session_row = _load(request.cookies.get(current_app.config['SESSION_COOKIE']))
     return g.session_row
@@ -157,7 +157,7 @@ def touch(row: Any) -> None:
 
 
 def require_auth() -> Any:
-    """Сессия со стадией authenticated — иначе 401 (§18)."""
+    """A session with stage authenticated — otherwise 401 (§18)."""
     row = current_session()
     if not row or row['stage'] != 'authenticated':
         raise unauthorized()
@@ -166,7 +166,7 @@ def require_auth() -> Any:
 
 
 def require_csrf(row: Any) -> None:
-    """§6.5 — токен на все изменяющие запросы (double submit: заголовок + cookie)."""
+    """§6.5 — token on every mutating request (double submit: header + cookie)."""
     sent = request.headers.get('X-CSRF-Token') or request.form.get('csrf_token') or ''
     if not sent or sent != row['csrf_token']:
         raise ApiError(403, 'csrf_failed')

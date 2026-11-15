@@ -1,135 +1,135 @@
 # XScience
 
-> Хакатон-проект. Панель оценки пожарной обстановки на космическом корабле в условиях микрогравитации.
-> Этот README — обзор продукта и статуса. Полное описание всего функционала, формул, состояний интерфейса, модели данных и предлагаемого API для бэкенда — в [FUNCTIONAL_SPEC.md](FUNCTIONAL_SPEC.md).
+> Hackathon project. A fire-hazard assessment panel for a spacecraft under microgravity.
+> This README is a product and status overview. The full description of all functionality, formulas, interface states, data model, and the proposed backend API is in [FUNCTIONAL_SPEC.md](FUNCTIONAL_SPEC.md).
 
 ---
 
-## Содержание
+## Contents
 
-1. [Проблема и цель](#1-проблема-и-цель)
-2. [Пользователи](#2-пользователи)
-3. [Статус](#3-статус)
-4. [Что умеет прототип](#4-что-умеет-прототип)
-5. [Сценарий оператора](#5-сценарий-оператора)
-6. [Экраны](#6-экраны)
-7. [Входные параметры](#7-входные-параметры)
-8. [Логика расчёта (кратко)](#8-логика-расчёта-кратко)
-9. [ИИ-модуль: что реально, что макет](#9-ии-модуль-что-реально-что-макет)
-10. [Данные](#10-данные)
-11. [Этапы разработки](#11-этапы-разработки)
-12. [Известные проблемы и открытые вопросы](#12-известные-проблемы-и-открытые-вопросы)
-13. [Стек и структура проекта](#13-стек-и-структура-проекта)
-14. [Отказ от ответственности](#14-отказ-от-ответственности)
+1. [Problem and Goal](#1-problem-and-goal)
+2. [Users](#2-users)
+3. [Status](#3-status)
+4. [What the Prototype Can Do](#4-what-the-prototype-can-do)
+5. [Operator Scenario](#5-operator-scenario)
+6. [Screens](#6-screens)
+7. [Input Parameters](#7-input-parameters)
+8. [Calculation Logic (Brief)](#8-calculation-logic-brief)
+9. [AI Module: What's Real, What's a Mock-up](#9-ai-module-whats-real-whats-a-mock-up)
+10. [Data](#10-data)
+11. [Development Stages](#11-development-stages)
+12. [Known Issues and Open Questions](#12-known-issues-and-open-questions)
+13. [Stack and Project Structure](#13-stack-and-project-structure)
+14. [Disclaimer](#14-disclaimer)
 
 ---
 
-## 1. Проблема и цель
+## 1. Problem and Goal
 
-В космосе огонь развивается не так, как на Земле. Экипажу нужны быстрые и понятные подсказки: насколько опасна ситуация, в каком отсеке, и что делать.
+In space, fire develops differently than on Earth. The crew needs fast, clear guidance: how dangerous the situation is, in which compartment, and what to do.
 
-Система принимает условия горения в конкретном секторе корабля и отвечает на вопросы:
+The system takes the combustion conditions in a specific sector of the ship and answers the following questions:
 
-1. Насколько опасна ситуация в секторе (`RiskScore` → низкий / средний / высокий)?
-2. Насколько вероятно, что пламя затухнет само (`ExtinctionScore` → низкая / средняя / высокая)?
-3. Каково общее состояние сектора и всего корабля (вердикт: Безопасно / Требует внимания / Опасно)?
-4. Какие действия предпринять (пошаговые рекомендации)?
-5. Что передать на Землю (автоматический отчёт по каждому анализу)?
+1. How dangerous is the situation in the sector (`RiskScore` → low / medium / high)?
+2. How likely is the flame to self-extinguish (`ExtinctionScore` → low / medium / high)?
+3. What is the overall state of the sector and of the whole ship (verdict: Safe / Needs Attention / Dangerous)?
+4. What actions should be taken (step-by-step recommendations)?
+5. What should be transmitted to Earth (an automatic report for every analysis)?
 
-## 2. Пользователи
+## 2. Users
 
-- Оператор / член экипажа — основной пользователь панели.
-- Студенты, исследователи, инженеры — учебный и исследовательский сценарий.
+- Operator / crew member — the panel's primary user.
+- Students, researchers, engineers — a training and research scenario.
 
-## 3. Статус
+## 3. Status
 
-| Элемент | Статус |
+| Item | Status |
 | --- | --- |
-| Идея продукта | Определена |
-| Входные параметры (7 шт.) | Специфицированы (черновик, диапазоны NASA не проверены) |
-| Формулы `RiskScore` / `ExtinctionScore` | Специфицированы и реализованы в прототипе интерфейса |
-| Интерфейс (дизайн-прототип) | Готов: вход, обзор корабля, карта, анализ, отчёты, данные, правила, модели |
-| Бэкенд (Flask) | Не начат — см. [FUNCTIONAL_SPEC.md §18](FUNCTIONAL_SPEC.md#18-предлагаемое-api-бэкенда) |
-| Подключение датчиков | Не начато, сейчас ручной ввод |
-| Вердикт состояния и рекомендации «ИИ-модуля» | Реализованы правилами (макет генерации) |
-| Передача отчётов на Землю | Макет (имитация таймером) |
-| Stage 2 — ML-модель | Не начата; обучение заблокировано качеством данных |
-| Stage 3 — физическая модель | Реализован только закон d² по введённым d₀ и K |
-| Распознавание пламени по фото | Не подключено; загрузка фото + ручная разметка |
-| Набор данных | 30 строк, все `simulated_rule_based` (цель 50–100) |
+| Product idea | Defined |
+| Input parameters (7 total) | Specified (draft; NASA ranges not verified) |
+| `RiskScore` / `ExtinctionScore` formulas | Specified and implemented in the interface prototype |
+| Interface (design prototype) | Ready: login, ship overview, map, analysis, reports, data, rules, models |
+| Backend (Flask) | Not started — see [FUNCTIONAL_SPEC.md §18](FUNCTIONAL_SPEC.md#18-proposed-backend-api) |
+| Sensor integration | Not started, currently manual entry |
+| Status verdict and "AI module" recommendations | Implemented via rules (generation mock-up) |
+| Report transmission to Earth | Mock-up (simulated with a timer) |
+| Stage 2 — ML model | Not started; training is blocked by data quality |
+| Stage 3 — physical model | Only the d² law is implemented, from an operator-entered d₀ and K |
+| Flame recognition from photos | Not connected; photo upload + manual annotation |
+| Dataset | 30 rows, all `simulated_rule_based` (target 50–100) |
 
-> ⚠️ Спецификация параметров частично сгенерирована ИИ-ассистентом и **не проверена** командой. Все диапазоны NASA должны быть сверены с реальными источниками.
+> ⚠️ The parameter specification was partially generated by an AI assistant and **has not been verified** by the team. All NASA ranges must be cross-checked against real sources.
 
-## 4. Что умеет прототип
+## 4. What the Prototype Can Do
 
-| Функция | Описание |
+| Function | Description |
 | --- | --- |
-| Авторизация | Логин + пароль → 6-значный код. Блокировка после 5 неверных попыток на 30 с. Обобщённая ошибка входа |
-| Обзор корабля | Общая оценка всего корабля по последним анализам секторов, мини-карта, таблица секторов |
-| Карта корабля | 7 секторов, окраска по состоянию, карточка выбранного сектора, запуск анализа в секторе |
-| Анализ сектора | Выбор сектора + 7 параметров. Без всех 8 значений расчёт заблокирован |
-| Оценки | `RiskScore` (3–16), `ExtinctionScore` (0–8), разложение по слагаемым |
-| Вердикт состояния | Безопасно / Требует внимания / Опасно + уверенность в % |
-| Оповещение | Окно после анализа при вердикте «Опасно» (красное, «ОПАСНОСТЬ») и «Требует внимания» (жёлтое, «ВНИМАНИЕ») → окно рекомендаций |
-| Рекомендации | Один генератор: пошаговые действия с учётом материала, параметров и сектора; одинаковы в окне, блоке на вкладке «Анализ» и отчёте |
-| Отчёт для Земли | Создаётся автоматически при каждом анализе, статус передачи, выгрузка TXT |
-| История | Все анализы, повторное открытие, выгрузка CSV |
-| Набор данных | Просмотр 30 строк, сверка с формулами, загрузка строки в форму |
-| Правила | Таблицы баллов с подсветкой текущих значений, список открытых вопросов |
-| Модели | Готовность данных для ML, закон d², загрузка фото пламени |
+| Authorization | Login + password → 6-digit code. Locked after 5 failed attempts for 30 s. Generic login error |
+| Ship overview | Overall assessment of the whole ship from the latest sector analyses, mini-map, sector table |
+| Ship map | 7 sectors, colored by status, selected-sector card, launch analysis from a sector |
+| Sector analysis | Select a sector + 7 parameters. Calculation is blocked until all 8 values are filled in |
+| Scores | `RiskScore` (3–16), `ExtinctionScore` (0–8), breakdown by term |
+| Status verdict | Safe / Needs Attention / Dangerous + confidence in % |
+| Alert | A window shown after analysis for a "Dangerous" verdict (red, "DANGER") and "Needs Attention" (yellow, "ATTENTION") → recommendations window |
+| Recommendations | A single generator: step-by-step actions based on material, parameters, and sector; identical in the window, the "Analysis" tab block, and the report |
+| Report for Earth | Created automatically for every analysis, with transmission status, TXT export |
+| History | All analyses, re-opening, CSV export |
+| Dataset | View 30 rows, cross-check against the formulas, load a row into the form |
+| Rules | Scoring tables with current values highlighted, list of open questions |
+| Models | Data readiness for ML, d² law, flame photo upload |
 
-## 5. Сценарий оператора
+## 5. Operator Scenario
 
 ```
-Вход (логин → пароль → код)
+Login (username → password → code)
         │
         ▼
-Обзор: общая оценка корабля + мини-карта
-        │  (есть опасный сектор → красная плашка «ОПАСНОСТЬ» → рекомендации)
+Overview: overall ship assessment + mini-map
+        │  (a dangerous sector exists → red "DANGER" banner → recommendations)
         ▼
-Выбор сектора (мини-карта / карта / таблица / форма анализа)
+Select a sector (mini-map / map / table / analysis form)
         │
         ▼
-Анализ: сектор + 7 параметров → кнопка «Анализ» (или Ctrl+Enter)
+Analysis: sector + 7 parameters → "Analyze" button (or Ctrl+Enter)
         │
-        ├─ валидация: что-то не заполнено/вне диапазона → кнопка заблокирована, подсказка
+        ├─ validation: something unfilled/out of range → button disabled, hint shown
         ▼
-Расчёт: RiskScore, ExtinctionScore, вердикт, уверенность
+Calculation: RiskScore, ExtinctionScore, verdict, confidence
         │
-        ├─ отчёт RPT-XXXX создан → «В очереди» → «Передан на Землю»
-        ├─ вердикт «Опасно» / «Требует внимания» → окно «ОПАСНОСТЬ» / «ВНИМАНИЕ» → «Открыть рекомендации» → «Принято»
+        ├─ report RPT-XXXX created → "Queued" → "Sent to Earth"
+        ├─ verdict "Dangerous" / "Needs Attention" → "DANGER" / "ATTENTION" window → "Open Recommendations" → "Acknowledged"
         ▼
-Сектор перекрашен на карте, общая оценка корабля пересчитана
+Sector is recolored on the map, overall ship assessment is recalculated
 ```
 
-## 6. Экраны
+## 6. Screens
 
-Основные вкладки (слева в шапке): **Обзор · Карта · Анализ · Отчёты**.
-Справочные вкладки (справа от основных): **Данные · Правила · Модели**.
-Отдельная страница: **Вход**.
+Main tabs (left side of the header): **Overview · Map · Analysis · Reports**.
+Reference tabs (right of the main ones): **Data · Rules · Models**.
+Separate page: **Login**.
 
-Подробное описание каждого элемента каждого экрана — [FUNCTIONAL_SPEC.md §5–§13](FUNCTIONAL_SPEC.md).
+A detailed description of every element of every screen is in [FUNCTIONAL_SPEC.md §5–§13](FUNCTIONAL_SPEC.md).
 
-## 7. Входные параметры
+## 7. Input Parameters
 
-| # | Параметр | Код | Ед. | Мин | Макс | Шаг | Значение по умолчанию |
+| # | Parameter | Code | Unit | Min | Max | Step | Default |
 | - | --- | --- | --- | --- | --- | --- | --- |
-| 0 | Сектор корабля | `sector` | — | — | — | — | нет (обязательный выбор) |
-| 1 | Материал | `material_type` | — | — | — | — | нет |
-| 2 | Толщина | `thickness_mm` | мм | 0.05 | 10 | 0.05 | нет |
-| 3 | Кислород | `oxygen_percent` | % | 13 | 35 | 0.5 | нет |
-| 4 | Поток воздуха | `air_flow_cm_s` | см/с | 0 | 30 | 0.5 | нет |
-| 5 | Гравитация | `gravity` | — | — | — | — | нет |
-| 6 | Температура в зоне горения | `temperature_C` | °C | 20 | 300 | 5 | нет |
-| 7 | Время горения | `time_s` | с | 0 | 600 | 1 | нет |
+| 0 | Ship sector | `sector` | — | — | — | — | none (required selection) |
+| 1 | Material | `material_type` | — | — | — | — | none |
+| 2 | Thickness | `thickness_mm` | mm | 0.05 | 10 | 0.05 | none |
+| 3 | Oxygen | `oxygen_percent` | % | 13 | 35 | 0.5 | none |
+| 4 | Air flow | `air_flow_cm_s` | cm/s | 0 | 30 | 0.5 | none |
+| 5 | Gravity | `gravity` | — | — | — | — | none |
+| 6 | Temperature in the combustion zone | `temperature_C` | °C | 20 | 300 | 5 | none |
+| 7 | Burn time | `time_s` | s | 0 | 600 | 1 | none |
 
-**Изменение относительно исходной спецификации:** значений по умолчанию нет. Форма стартует пустой, недостающие значения не подставляются. Расчёт выполняется только при заполненных всех 8 полях. Если материал = «Другое», дополнительно обязательно текстовое описание.
+**Change relative to the original specification:** there are no default values. The form starts empty, and missing values are not auto-filled. The calculation only runs once all 8 fields are filled in. If material = "Other", a text description is additionally required.
 
-Коды материалов: `paper`, `fabric`, `plastic`, `wood`, `wire_insulation`, `other`.
-Коды гравитации: `earth`, `microgravity`.
-Коды секторов: `sh`, `km`, `zh`, `l1`, `l2`, `sk`, `ep`.
+Material codes: `paper`, `fabric`, `plastic`, `wood`, `wire_insulation`, `other`.
+Gravity codes: `earth`, `microgravity`.
+Sector codes: `sh`, `km`, `zh`, `l1`, `l2`, `sk`, `ep`.
 
-## 8. Логика расчёта (кратко)
+## 8. Calculation Logic (Brief)
 
 ```
 RiskScore       = MaterialRisk + OxygenRisk + FlowRisk + TemperatureRisk + TimeRisk + GravityRisk   (3–16)
@@ -138,111 +138,111 @@ ExtinctionScore = OxygenDeficit + LowFlowPenalty + ThicknessBonus               
 risk_level:              ≤3 low · 4–6 medium · ≥7 high
 extinction_probability:  ≤1 low · 2–3 medium · ≥4 high
 
-Вердикт состояния:
+Status verdict:
   D = RiskScore + (ExtinctionScore ≤ 1 ? +2 : ExtinctionScore ≥ 4 ? −1 : 0)
-  D ≥ 10 → «Опасно» · D ≥ 6 → «Требует внимания» · иначе «Безопасно»
+  D ≥ 10 → "Dangerous" · D ≥ 6 → "Needs Attention" · otherwise "Safe"
 
-Уверенность (%) = clamp(45, 94,
-  94 − 8 × (число значений на неопределённых границах)
-     − 14 (если материал «другое»)
-     − 10 (если O₂ > 30 % или поток > 15 см/с))
+Confidence (%) = clamp(45, 94,
+  94 − 8 × (number of values on uncertain boundaries)
+     − 14 (if material is "other")
+     − 10 (if O₂ > 30 % or flow > 15 cm/s))
 ```
 
-Все пороги, соглашения о границах диапазонов, агрегация по кораблю и тексты — в [FUNCTIONAL_SPEC.md §14](FUNCTIONAL_SPEC.md#14-расчёт).
+All thresholds, range-boundary conventions, ship-wide aggregation, and texts are in [FUNCTIONAL_SPEC.md §14](FUNCTIONAL_SPEC.md#14-calculation).
 
-## 9. ИИ-модуль: что реально, что макет
+## 9. AI Module: What's Real, What's a Mock-up
 
-| Функция | Как сделано сейчас | Что нужно на бэкенде |
+| Function | How it's done now | What's needed on the backend |
 | --- | --- | --- |
-| Вердикт состояния сектора и корабля | Детерминированная формула (§8) | Можно оставить формулой или заменить моделью |
-| Заключение (текст) | Шаблоны по уровням риска/затухания | Генерация моделью с фиксированными входами |
-| Рекомендации (один генератор для окна, блока на вкладке «Анализ» и отчёта) | Правила по материалу, параметрам и сектору | Генерация моделью, обязательная проверка на соответствие протоколам |
-| Отчёт для Земли | Сборка из шаблонов | Генерация + реальный канал передачи |
-| Передача на Землю | Таймер 2.5 с меняет статус на «Передан» | Очередь, подтверждение приёма, повтор |
-| Датчики | Ручной ввод | Приём показаний, привязка к сектору |
-| ML-прогноз (Stage 2) | Не выдаётся, кнопка обучения заблокирована | Обучение после исправления набора данных |
-| Распознавание фото | Нет, ручная разметка | Модель распознавания (опционально) |
+| Sector and ship status verdict | Deterministic formula (§8) | Can stay a formula or be replaced by a model |
+| Conclusion (text) | Templates by risk/extinction level | Model generation from fixed inputs |
+| Recommendations (one generator for the window, the "Analysis" tab block, and the report) | Rules based on material, parameters, and sector | Model generation, mandatory check against protocols |
+| Report for Earth | Assembled from templates | Generation + a real transmission channel |
+| Transmission to Earth | A 2.5 s timer flips the status to "Sent" | Queue, receipt confirmation, retry |
+| Sensors | Manual entry | Receive readings, map to a sector |
+| ML prediction (Stage 2) | Not returned, training button disabled | Training after the dataset is fixed |
+| Photo recognition | None, manual annotation | A recognition model (optional) |
 
-В интерфейсе все такие места подписаны «макет».
+Every such place in the interface is labeled "mock-up".
 
-## 10. Данные
+## 10. Data
 
-- Схема набора данных, правила `data_source` и все 30 строк — [FUNCTIONAL_SPEC.md §19](FUNCTIONAL_SPEC.md#19-набор-данных).
-- История анализов в прототипе хранится в `localStorage` браузера (ключ `xsci.hist.v3`, до 100 записей). На бэкенде — БД.
+- The dataset schema, the `data_source` rules, and all 30 rows are in [FUNCTIONAL_SPEC.md §19](FUNCTIONAL_SPEC.md#19-dataset).
+- In the prototype, analysis history is stored in the browser's `localStorage` (key `xsci.hist.v3`, up to 100 entries). The backend uses a database.
 
-## 11. Этапы разработки
+## 11. Development Stages
 
-### Stage 1 — приложение без ИИ
+### Stage 1 — app without AI
 
-- [x] Форма с 7 параметрами + сектор, валидация (в прототипе интерфейса)
-- [x] Простой / точный режим потока
-- [x] Расчёт `RiskScore` и `ExtinctionScore`
-- [x] Цветовой индикатор, объяснение, рекомендации
-- [ ] ~~График пламени во времени~~ — убран: модель не определена (16.10)
-- [ ] ~~Схема пламени Земля / микрогравитация~~ — убрана по той же причине
-- [x] Карточка материала
-- [x] Предупреждения
-- [x] История анализов
-- [x] Сектора корабля, карта, общая оценка корабля
-- [x] Отчёты для Земли, оповещение об опасности
-- [x] Страница входа
-- [ ] Бэкенд Flask, перенос расчёта на сервер
-- [ ] Серверная авторизация и сессии
+- [x] A form with 7 parameters + sector, validation (in the interface prototype)
+- [x] Simple / precise flow mode
+- [x] `RiskScore` and `ExtinctionScore` calculation
+- [x] Color indicator, explanation, recommendations
+- [ ] ~~Flame-over-time chart~~ — removed: no model defined (16.10)
+- [ ] ~~Earth / microgravity flame-shape diagram~~ — removed for the same reason
+- [x] Material card
+- [x] Warnings
+- [x] Analysis history
+- [x] Ship sectors, map, overall ship assessment
+- [x] Reports for Earth, danger alert
+- [x] Login page
+- [ ] Flask backend, move the calculation to the server
+- [ ] Server-side authorization and sessions
 
-### Stage 2 — ML-модель
+### Stage 2 — ML model
 
-Заблокировано: 30 строк из 50, один класс `risk_level`, 0 корректных `data_source`.
+Blocked: 30 rows out of 50, a single `risk_level` class, 0 valid `data_source` values.
 
-### Stage 3 — физическая модель
+### Stage 3 — physical model
 
-Реализован только закон d²(t) = d₀² − K·t по введённым оператором d₀ и K. Полная модель не начата.
+Only the law d²(t) = d₀² − K·t is implemented, from an operator-entered d₀ and K. The full model has not been started.
 
-### Позже — распознавание пламени по фото
+### Later — flame recognition from photos
 
-Загрузка фото и ручная разметка (размер, яркость, форма) уже есть, распознавания нет.
+Photo upload and manual annotation (size, brightness, shape) already exist; recognition does not.
 
-## 12. Известные проблемы и открытые вопросы
+## 12. Known Issues and Open Questions
 
-| № | Вопрос | Статус |
+| # | Question | Status |
 | --- | --- | --- |
-| 16.1 | Границы диапазонов не определены (включительно/исключительно, разрыв O₂ 18–19 %) | открыт; в прототипе принято соглашение из псевдокода 9.3 |
-| 16.2 | Риск и затухание рассчитываются независимо | открыт; в UI показывается отдельная плашка, в вердикте учтено |
-| 16.3 | Толщина влияет только на затухание, а не на риск | открыт |
-| 16.4 | Шкала риска смещена к «высокому» | открыт; поэтому оповещение срабатывает по вердикту, а не по `risk_level = high` |
-| 16.5 | Проблемы набора данных (строка 13, `data_source`, один класс) | открыт |
-| 16.6 | Материал «другое»: что делать с описанием | открыт; описание обязательно, в расчёте не учитывается |
-| 16.7 | Коды `other` / `earth` | решён |
-| 16.8 | Простой режим потока | решён (0 / 2.5 / 10 / 20 см/с) |
-| 16.9 | Правила объяснений и рекомендаций | открыт; в прототипе черновые правила |
-| 16.10 | Модель графика и размера пламени | открыт; график и схема убраны |
-| 16.11 | Тексты карточек материалов | открыт; в прототипе черновики |
-| 16.12 | Хранение истории | открыт; в прототипе браузер, нужен сервер |
-| 16.13 | Непроверенные диапазоны NASA | открыт |
-| 16.14 | Планировка корабля и состав секторов | **новый**, открыт; 7 секторов — заглушка |
-| 16.15 | Протоколы действий экипажа по секторам | **новый**, открыт; тексты рекомендаций не согласованы |
-| 16.16 | Формат и канал отчёта на Землю | **новый**, открыт |
-| 16.17 | Как датчики сопоставляются с 7 параметрами | **новый**, открыт |
-| 16.18 | Порог оповещения | **новый**, открыт; решено: окно при «Требует внимания» и «Опасно». Остаётся риск привыкания оператора |
+| 16.1 | Range boundaries are undefined (inclusive/exclusive, O₂ gap at 18–19 %) | open; the prototype follows the convention from pseudocode §9.3 |
+| 16.2 | Risk and extinction are calculated independently | open; the UI shows a separate badge, the verdict accounts for it |
+| 16.3 | Thickness only affects extinction, not risk | open |
+| 16.4 | The risk scale is skewed toward "high" | open; this is why the alert fires on the verdict, not on `risk_level = high` |
+| 16.5 | Dataset problems (row 13, `data_source`, a single class) | open |
+| 16.6 | Material "other": what to do with the description | open; the description is required but is not factored into the calculation |
+| 16.7 | `other` / `earth` codes | resolved |
+| 16.8 | Simple flow mode | resolved (0 / 2.5 / 10 / 20 cm/s) |
+| 16.9 | Explanation and recommendation rules | open; the prototype uses draft rules |
+| 16.10 | Flame chart and shape model | open; the chart and diagram were removed |
+| 16.11 | Material card texts | open; drafts in the prototype |
+| 16.12 | History storage | open; prototype uses the browser, a server is needed |
+| 16.13 | Unverified NASA ranges | open |
+| 16.14 | Ship layout and sector composition | **new**, open; 7 sectors are a placeholder |
+| 16.15 | Crew action protocols by sector | **new**, open; recommendation texts are not aligned |
+| 16.16 | Report format and channel to Earth | **new**, open |
+| 16.17 | How sensors map to the 7 parameters | **new**, open |
+| 16.18 | Alert threshold | **new**, open; decided: the window fires on "Needs Attention" and "Dangerous". The risk of operator desensitization remains |
 
-## 13. Стек и структура проекта
+## 13. Stack and Project Structure
 
-| Элемент | Значение |
+| Item | Value |
 | --- | --- |
-| Фронтенд | React (целевой); сейчас — дизайн-прототип |
-| Бэкенд | Flask (Python), не начат |
-| ML-библиотека | TBD |
-| Хранилище | TBD (нужны: пользователи, анализы, отчёты, фото) |
-| Хостинг | TBD |
+| Frontend | React (target); currently a design prototype |
+| Backend | Flask (Python), not started |
+| ML library | TBD |
+| Storage | TBD (needed: users, analyses, reports, photos) |
+| Hosting | TBD |
 
-Файлы дизайн-прототипа:
+Design-prototype files:
 
-| Файл | Что это |
+| File | What it is |
 | --- | --- |
-| `XScience Login.dc.html` | Страница входа |
-| `XScience Console.dc.html` | Панель: все вкладки, логика расчёта, модальные окна |
-| `industry.css` | Базовые токены дизайн-системы (цвета переопределены внутри страниц) |
-| `FUNCTIONAL_SPEC.md` | Полная функциональная спецификация для бэкенда |
+| `XScience Login.dc.html` | Login page |
+| `XScience Console.dc.html` | Panel: all tabs, calculation logic, modal windows |
+| `industry.css` | Base design-system tokens (colors are overridden within the pages) |
+| `FUNCTIONAL_SPEC.md` | Full functional specification for the backend |
 
-## 14. Отказ от ответственности
+## 14. Disclaimer
 
-Прототип для обучения и исследований. Оценки построены на правилах и оценочных или смоделированных значениях. Не является сертифицированным средством пожарной безопасности. Рекомендации носят рекомендательный характер — решение принимает экипаж.
+A prototype for training and research. Assessments are built on rules and estimated or simulated values. This is not a certified fire-safety device. Recommendations are advisory in nature — the decision rests with the crew.

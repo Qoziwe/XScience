@@ -1,9 +1,9 @@
-# Зависимости и сборка фронтенда
+# Frontend dependencies and build output
 frontend/node_modules/
 frontend/dist/
 frontend/.vite/
 
-# Данные и секреты бэкенда
+# Backend data and secrets
 backend/data/
 backend/.env
 __pycache__/
@@ -11,7 +11,7 @@ __pycache__/
 .venv/
 venv/
 
-# Окружение разработчика
+# Developer environment
 .DS_Store
 *.swp
 .idea/

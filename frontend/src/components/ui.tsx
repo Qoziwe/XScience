@@ -1,4 +1,4 @@
-/** Мелкие переиспользуемые элементы интерфейса. */
+/** Small reusable UI elements. */
 import type { CSSProperties, ReactNode } from 'react';
 import { DOT } from '@/domain/reference';
 import type { SectorStatus } from '@/domain/types';
@@ -45,7 +45,7 @@ export function CardHead({
   );
 }
 
-/** Полоса уверенности / прогресса. */
+/** Confidence / progress bar. */
 export function Bar({ percent, color }: { percent: number; color?: string }) {
   return (
     <div className="bar">
@@ -58,7 +58,7 @@ export function Bar({ percent, color }: { percent: number; color?: string }) {
 }
 
 /**
- * Ячейки вклада параметра. Ячеек столько, сколько максимум балла (§9.7).
+ * Parameter-contribution cells. There are as many cells as the maximum score (§9.7).
  */
 export function Cells({
   value,
@@ -106,7 +106,7 @@ export function KeyValue({ k, v }: { k: string; v: string }) {
   );
 }
 
-/** Вердикт с цветной полосой (§7.3, §9.7). */
+/** Verdict with a colored bar (§7.3, §9.7). */
 export function VerdictBlock({
   label,
   subtitle,

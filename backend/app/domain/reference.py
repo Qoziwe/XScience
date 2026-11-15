@@ -1,4 +1,4 @@
-"""Справочники и перечисления. Порт frontend/src/domain/reference.ts (§3, §9.2, §21)."""
+"""Reference tables and enumerations. Port of frontend/src/domain/reference.ts (§3, §9.2, §21)."""
 from __future__ import annotations
 
 from typing import Literal, TypedDict
@@ -16,28 +16,28 @@ class MaterialDef(TypedDict):
     risk: int
 
 
-#: §3.1 — порядок отображения как в таблице.
+#: §3.1 — display order, as in the table.
 MATERIALS: list[MaterialDef] = [
-    {'code': 'paper', 'label': 'Бумага', 'risk': 3},
-    {'code': 'fabric', 'label': 'Ткань', 'risk': 2},
-    {'code': 'plastic', 'label': 'Пластик', 'risk': 3},
-    {'code': 'wood', 'label': 'Дерево', 'risk': 2},
-    {'code': 'wire_insulation', 'label': 'Изоляция провода', 'risk': 3},
-    {'code': 'other', 'label': 'Другое', 'risk': 2},
+    {'code': 'paper', 'label': 'Paper', 'risk': 3},
+    {'code': 'fabric', 'label': 'Fabric', 'risk': 2},
+    {'code': 'plastic', 'label': 'Plastic', 'risk': 3},
+    {'code': 'wood', 'label': 'Wood', 'risk': 2},
+    {'code': 'wire_insulation', 'label': 'Wire Insulation', 'risk': 3},
+    {'code': 'other', 'label': 'Other', 'risk': 2},
 ]
 MAT: dict[str, MaterialDef] = {m['code']: m for m in MATERIALS}
 
-#: §3.3 — пресеты потока для простого режима.
+#: §3.3 — flow presets for simple mode.
 FLOW_PRESETS = [
-    {'code': 'none', 'label': 'Нет', 'value': 0},
-    {'code': 'weak', 'label': 'Слабый', 'value': 2.5},
-    {'code': 'medium', 'label': 'Средний', 'value': 10},
-    {'code': 'strong', 'label': 'Сильный', 'value': 20},
+    {'code': 'none', 'label': 'None', 'value': 0},
+    {'code': 'weak', 'label': 'Weak', 'value': 2.5},
+    {'code': 'medium', 'label': 'Medium', 'value': 10},
+    {'code': 'strong', 'label': 'Strong', 'value': 20},
 ]
 
 GRAVITY_OPTIONS = [
-    {'code': 'earth', 'label': 'Земля', 'short': 'Земля'},
-    {'code': 'microgravity', 'label': 'Микрогравитация', 'short': 'μg'},
+    {'code': 'earth', 'label': 'Earth', 'short': 'Earth'},
+    {'code': 'microgravity', 'label': 'Microgravity', 'short': 'μg'},
 ]
 
 
@@ -52,21 +52,21 @@ class SectorDef(TypedDict):
     h: int
 
 
-#: §3.4 — планировка-заглушка (16.14). Отдаётся через GET /api/sectors.
+#: §3.4 — placeholder layout (16.14). Served via GET /api/sectors.
 SECTORS: list[SectorDef] = [
-    {'id': 'sh', 'code': 'ШЛ', 'name': 'Шлюз', 'desc': 'Стыковочный узел и выход наружу.',
+    {'id': 'sh', 'code': 'AL', 'name': 'Airlock', 'desc': 'Docking node and exit hatch.',
      'x': 14, 'y': 95, 'w': 80, 'h': 70},
-    {'id': 'km', 'code': 'КМ', 'name': 'Командный модуль', 'desc': 'Посты управления и связи.',
+    {'id': 'km', 'code': 'CM', 'name': 'Command Module', 'desc': 'Control and communication stations.',
      'x': 104, 'y': 80, 'w': 120, 'h': 100},
-    {'id': 'zh', 'code': 'ЖМ', 'name': 'Жилой модуль', 'desc': 'Каюты, камбуз, зона отдыха.',
+    {'id': 'zh', 'code': 'HM', 'name': 'Habitation Module', 'desc': 'Crew quarters, galley, rest area.',
      'x': 234, 'y': 60, 'w': 150, 'h': 140},
-    {'id': 'l1', 'code': 'ЛБ-1', 'name': 'Лаборатория 1', 'desc': 'Научное оборудование и образцы.',
+    {'id': 'l1', 'code': 'LB-1', 'name': 'Laboratory 1', 'desc': 'Scientific equipment and samples.',
      'x': 394, 'y': 40, 'w': 116, 'h': 85},
-    {'id': 'l2', 'code': 'ЛБ-2', 'name': 'Лаборатория 2', 'desc': 'Научное оборудование и образцы.',
+    {'id': 'l2', 'code': 'LB-2', 'name': 'Laboratory 2', 'desc': 'Scientific equipment and samples.',
      'x': 394, 'y': 135, 'w': 116, 'h': 85},
-    {'id': 'sk', 'code': 'СК', 'name': 'Склад', 'desc': 'Грузы, запасы, контейнеры.',
+    {'id': 'sk', 'code': 'ST', 'name': 'Storage', 'desc': 'Cargo, supplies, containers.',
      'x': 520, 'y': 80, 'w': 96, 'h': 100},
-    {'id': 'ep', 'code': 'ЭП', 'name': 'Энергоотсек', 'desc': 'Распределение питания, кабельные трассы.',
+    {'id': 'ep', 'code': 'PB', 'name': 'Power Bay', 'desc': 'Power distribution, cable runs.',
      'x': 626, 'y': 95, 'w': 80, 'h': 70},
 ]
 SEC: dict[str, SectorDef] = {s['id']: s for s in SECTORS}
@@ -74,10 +74,10 @@ SEC: dict[str, SectorDef] = {s['id']: s for s in SECTORS}
 
 def sector_adjacency() -> dict[str, list[str]]:
     """
-    Смежность секторов по геометрии схемы (§3.4), а не отдельным списком:
-    сектора на соседних координатах x физически граничат друг с другом, а
-    сектора с одинаковым x — параллельные отсеки в одной точке коридора
-    (сейчас это l1/l2) и тоже считаются смежными.
+    Sector adjacency derived from the diagram's geometry (§3.4), not a separate list:
+    sectors at adjacent x coordinates physically border each other, and
+    sectors sharing the same x are parallel compartments at the same point in the
+    corridor (currently l1/l2) and are also considered adjacent.
     """
     by_x: dict[int, list[str]] = {}
     for s in SECTORS:
@@ -97,19 +97,19 @@ def sector_adjacency() -> dict[str, list[str]]:
                     adj[b].add(a)
     return {k: sorted(v) for k, v in adj.items()}
 
-#: §3.5 — подписи уровней.
-RISK_LEVEL_RU = {'low': 'Низкий', 'medium': 'Средний', 'high': 'Высокий'}
-EXT_LEVEL_RU = {'low': 'Низкая', 'medium': 'Средняя', 'high': 'Высокая'}
-VERDICT_RU = {'low': 'Безопасно', 'medium': 'Требует внимания', 'high': 'Опасно'}
+#: §3.5 — level labels.
+RISK_LEVEL_RU = {'low': 'Low', 'medium': 'Medium', 'high': 'High'}
+EXT_LEVEL_RU = {'low': 'Low', 'medium': 'Medium', 'high': 'High'}
+VERDICT_RU = {'low': 'Safe', 'medium': 'Needs Attention', 'high': 'Dangerous'}
 VERDICT_SUBTITLE = {
-    'low': 'условия не поддерживают развитие пламени',
-    'medium': 'возможно развитие или нестабильное горение',
-    'high': 'высокая вероятность быстрого распространения',
+    'low': 'conditions do not support flame development',
+    'medium': 'development or unstable combustion is possible',
+    'high': 'high probability of rapid spread',
 }
-STATUS_WORD = {'none': 'нет данных', 'low': 'норма', 'medium': 'внимание', 'high': 'опасно'}
-STATUS_LEGEND = {'none': 'Нет данных', 'low': 'Безопасно', 'medium': 'Внимание', 'high': 'Опасно'}
+STATUS_WORD = {'none': 'no data', 'low': 'normal', 'medium': 'caution', 'high': 'danger'}
+STATUS_LEGEND = {'none': 'No data', 'low': 'Safe', 'medium': 'Caution', 'high': 'Danger'}
 
-#: §9.2 — диапазоны числовых полей (включительно).
+#: §9.2 — numeric field ranges (inclusive).
 RANGES: dict[str, tuple[float, float]] = {
     'thickness': (0.05, 10),
     'o2': (13, 35),
@@ -118,26 +118,26 @@ RANGES: dict[str, tuple[float, float]] = {
     'time': (0, 600),
 }
 
-#: Шаг ползунка и стрелок (проверка шага не выполняется — 16.22).
+#: Slider/arrow step (step validation is not performed — 16.22).
 STEPS = {'thickness': 0.05, 'o2': 0.5, 'flow': 0.5, 'temp': 5, 'time': 1}
 
 FIELD_NAMES = {
-    'sector': 'Сектор', 'material': 'Материал', 'thickness': 'Толщина', 'o2': 'Кислород',
-    'flow': 'Поток воздуха', 'gravity': 'Гравитация', 'temp': 'Температура', 'time': 'Время горения',
+    'sector': 'Sector', 'material': 'Material', 'thickness': 'Thickness', 'o2': 'Oxygen',
+    'flow': 'Air Flow', 'gravity': 'Gravity', 'temp': 'Temperature', 'time': 'Burn Time',
 }
 FIELD_ORDER = ['sector', 'material', 'thickness', 'o2', 'flow', 'gravity', 'temp', 'time']
-UNITS = {'thickness': ' мм', 'o2': ' %', 'flow': ' см/с', 'temp': ' °C', 'time': ' с'}
+UNITS = {'thickness': ' mm', 'o2': ' %', 'flow': ' cm/s', 'temp': ' °C', 'time': ' s'}
 
-#: §9.3 — сообщения при статусе bad (для подписи поля в интерфейсе).
+#: §9.3 — messages for the "bad" status (used for the field hint in the UI).
 RANGE_ERRORS = {
-    'thickness': 'Допустимо от 0.05 до 10 мм',
-    'o2': 'Допустимо от 13 до 35 %',
-    'flow': 'Допустимо от 0 до 30 см/с',
-    'temp': 'Допустимо от 20 до 300 °C',
-    'time': 'Допустимо от 0 до 600 с',
+    'thickness': 'Allowed range: 0.05 to 10 mm',
+    'o2': 'Allowed range: 13 to 35 %',
+    'flow': 'Allowed range: 0 to 30 cm/s',
+    'temp': 'Allowed range: 20 to 300 °C',
+    'time': 'Allowed range: 0 to 600 s',
 }
 
-#: §4.2 — сопоставление имён: параметры прототипа → поля API (§4.1).
+#: §4.2 — name mapping: prototype parameters → API fields (§4.1).
 API_NAMES = {
     'material': 'material_type',
     'desc': 'material_description',
@@ -152,17 +152,17 @@ PARAM_NAMES = {v: k for k, v in API_NAMES.items()}
 
 
 def gravity_ru(g: str) -> str:
-    return 'Земля' if g == 'earth' else 'микрогравитация'
+    return 'Earth' if g == 'earth' else 'microgravity'
 
 
 def gravity_short(g: str) -> str:
-    return 'Земля' if g == 'earth' else 'μg'
+    return 'Earth' if g == 'earth' else 'μg'
 
 
 def sent_full(sent: str | None) -> str:
-    """§3.6 — статус передачи отчёта."""
-    return f'Передан на Землю · {sent}' if sent else 'В очереди на передачу'
+    """§3.6 — report transmission status."""
+    return f'Sent to Earth · {sent}' if sent else 'Queued for transmission'
 
 
 def sent_short(sent: str | None) -> str:
-    return 'передан' if sent else 'в очереди'
+    return 'sent' if sent else 'queued'

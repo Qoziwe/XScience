@@ -1,130 +1,135 @@
-# XScience — React-клиент
+# XScience — React client
 
-Фронтенд панели оценки пожарной обстановки. Переписан с дизайн-прототипа
-(`XScience Login.dc.html`, `XScience Console.dc.html`) на React по
-[FUNCTIONAL_SPEC.md](../FUNCTIONAL_SPEC.md). Спецификация — источник истины;
-расхождения прототипа с ней исправлены в пользу спецификации (см. ниже).
+The frontend for the fire-hazard assessment panel. Rewritten from the design
+prototype (`XScience Login.dc.html`, `XScience Console.dc.html`) into React,
+following [FUNCTIONAL_SPEC.md](../FUNCTIONAL_SPEC.md). The specification is
+the source of truth; where the prototype diverges from it, the fix favors
+the specification (see below).
 
-## Стек
+## Stack
 
-React 19 · TypeScript · Vite · React Router 7. Без UI-библиотек: токены и
-классы в `src/styles`, палитра — §21.3 спецификации.
+React 19 · TypeScript · Vite · React Router 7. No UI libraries: tokens and
+classes live in `src/styles`, the palette is spec §21.3.
 
-## Команды
+## Commands
 
 ```bash
 npm install
 npm run dev        # http://localhost:5173 → /login
 npm run build      # tsc -b + vite build
 npm run typecheck
-npm run smoke      # рендер всех экранов в Node, без браузера
-npm run e2e        # httpApi против живого бэкенда (нужен backend/run.py)
+npm run smoke      # renders every screen in Node, without a browser
+npm run e2e        # httpApi against a live backend (needs backend/run.py)
 ```
 
-Источник данных выбирается переменной `VITE_API`:
+The data source is chosen via the `VITE_API` variable:
 
-| Значение | Поведение |
+| Value | Behavior |
 | --- | --- |
-| `http` (по умолчанию) | Flask API на `/api` — см. [../backend](../backend/README.md) |
-| `local` | расчёт в браузере + `localStorage` (прототип, работает без сервера) |
+| `http` (default) | the Flask API at `/api` — see [../backend](../backend/README.md) |
+| `local` | calculation in the browser + `localStorage` (prototype, works without a server) |
 
-Демо-вход (§6.4): логин `demo`, пароль `xscience-demo`, код `123456`.
-Панель доступна и напрямую по `/console` — как в прототипе, сессией она пока
-не защищена (§22).
+Demo login (§6.4): username `demo`, password `xscience-demo`, code `123456`.
+The panel is also reachable directly at `/console` — as in the prototype,
+it is not yet protected by a session (§22).
 
-## Структура
+## Structure
 
 ```
 src/
-  domain/      чистая логика предметной области — без React
-    types.ts        типы (§3, §4)
-    reference.ts    справочники, подписи, цвета (§3, §21)
-    scoring.ts      R, E, уровни, вердикт, уверенность (§14)
-    texts.ts        объяснения, заключение, рекомендации, допущения (§15)
-    validation.ts   статусы полей, устаревание результата (§9.3, §9.7)
-    report.ts       документ отчёта, TXT, CSV истории (§11, §16.2)
-    ship.ts         агрегация состояния корабля (§7.4)
-    dataset.ts      набор данных и сверка с формулами (§19)
-    rules.ts        таблицы баллов для вкладки «Правила» (§13)
-    issues.ts       открытые вопросы (§24)
+  domain/      pure domain logic — no React
+    types.ts        types (§3, §4)
+    reference.ts    reference tables, labels, colors (§3, §21)
+    scoring.ts      R, E, levels, verdict, confidence (§14)
+    texts.ts        explanations, conclusion, recommendations, assumptions (§15)
+    validation.ts   field statuses, result staleness (§9.3, §9.7)
+    report.ts       report document, TXT, history CSV (§11, §16.2)
+    ship.ts         ship-status aggregation (§7.4)
+    dataset.ts      dataset and cross-check against the formulas (§19)
+    rules.ts        scoring tables for the "Rules" tab (§13)
+    issues.ts       open questions (§24)
     format.ts       f1, pad, now, pn (§0)
-  api/         шов к источнику данных
-    types.ts        контракт XScienceApi
-    localApi.ts     [ПРОТОТИП] расчёт в браузере + localStorage
-    httpApi.ts      Flask API (§18): /api/auth/*, /api/analyses, поллинг истории
-    index.ts        выбор реализации по VITE_API
-  state/       store.tsx (§5.3) и производные хуки формы/результата
-  components/  шапка, подвал, схема корабля, модальное окно, примитивы
-  screens/     Login + Console (7 вкладок)
+  api/         seam to the data source
+    types.ts        the XScienceApi contract
+    localApi.ts     [PROTOTYPE] calculation in the browser + localStorage
+    httpApi.ts      the Flask API (§18): /api/auth/*, /api/analyses, history polling
+    index.ts        implementation selection via VITE_API
+  state/       store.tsx (§5.3) and derived form/result hooks
+  components/  header, footer, ship diagram, modal window, primitives
+  screens/     Login + Console (7 tabs)
   styles/      tokens.css (§21.3), base.css, app.css
-scripts/       smoke.tsx — рендер всех экранов; e2e.ts — прогон httpApi
+scripts/       smoke.tsx — renders every screen; e2e.ts — runs httpApi
 ```
 
-Правило: `domain/` не знает про React, `api/` не знает про экраны,
-экраны не считают баллы сами.
+Rule: `domain/` knows nothing about React, `api/` knows nothing about the
+screens, and the screens never compute scores themselves.
 
-## Бэкенд
+## Backend
 
-Реализован: `src/api/httpApi.ts` ходит в Flask (`../backend`, порт 5000),
-прокси dev-сервера настроен в `vite.config.ts`. Экраны при переключении
-реализаций не меняются — весь обмен идёт через шов `src/api`.
+Implemented: `src/api/httpApi.ts` talks to Flask (`../backend`, port 5000);
+the dev-server proxy is configured in `vite.config.ts`. The screens don't
+change when switching implementations — all communication goes through the
+`src/api` seam.
 
-Контракт (§18.3): клиент **не** присылает баллы, уровни, вердикт и тексты —
-всё считает сервер; `POST /api/analyses` возвращает полную запись анализа,
-отчёт и `alert_level`, по которому открывается окно оповещения. Изменения
-истории (включая смену статуса передачи отчёта) клиент получает поллингом
-`GET /api/analyses` раз в 1.5 с.
+Contract (§18.3): the client **does not** send scores, levels, verdict, or
+texts — the server computes all of it; `POST /api/analyses` returns the full
+analysis record, the report, and the `alert_level` that opens the alert
+window. The client receives history changes (including a change in report
+transmission status) by polling `GET /api/analyses` every 1.5 s.
 
-Модули `domain/scoring.ts`, `domain/texts.ts`, `domain/ship.ts` и
-`domain/report.ts` — прямой перенос раздела 14–15 спецификации; на сервере
-лежит их построчный порт (`backend/app/domain/`). При правке правил менять
-обе реализации: клиентская остаётся нужна для режима `VITE_API=local`.
+The `domain/scoring.ts`, `domain/texts.ts`, `domain/ship.ts`, and
+`domain/report.ts` modules are a direct port of spec sections 14–15; the
+server holds a line-by-line port of them (`backend/app/domain/`). When the
+rules are edited, both implementations must change: the client-side one is
+still needed for `VITE_API=local` mode.
 
-Тексты отчёта и рекомендации приходят с сервера: если на бэкенде настроен
-ИИ-модуль, их пишет языковая модель, иначе — детерминированные правила §15.
-Экраны не меняются, запись анализа дополнительно несёт `texts_source`
-(`llm` / `rules`) и `texts_model`.
+Report texts and recommendations come from the server: if an AI module is
+configured on the backend, a language model writes them; otherwise the
+deterministic §15 rules do. The screens don't change; the analysis record
+additionally carries `texts_source` (`llm` / `rules`) and `texts_model`.
 
-Что берётся с сервера, когда он есть:
+What's fetched from the server, when one is present:
 
-| Экран | Эндпоинт |
+| Screen | Endpoint |
 | --- | --- |
-| «Модели», Stage 2 | `GET /api/models/ml/readiness`, `POST /api/models/ml/train`, `POST /api/models/ml/predict` |
-| «Модели», Stage 3 | `POST /api/models/d2` — график считается на месте, сервер служит сверкой |
-| «Модели», фото | `POST /api/photos`, `PATCH /api/photos/{id}`, `POST /api/photos/{id}/recognize` |
-| «Данные» | `GET /api/dataset` |
-| Окно оповещения, «Принято» | `POST /api/analyses/{id}/ack` |
-| Вход на `/console` | `GET /api/me` — без сессии возврат на `/login` (§6.5) |
+| "Models", Stage 2 | `GET /api/models/ml/readiness`, `POST /api/models/ml/train`, `POST /api/models/ml/predict` |
+| "Models", Stage 3 | `POST /api/models/d2` — the chart is computed locally, the server serves as a cross-check |
+| "Models", photos | `POST /api/photos`, `PATCH /api/photos/{id}`, `POST /api/photos/{id}/recognize` |
+| "Data" | `GET /api/dataset` |
+| Alert window, "Acknowledged" | `POST /api/analyses/{id}/ack` |
+| Entering `/console` | `GET /api/me` — without a session, redirects to `/login` (§6.5) |
 
-Разделы `models`, `dataset`, `photos` и `sensors` в контракте
-**необязательные**: у `localApi` их нет (вся генерация имитации — серверная,
-см. `backend/README.md`), и те же экраны работают на локальных константах
-§19/§17 и снимке в памяти страницы — прототип остаётся рабочим без сервера.
-Тумблер имитации датчиков в хедере и переключатель ручного ввода на
-вкладке «Анализ» просто не рендерятся, пока `api.sensors` нет.
+The `models`, `dataset`, `photos`, and `sensors` sections of the contract are
+**optional**: `localApi` has none of them (all simulation generation is
+server-side, see `backend/README.md`), and the same screens work off local
+§19/§17 constants and an in-page-memory snapshot — the prototype keeps
+working without a server. The sensor-simulation toggle in the header and the
+manual-entry switch on the "Analysis" tab simply don't render while
+`api.sensors` is absent.
 
-Прогноз на вкладке «Модели» запрашивается только при обученной модели и
-целиком заполненной форме анализа; рядом показана точность на отложенной
-выборке и оговорка, что метки набора посчитаны правилами §14.
+The prediction on the "Models" tab is only requested once a model is
+trained and the analysis form is fully filled in; next to it, the accuracy
+on a held-out set is shown, along with a note that the dataset labels were
+computed by the §14 rules.
 
-Что остаётся макетом (§22): передача отчёта на Землю (очередь → «передан»
-через 2.5 с, но статус теперь хранится в БД), время без даты. В режиме
-`VITE_API=local` макетом остаётся и авторизация (сессия в `localStorage`,
-ключ `xsci.session.v1`), и хранение истории.
+What remains a mock-up (§22): report transmission to Earth (queue → "sent"
+after 2.5 s, though the status is now stored in the DB), and time without a
+date. In `VITE_API=local` mode, authorization also remains a mock-up
+(session in `localStorage`, key `xsci.session.v1`), as does history storage.
 
-## Исправления прототипа по спецификации
+## Prototype fixes per the specification
 
-| Что | В прототипе | Здесь |
+| What | In the prototype | Here |
 | --- | --- | --- |
-| Окно оповещения (§10.1) | открывалось только при вердикте «Опасно» | открывается при «Требует внимания» и «Опасно» |
-| Рекомендации (§15.3) | два генератора: свой для блока на вкладке «Анализ» | один генератор; в блоке — первые 3 шага того же списка, что в окне и отчёте |
-| Заключение при низком риске (§15.2) | «Угрозы для модуля…» в карточке ИИ-модуля | везде «Угрозы для сектора…» |
-| Шаг 1 рекомендаций (§15.4) | условие только по материалу `wire_insulation` | материал `wire_insulation` **или** сектор `ep` |
-| Восстановление результата | фоновое обновление истории возвращало скрытый результат после «Очистить» | `activeId` восстанавливается только при первой загрузке |
+| Alert window (§10.1) | opened only for a "Dangerous" verdict | opens for both "Needs Attention" and "Dangerous" |
+| Recommendations (§15.3) | two generators: a separate one for the "Analysis" tab block | one generator; the block shows the first 3 steps of the same list shown in the window and the report |
+| Conclusion for low risk (§15.2) | "Threat to the module…" in the AI-module card | "Threat to the sector…" everywhere |
+| Recommendation step 1 (§15.4) | condition based only on material `wire_insulation` | material `wire_insulation` **or** sector `ep` |
+| Result restoration | a background history refresh brought back a hidden result after "Clear" | `activeId` is restored only on first load |
 
-## Проверка расчёта
+## Calculation verification
 
-`npm run smoke` проверяет рендер. Расчёт сверен вручную с контрольными
-примерами §23 (A–F) и примером агрегации: все шесть примеров и агрегация
-(worst = high, уверенность 62, текст заключения) сходятся; расхождение с
-набором данных — одна строка 13, как и указано в §19.3.
+`npm run smoke` checks rendering. The calculation has been manually checked
+against the §23 control examples (A–F) and the aggregation example: all six
+examples and the aggregation (worst = high, confidence 62, conclusion text)
+match; the one discrepancy with the dataset is row 13, as noted in §19.3.

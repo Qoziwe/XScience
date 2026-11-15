@@ -1,4 +1,4 @@
-"""Эндпоинты §18: авторизация, анализы, сектора, отчёты, идемпотентность."""
+"""Endpoints §18: authorization, analyses, sectors, reports, idempotency."""
 from __future__ import annotations
 
 import json
@@ -14,12 +14,12 @@ from app.services.security import hash_password, new_id, new_totp_secret
 
 LOGIN, PASSWORD, CODE = 'tester', 'test-password', '123456'
 
-INPUT_A = {  # §23, пример A → вердикт medium
+INPUT_A = {  # §23, example A → verdict medium
     'sector': 'l1', 'material_type': 'paper', 'material_description': '',
     'thickness_mm': 0.5, 'oxygen_percent': 21, 'air_flow_cm_s': 5,
     'gravity': 'microgravity', 'temperature_C': 25, 'time_s': 30,
 }
-INPUT_C = {  # §23, пример C → вердикт low, оповещения нет
+INPUT_C = {  # §23, example C → verdict low, no alert
     'sector': 'zh', 'material_type': 'fabric', 'material_description': '',
     'thickness_mm': 5, 'oxygen_percent': 14, 'air_flow_cm_s': 0,
     'gravity': 'earth', 'temperature_C': 20, 'time_s': 5,
@@ -48,7 +48,7 @@ class ApiCase(unittest.TestCase):
     def tearDown(self) -> None:
         os.unlink(self.db_path)
 
-    # --- помощники -------------------------------------------------------
+    # --- helpers -----------------------------------------------------------
     def csrf(self) -> str:
         return self.client.get_cookie(self.app.config['CSRF_COOKIE']).value
 
@@ -112,7 +112,7 @@ class TestAuth(ApiCase):
         r = self.client.post('/api/auth/code', json={'code': '000000'},
                              headers=self.auth_headers())
         self.assertEqual(r.get_json()['error'], 'restart_login')
-        # Сессия шага 1 аннулирована — верный код уже не принимается.
+        # The step-1 session is invalidated — the correct code is no longer accepted.
         r = self.client.post('/api/auth/code', json={'code': CODE}, headers=self.auth_headers())
         self.assertEqual(r.get_json()['error'], 'restart_login')
 
@@ -153,12 +153,12 @@ class TestAnalyses(ApiCase):
         self.assertEqual(a['p']['thickness'], 0.5)
 
     def test_client_sent_scores_are_ignored(self):
-        """§18.3 — присланные клиентом баллы и вердикт не влияют на запись."""
+        """§18.3 — scores and a verdict sent by the client do not affect the record."""
         r = self.create({**INPUT_A, 'risk': 99, 'v': 'low', 'conf': 1,
-                         'texts': {'summary': 'подделка'}})
+                         'texts': {'summary': 'fake'}})
         a = r.get_json()['analysis']
         self.assertEqual((a['risk'], a['v'], a['conf']), (9, 'medium', 62))
-        self.assertNotEqual(a['texts']['summary'], 'подделка')
+        self.assertNotEqual(a['texts']['summary'], 'fake')
 
     def test_low_verdict_has_no_alert(self):
         self.assertIsNone(self.create(INPUT_C).get_json()['alert_level'])
@@ -180,7 +180,7 @@ class TestAnalyses(ApiCase):
         r = self.create({**INPUT_A, 'material_type': 'other', 'material_description': '  '})
         self.assertEqual(r.status_code, 422)
         self.assertIn('material_description', r.get_json()['fields'])
-        r = self.create({**INPUT_A, 'material_type': 'other', 'material_description': 'смола'})
+        r = self.create({**INPUT_A, 'material_type': 'other', 'material_description': 'resin'})
         self.assertEqual(r.status_code, 201)
 
     def test_bad_json_is_400(self):
@@ -256,7 +256,7 @@ class TestSectorsAndShip(ApiCase):
         secs = self.client.get('/api/sectors').get_json()
         self.assertEqual(len(secs), 7)
         l1 = next(s for s in secs if s['id'] == 'l1')
-        self.assertEqual(l1['code'], 'ЛБ-1')
+        self.assertEqual(l1['code'], 'LB-1')
         self.assertEqual(l1['geometry'], {'x': 394, 'y': 40, 'w': 116, 'h': 85})
 
     def test_ship_status_empty(self):
@@ -276,7 +276,7 @@ class TestSectorsAndShip(ApiCase):
         self.assertEqual(next(s for s in st['sectors'] if s['id'] == 'sh')['status'], 'none')
 
     def test_new_safe_analysis_replaces_sector_status(self):
-        """§23 — новый безопасный анализ в опасном секторе перекрашивает сектор."""
+        """§23 — a new safe analysis in a dangerous sector recolors the sector."""
         self.create({**INPUT_A, 'sector': 'zh', 'oxygen_percent': 28, 'air_flow_cm_s': 20,
                      'temperature_C': 150, 'time_s': 90, 'material_type': 'plastic',
                      'thickness_mm': 0.8})
@@ -301,26 +301,26 @@ class TestReports(ApiCase):
         self.assertEqual(lst[0]['status'], 'queued')
         doc = self.client.get('/api/reports/RPT-0001').get_json()['content']
         self.assertEqual(doc['no'], 'RPT-0001')
-        self.assertEqual(doc['title'], 'ЛБ-1 · Лаборатория 1')
-        self.assertEqual(doc['verdict'], 'Требует внимания')
-        self.assertEqual([m['v'] for m in doc['meta'] if m['k'] == 'Передача'],
-                         ['В очереди на передачу'])
+        self.assertEqual(doc['title'], 'LB-1 · Laboratory 1')
+        self.assertEqual(doc['verdict'], 'Needs Attention')
+        self.assertEqual([m['v'] for m in doc['meta'] if m['k'] == 'Transmission'],
+                         ['Queued for transmission'])
         self.assertEqual([s['h'] for s in doc['sections']],
-                         ['Заключение', 'Входные параметры', 'Оценки', 'Ограничения'])
+                         ['Conclusion', 'Input Parameters', 'Scores', 'Limitations'])
 
     def test_txt_export(self):
         txt = self.client.get('/api/reports/RPT-0001.txt').get_data(as_text=True)
-        self.assertTrue(txt.startswith('ОТЧЁТ RPT-0001'))
-        self.assertIn('РЕКОМЕНДАЦИИ', txt)
-        self.assertIn('ЗАКЛЮЧЕНИЕ', txt)
+        self.assertTrue(txt.startswith('REPORT RPT-0001'))
+        self.assertIn('RECOMMENDATIONS', txt)
+        self.assertIn('CONCLUSION', txt)
 
     def test_queue_becomes_sent_and_survives_restart(self):
-        """§11.4 — статус передачи хранится в БД, а не в таймере процесса."""
+        """§11.4 — transmission status is stored in the DB, not in the process's timer."""
         self.assertEqual(reports_svc.flush_queue(self.db_path, 0), 1)
         lst = self.client.get('/api/reports').get_json()
         self.assertEqual(lst[0]['status'], 'sent')
         self.assertIsNotNone(lst[0]['sent_at'])
-        # Новое приложение на той же БД видит отчёт переданным.
+        # A new app instance on the same DB sees the report as sent.
         other = create_app({'DB_PATH': self.db_path, 'REPORT_WORKER': False,
                             'DEMO_CODE': CODE, 'LOGIN_MIN_RESPONSE_S': 0}).test_client()
         other.post('/api/auth/login', json={'login': LOGIN, 'password': PASSWORD})
@@ -339,7 +339,7 @@ class TestReports(ApiCase):
 
 
 class TestReportConclusion(ApiCase):
-    """§11.2 — «Заключение» и «Ограничения» в документе отчёта."""
+    """§11.2 — "Conclusion" and "Limitations" in the report document."""
 
     def setUp(self) -> None:
         super().setUp()
@@ -349,15 +349,15 @@ class TestReportConclusion(ApiCase):
         self.create(INPUT_A)
         doc = self.client.get('/api/reports/RPT-0001').get_json()['content']
         conclusion = doc['sections'][0]['t']
-        self.assertTrue(conclusion.startswith('Требует внимания.'))
-        self.assertEqual(conclusion.lower().count('требует внимания'), 1)
+        self.assertTrue(conclusion.startswith('Needs Attention.'))
+        self.assertEqual(conclusion.lower().count('needs attention'), 1)
         limits = doc['sections'][3]['t']
-        self.assertIn('правилами раздела 15', limits)
-        self.assertIn('ML-модели в него не входит', limits)
+        self.assertIn('rules in section 14', limits)
+        self.assertIn('ML model forecast is not part of it', limits)
 
     def test_conclusion_helper_skips_duplicate_prefix(self):
         from app.domain.report import _conclusion
-        self.assertEqual(_conclusion('Опасно', 'Опасно: пламя распространяется.'),
-                         'Опасно: пламя распространяется.')
-        self.assertEqual(_conclusion('Опасно', 'Пламя распространяется.'),
-                         'Опасно. Пламя распространяется.')
+        self.assertEqual(_conclusion('Dangerous', 'Dangerous: the flame is spreading.'),
+                         'Dangerous: the flame is spreading.')
+        self.assertEqual(_conclusion('Dangerous', 'The flame is spreading.'),
+                         'Dangerous. The flame is spreading.')

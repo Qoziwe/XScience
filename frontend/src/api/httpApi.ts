@@ -1,8 +1,8 @@
 /**
- * Реализация контракта через Flask API (FUNCTIONAL_SPEC.md §18).
- * Расчёт, тексты и отчёт выполняет сервер; клиент присылает только сырой
- * вход §4.1 и получает готовую запись §4.2 — экраны при переключении
- * с localApi не меняются.
+ * Implementation of the contract via the Flask API (FUNCTIONAL_SPEC.md §18).
+ * The server performs the calculation, texts, and report; the client only sends
+ * the raw input §4.1 and receives the finished record §4.2 — screens stay
+ * unchanged when switching from localApi.
  */
 import { SEC } from '@/domain/reference';
 import type { Analysis, AnalysisParams, Level, SectorId } from '@/domain/types';
@@ -29,15 +29,15 @@ import type {
 } from './types';
 import { AuthError, NotConfiguredError, ValidationError } from './types';
 
-// Пусто (dev) — Vite проксирует /api на бэкенд (vite.config.ts). На проде,
-// когда фронт и бэк на разных хостах (GitHub Pages + свой сервер), собирается
-// с VITE_API_BASE_URL — полный адрес бэкенда (см. .github/workflows/pages.yml).
+// Empty (dev) — Vite proxies /api to the backend (vite.config.ts). In production,
+// when the frontend and backend are on different hosts (GitHub Pages + its own server),
+// it's built with VITE_API_BASE_URL — the backend's full address (see .github/workflows/pages.yml).
 const BASE = import.meta.env?.VITE_API_BASE_URL || '/api';
-/** Период опроса истории — §11.4 (смена статуса передачи) и чужие анализы. */
+/** History polling period — §11.4 (transmission status change) and other users' analyses. */
 const POLL_MS = 1500;
 const CSRF_COOKIE = 'xsci_csrf';
 
-/** §4.2 — имена полей прототипа → имена API (§4.1). */
+/** §4.2 — prototype field names → API field names (§4.1). */
 interface AnalysisInputBody {
   sector: SectorId;
   material_type: string;
@@ -50,7 +50,7 @@ interface AnalysisInputBody {
   time_s: number;
 }
 
-/** Параметры прототипа → поля API §4.1 без сектора (нужны и прогнозу §17.1). */
+/** Prototype parameters → API fields §4.1 without the sector (also needed by the §17.1 forecast). */
 const toInputBody = (p: AnalysisParams): Omit<AnalysisInputBody, 'sector'> => ({
   material_type: p.material,
   material_description: p.desc ?? '',
@@ -67,7 +67,7 @@ const toInput = (sector: SectorId, p: AnalysisParams): AnalysisInputBody => ({
   ...toInputBody(p),
 });
 
-/** §18.9 — имена полей ответа 422 → ключи полей формы (§9.3). */
+/** §18.9 — field names in the 422 response → form field keys (§9.3). */
 const FIELD_OF: Record<string, string> = {
   sector: 'sector',
   material_type: 'material',
@@ -105,13 +105,13 @@ function raise(status: number, body: ApiErrorBody): never {
   if ((status === 401 || status === 429) && (known as readonly string[]).includes(code)) {
     throw new AuthError(code as (typeof known)[number], body.attempts_left, body.retry_after_s);
   }
-  // 409/502 — возможность есть в API, но на сервере не настроена или не готова
-  // (модель не обучена, распознавание не подключено, провайдер недоступен).
+  // 409/502 — the capability exists in the API but is not configured or not ready
+  // on the server (model not trained, recognition not wired up, provider unavailable).
   if (status === 409 || status === 502) {
     throw new NotConfiguredError(code, body.detail ?? body.reasons?.join('; '));
   }
-  // 401 без кода шага входа — сессия истекла или её нет (§6.5): это не ошибка
-  // формы входа, экраны обрабатывают её как обычный сбой запроса.
+  // 401 without a login-step code — the session expired or doesn't exist (§6.5): this is
+  // not a login-form error, screens handle it as a plain request failure.
   throw new Error(`${status} ${code}`);
 }
 
@@ -119,7 +119,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const method = init.method ?? 'GET';
   const headers = new Headers(init.headers);
   if (init.body !== undefined) headers.set('Content-Type', 'application/json');
-  // §6.5 — CSRF-токен на все изменяющие запросы.
+  // §6.5 — CSRF token on every mutating request.
   if (method !== 'GET') headers.set('X-CSRF-Token', csrfToken());
 
   const res = await fetch(BASE + path, { ...init, method, headers, credentials: 'include' });
@@ -128,7 +128,7 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   return (await res.json()) as T;
 }
 
-/** Полная запись сервера (§4.2) → запись истории, которую ждут экраны. */
+/** The server's full record (§4.2) → the history record that screens expect. */
 interface ServerAnalysis extends Analysis {
   created_at: string;
   report_id: string;
@@ -152,7 +152,7 @@ const toAnalysis = (r: ServerAnalysis): Analysis => ({
   hasReport: r.report_status != null,
 });
 
-/** Записи с неизвестным сектором или материалом игнорируются, как в §16.1. */
+/** Records with an unknown sector or material are ignored, as in §16.1. */
 const toHistory = (rows: ServerAnalysis[]): Analysis[] =>
   rows
     .filter((r) => !!r && !!SEC[r.sector] && !!r.p)
@@ -165,7 +165,7 @@ class HttpAnalyses implements AnalysesApi {
   private last = '';
   private busy = false;
 
-  /** §18.3 — список приходит новыми сверху, экраны ждут по возрастанию id. */
+  /** §18.3 — the list arrives newest-first, but screens expect ascending id order. */
   async list(): Promise<Analysis[]> {
     const rows = await request<ServerAnalysis[]>('/analyses?limit=500');
     const hist = toHistory(rows);
@@ -178,17 +178,17 @@ class HttpAnalyses implements AnalysesApi {
       '/analyses',
       {
         method: 'POST',
-        // §18.3 — защита от дублей при двойном клике и ретрае.
+        // §18.3 — guards against duplicates on double-click and retry.
         headers: { 'Idempotency-Key': newKey() },
         body: JSON.stringify(toInput(sector, params)),
       },
     );
-    // История на сервере изменилась — разослать подписчикам, не дожидаясь опроса.
+    // The server's history changed — notify subscribers without waiting for the next poll.
     void this.poll();
     return { analysis: toAnalysis(body.analysis), alertLevel: body.alert_level };
   }
 
-  /** §10.2 — «Принято» оператором. Саму запись анализа не меняет. */
+  /** §10.2 — "Acknowledged" by the operator. Does not change the analysis record itself. */
   async ack(id: number): Promise<void> {
     await request<unknown>(`/analyses/${id}/ack`, { method: 'POST' });
   }
@@ -205,7 +205,7 @@ class HttpAnalyses implements AnalysesApi {
     };
   }
 
-  /** Опрос истории: подписчиков дёргаем только при реальном изменении. */
+  /** History polling: subscribers are only notified on an actual change. */
   private async poll(): Promise<void> {
     if (this.busy || !this.listeners.size) return;
     this.busy = true;
@@ -218,7 +218,7 @@ class HttpAnalyses implements AnalysesApi {
         this.listeners.forEach((l) => l(hist));
       }
     } catch {
-      /* сеть или сессия недоступны — следующий опрос попробует снова */
+      /* network or session unavailable — the next poll will try again */
     } finally {
       this.busy = false;
     }
@@ -230,7 +230,7 @@ const newKey = (): string =>
     ? crypto.randomUUID()
     : `k-${Date.now()}-${Math.random().toString(16).slice(2)}`;
 
-/** ISO-время окончания сессии → HH:MM локального времени (§5.1). */
+/** ISO session expiry time → local HH:MM (§5.1). */
 const hhmm = (iso: string): string => {
   const d = new Date(iso);
   return Number.isNaN(d.getTime()) ? iso : d.toTimeString().slice(0, 5);
@@ -256,7 +256,7 @@ class HttpAuth implements AuthApi {
     await request<void>('/auth/logout', { method: 'POST' });
   }
 
-  /** §6.5 — есть ли живая сессия. 401 здесь не ошибка, а «сессии нет». */
+  /** §6.5 — whether a live session exists. A 401 here isn't an error, it means "no session". */
   async me(): Promise<SessionUser | null> {
     try {
       const body = await request<{ login: string; role: string; expires_at: string }>('/me');
@@ -267,7 +267,7 @@ class HttpAuth implements AuthApi {
   }
 }
 
-/** §17.1–17.2 — ML-модель и закон d². */
+/** §17.1–17.2 — ML model and the d² law. */
 class HttpModels implements ModelsApi {
   async readiness(): Promise<Readiness> {
     const b = await request<ServerReadiness>('/models/ml/readiness');
@@ -366,7 +366,7 @@ const toMetrics = (m: ServerMetrics) => ({
   ),
 });
 
-/** §18.5 — набор данных со сверкой. */
+/** §18.5 — dataset with cross-checking. */
 class HttpDataset implements DatasetApi {
   async load(): Promise<{ summary: DatasetSummary; rows: DatasetRow[] }> {
     const b = await request<{
@@ -420,13 +420,13 @@ interface ServerDatasetRow {
   data_source_valid: boolean;
 }
 
-/** §17.3, §18.7 — фото пламени. */
+/** §17.3, §18.7 — flame photos. */
 class HttpPhotos implements PhotosApi {
   async upload(file: File, analysisId?: number | null): Promise<Photo> {
     const form = new FormData();
     form.append('file', file);
     if (analysisId != null) form.append('analysis_id', String(analysisId));
-    // FormData сам ставит Content-Type с boundary — своего не навязываем.
+    // FormData sets its own Content-Type with a boundary — we don't override it.
     const res = await fetch(`${BASE}/photos`, {
       method: 'POST',
       body: form,
@@ -490,7 +490,7 @@ const toPhoto = (p: ServerPhoto): Photo => ({
   fileUrl: p.file_url,
 });
 
-/** [ПРОТОТИП] имитация датчиков — тумблеры в хедере и форме анализа. */
+/** [PROTOTYPE] sensor simulation — toggles in the header and the analysis form. */
 class HttpSensors implements SensorsApi {
   private listeners = new Set<(s: SensorsStatus) => void>();
   private timer: ReturnType<typeof setInterval> | null = null;
@@ -557,7 +557,7 @@ class HttpSensors implements SensorsApi {
         this.listeners.forEach((l) => l(s));
       }
     } catch {
-      /* сеть или сессия недоступны — следующий опрос попробует снова */
+      /* network or session unavailable — the next poll will try again */
     } finally {
       this.busy = false;
     }

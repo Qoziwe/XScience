@@ -1,14 +1,14 @@
 """
-Фото пламени (§4.5, §17.3, §18.7).
+Flame photos (§4.5, §17.3, §18.7).
 
-Файлы лежат в каталоге вне веб-корня (XSCI_PHOTO_DIR, по умолчанию
-data/photos) и отдаются только по сессии. В БД — метаданные, разметка
-оператора и, отдельно, результат распознавания моделью.
+Files live in a directory outside the web root (XSCI_PHOTO_DIR, default
+data/photos) and are served only via a session. The DB holds metadata, the
+operator's annotation, and, separately, the model's recognition result.
 
-[ВОПРОС §17.3] привязка фото к анализу спецификацией не решена. Принятое
-решение: analysis_id необязателен — его можно передать при загрузке или
-позже через PATCH; признаки снимка остаются наблюдением и в расчёт риска
-и затухания не входят.
+[QUESTION §17.3] linking a photo to an analysis is not resolved by the
+specification. Decision taken: analysis_id is optional — it can be passed at
+upload time or later via PATCH; the photo's traits remain an observation and
+are not part of the risk and extinction calculation.
 """
 from __future__ import annotations
 
@@ -25,9 +25,9 @@ from .ai import vision
 from .ai.base import LlmError
 from .security import new_id
 
-#: §17.3 — «JPEG или PNG, один снимок».
+#: §17.3 — "JPEG or PNG, one photo".
 ALLOWED = {'image/jpeg': '.jpg', 'image/png': '.png'}
-#: Подпись файла — проверяем содержимое, а не только заголовок Content-Type.
+#: File signature — we check the content, not just the Content-Type header.
 MAGIC = ((b'\xff\xd8\xff', 'image/jpeg'), (b'\x89PNG\r\n\x1a\n', 'image/png'))
 
 
@@ -48,15 +48,15 @@ def save(file_name: str, data: bytes, analysis_id: int | None,
          user_id: str | None) -> dict[str, Any]:
     limit = current_app.config['PHOTO_MAX_BYTES']
     if not data:
-        raise validation_error({'file': 'Выберите снимок'})
+        raise validation_error({'file': 'Select a photo'})
     if len(data) > limit:
-        raise validation_error({'file': f'Снимок больше {limit // (1024 * 1024)} МБ'})
+        raise validation_error({'file': f'Photo exceeds {limit // (1024 * 1024)} MB'})
     mime = sniff(data)
     if not mime:
-        raise validation_error({'file': 'Поддерживаются только JPEG и PNG'})
+        raise validation_error({'file': 'Only JPEG and PNG are supported'})
     if analysis_id is not None and not query(
             'SELECT id FROM analyses WHERE id = ?', (analysis_id,), one=True):
-        raise validation_error({'analysis_id': 'Анализ не найден'})
+        raise validation_error({'analysis_id': 'Analysis not found'})
 
     photo_id = new_id('ph')
     stored = photo_id + ALLOWED[mime]
@@ -87,7 +87,7 @@ def public(row: Any) -> dict[str, Any]:
         'annotation': json.loads(row['annotation'] or '{}'),
         'recognition': json.loads(row['recognition']) if row['recognition'] else None,
         'file_url': f'/api/photos/{row["id"]}/file',
-        'note': 'Наблюдения оператора. В расчёт риска и затухания не входят (§17.3).',
+        'note': "Operator observations. Not part of the risk and extinction calculation (§17.3).",
     }
 
 
@@ -113,10 +113,10 @@ def file_path(photo_id: str) -> tuple[Path, str, str]:
 
 
 def annotate(photo_id: str, body: Any) -> dict[str, Any]:
-    """Разметка оператора (§17.3): одиночный выбор, пустая строка снимает выбор."""
+    """Operator annotation (§17.3): single choice, an empty string clears the choice."""
     row = _row(photo_id)
     if not isinstance(body, dict):
-        raise validation_error({'_': 'Ожидается объект JSON'})
+        raise validation_error({'_': 'A JSON object is expected'})
     current = json.loads(row['annotation'] or '{}')
     errors: dict[str, str] = {}
     for key, allowed in vision.VOCAB.items():
@@ -127,7 +127,7 @@ def annotate(photo_id: str, body: Any) -> dict[str, Any]:
             current.pop(key, None)
             continue
         if not isinstance(value, str) or value.strip().lower() not in allowed:
-            errors[key] = 'Допустимо: ' + ', '.join(allowed)
+            errors[key] = 'Allowed: ' + ', '.join(allowed)
             continue
         current[key] = value.strip().lower()
     if errors:
@@ -142,7 +142,7 @@ def annotate(photo_id: str, body: Any) -> dict[str, Any]:
                                               (value,), one=True):
             analysis_id = value
         else:
-            raise validation_error({'analysis_id': 'Анализ не найден'})
+            raise validation_error({'analysis_id': 'Analysis not found'})
 
     execute('UPDATE photos SET annotation = ?, analysis_id = ? WHERE id = ?',
             (json.dumps(current, ensure_ascii=False), analysis_id, photo_id))
@@ -150,7 +150,7 @@ def annotate(photo_id: str, body: Any) -> dict[str, Any]:
 
 
 def recognize(photo_id: str) -> dict[str, Any]:
-    """§17.3 — признаки по снимку vision-моделью. Разметку оператора не трогает."""
+    """§17.3 — traits from the photo via the vision model. Does not touch the operator's annotation."""
     row = _row(photo_id)
     path = storage_dir() / row['stored_name']
     if not path.exists():

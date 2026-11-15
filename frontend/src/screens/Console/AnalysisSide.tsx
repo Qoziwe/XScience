@@ -1,4 +1,4 @@
-/** Боковая панель вкладки «Анализ». FUNCTIONAL_SPEC.md §9.8. */
+/** Sidebar of the "Analysis" tab. FUNCTIONAL_SPEC.md §9.8. */
 import { MAT, SEC, gravityShort, signalOf } from '@/domain/reference';
 import { f1, pad } from '@/domain/format';
 import { historyCsv } from '@/domain/report';
@@ -18,7 +18,7 @@ export function AnalysisSide() {
       {r ? <MaterialCard /> : null}
       {r ? (
         <Card>
-          <CardHead title="Допущения расчёта" kicker={String(r.notes.length)} />
+          <CardHead title="Calculation Assumptions" kicker={String(r.notes.length)} />
           <div className="card__body">
             {r.notes.map((n, i) => (
               <div key={i} style={{ display: 'flex', gap: 8, fontSize: 12.5 }}>
@@ -32,10 +32,10 @@ export function AnalysisSide() {
         </Card>
       ) : null}
 
-      {/* История запусков — видна всегда. */}
+      {/* Run history — always visible. */}
       <Card>
         <header className="card__head">
-          <h2 className="card__title">История запусков</h2>
+          <h2 className="card__title">Run History</h2>
           <span className="mono muted" style={{ fontSize: 12 }}>
             {hist.length}
           </span>
@@ -64,7 +64,7 @@ export function AnalysisSide() {
                   disabled={running}
                   onClick={() => dispatch({ type: 'openAnalysis', entry: h })}
                 >
-                  {/* Точка цвета УРОВНЯ РИСКА, не вердикта (§9.8). */}
+                  {/* Dot colored by RISK LEVEL, not the verdict (§9.8). */}
                   <Dot color={signalOf(h.level, tweaks.palette).fill} />
                   <span className="list__col">
                     <span className="list__top">
@@ -75,25 +75,25 @@ export function AnalysisSide() {
                       </span>
                     </span>
                     <span className="list__sub">
-                      {SEC[h.sector].code} · {MAT[h.p.material].label} {f1(h.p.thickness)} мм · O₂{' '}
-                      {f1(h.p.o2)} · {f1(h.p.flow)} см/с · {gravityShort(h.p.gravity)}
+                      {SEC[h.sector].code} · {MAT[h.p.material].label} {f1(h.p.thickness)} mm · O₂{' '}
+                      {f1(h.p.o2)} · {f1(h.p.flow)} cm/s · {gravityShort(h.p.gravity)}
                     </span>
                   </span>
                 </button>
               ))
           ) : (
-            <div className="card__foot">Запусков пока не было.</div>
+            <div className="card__foot">No runs yet.</div>
           )}
         </div>
         <div className="card__foot">
-          Хранится в этом браузере. Место хранения не определено (16.12).
+          Stored in this browser. Storage location is unspecified (16.12).
         </div>
       </Card>
     </div>
   );
 }
 
-/** §9.8.1 — карточка материала. [ВОПРОС 16.11] черновик. */
+/** §9.8.1 — material card. [QUESTION 16.11] draft. */
 function MaterialCard() {
   const r = useResult();
   if (!r) return null;
@@ -104,7 +104,7 @@ function MaterialCard() {
       <CardHead
         title={m.label}
         kicker={`MaterialRisk ${m.risk} / 3`}
-        right={<span className="notice notice--draft">черновик · 16.11</span>}
+        right={<span className="notice notice--draft">draft · 16.11</span>}
       />
       <div className="card__body">
         <p style={{ margin: 0, fontSize: 13 }}>{card.body}</p>
@@ -114,7 +114,7 @@ function MaterialCard() {
               key={k}
               k={k}
               v={
-                r.entry.p.material === 'other' && k === 'Описание'
+                r.entry.p.material === 'other' && k === 'Description'
                   ? r.entry.p.desc || '—'
                   : v
               }

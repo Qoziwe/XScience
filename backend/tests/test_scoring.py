@@ -1,4 +1,4 @@
-"""Контрольные примеры §23 — сверка серверного расчёта с таблицей спецификации."""
+"""Control examples §23 — checks the server-side calculation against the spec's table."""
 import unittest
 
 from app.domain.scoring import (
@@ -11,7 +11,7 @@ def P(material, thickness, o2, flow, temp, time, gravity='microgravity', desc=''
             'flow': flow, 'gravity': gravity, 'temp': temp, 'time': time}
 
 
-# §23: вход, (M,O,F,T,S,G), R, уровень, (OD,LF,TB), E, уровень, D, вердикт, границ, уверенность
+# §23: input, (M,O,F,T,S,G), R, level, (OD,LF,TB), E, level, D, verdict, boundaries, confidence
 CASES = [
     ('A', P('paper', 0.5, 21, 5, 25, 30), (3, 2, 2, 0, 1, 1), 9, 'high',
      (0, 0, 2), 2, 'medium', 9, 'medium', 4, 62),
@@ -47,7 +47,7 @@ class TestControlExamples(unittest.TestCase):
                 self.assertEqual(confidence_of(p), conf)
 
     def test_alert_level(self):
-        """§10.1 — окно оповещения открывается при medium и high, не при low."""
+        """§10.1 — the alert window opens for medium and high, not for low."""
         for name, p, *_rest in CASES:
             v = verdict_of_scores(score(p))
             alert = None if v == 'low' else v
@@ -56,7 +56,7 @@ class TestControlExamples(unittest.TestCase):
 
 class TestShipAggregation(unittest.TestCase):
     def test_example_from_spec(self):
-        """§23 — A в l1, B в ep, C в zh: worst=high, уверенность 62."""
+        """§23 — A in l1, B in ep, C in zh: worst=high, confidence 62."""
         from app.domain.ship import ship_status
         hist = []
         for i, (name, sector) in enumerate((('A', 'l1'), ('B', 'ep'), ('C', 'zh'))):
@@ -74,5 +74,5 @@ class TestShipAggregation(unittest.TestCase):
         self.assertEqual(st['counts'], {'high': 1, 'medium': 1, 'low': 1, 'none': 4})
         self.assertEqual(
             st['summary'],
-            'Опасность в секторах: ЭП. Внимания требуют: ЛБ-1. '
-            'Приоритет — нейтрализовать опасность в указанных секторах.')
+            'Danger in sectors: PB. Attention needed: LB-1. '
+            'Priority — neutralize the danger in the listed sectors.')

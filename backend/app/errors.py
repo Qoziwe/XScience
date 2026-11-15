@@ -1,4 +1,4 @@
-"""Единый формат ошибок API (§18.9)."""
+"""Uniform API error format (§18.9)."""
 from __future__ import annotations
 
 from typing import Any
@@ -8,7 +8,7 @@ from werkzeug.exceptions import HTTPException
 
 
 class ApiError(Exception):
-    """Ошибка с кодом из §18.9: 400/401/403/404/409/422/429."""
+    """Error with a status code from §18.9: 400/401/403/404/409/422/429."""
 
     def __init__(self, status: int, error: str, **extra: Any) -> None:
         super().__init__(error)
@@ -21,7 +21,7 @@ class ApiError(Exception):
 
 
 def validation_error(fields: dict[str, str]) -> ApiError:
-    """422 — ошибка валидации входа (§18.9)."""
+    """422 — input validation error (§18.9)."""
     return ApiError(422, 'validation_failed', fields=fields)
 
 

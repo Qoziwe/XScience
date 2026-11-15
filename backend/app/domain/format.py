@@ -1,18 +1,18 @@
-"""Форматирование. Порт frontend/src/domain/format.ts (FUNCTIONAL_SPEC.md §0)."""
+"""Formatting. Port of frontend/src/domain/format.ts (FUNCTIONAL_SPEC.md §0)."""
 from __future__ import annotations
 
 from datetime import datetime, timezone
 
 
 def f1(v: float) -> str:
-    """Целое → без дробной части; дробное → до 2 знаков без лишних нулей."""
+    """Integer → no fractional part; fractional → up to 2 digits, no trailing zeros."""
     if float(v).is_integer():
         return str(int(v))
     return repr(round(float(v), 2)).rstrip('0').rstrip('.')
 
 
 def pad(n: int) -> str:
-    """Номер анализа с дополнением нулями до 4 знаков."""
+    """Analysis number zero-padded to 4 digits."""
     return str(n).zfill(4)
 
 
@@ -21,7 +21,7 @@ def report_no(analysis_id: int) -> str:
 
 
 def num(v: float) -> float | int:
-    """Число для JSON: целые отдаём как int, чтобы совпадать с прототипом."""
+    """Number for JSON: integers are returned as int to match the prototype."""
     return int(v) if float(v).is_integer() else float(v)
 
 
@@ -30,7 +30,7 @@ def utc_now() -> datetime:
 
 
 def iso(dt: datetime) -> str:
-    """ISO 8601 в UTC, с Z (§4.2)."""
+    """ISO 8601 in UTC, with Z (§4.2)."""
     return dt.astimezone(timezone.utc).strftime('%Y-%m-%dT%H:%M:%SZ')
 
 
@@ -39,7 +39,7 @@ def parse_iso(s: str) -> datetime:
 
 
 def hhmmss(dt: datetime) -> str:
-    """Локальное время HH:MM:SS — вид, в котором его показывает клиент."""
+    """Local time HH:MM:SS — the format the client displays it in."""
     return dt.astimezone().strftime('%H:%M:%S')
 
 

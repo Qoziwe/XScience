@@ -1,4 +1,4 @@
-// Минимальные браузерные заглушки для смоук-прогона в Node.
+// Minimal browser stubs for the smoke test run under Node.
 const store = new Map();
 globalThis.localStorage = {
   getItem: (k) => (store.has(k) ? store.get(k) : null),

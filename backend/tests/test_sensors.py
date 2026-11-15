@@ -1,4 +1,4 @@
-"""Имитация датчиков: смежность секторов, марковские переходы, API."""
+"""Sensor simulation: sector adjacency, Markov transitions, API."""
 from __future__ import annotations
 
 import os
@@ -30,7 +30,7 @@ class AdjacencyCase(unittest.TestCase):
         adj = sector_adjacency()
         for a, neighbours in adj.items():
             for b in neighbours:
-                self.assertIn(a, adj[b], f'{a}-{b} должно быть симметрично')
+                self.assertIn(a, adj[b], f'{a}-{b} must be symmetric')
 
 
 class SensorsCase(unittest.TestCase):
@@ -64,7 +64,7 @@ class SensorsCase(unittest.TestCase):
         self.client.post('/api/auth/login', json={'login': LOGIN, 'password': PASSWORD})
         self.client.post('/api/auth/code', json={'code': CODE}, headers=self.auth_headers())
 
-    # --- генератор параметров --------------------------------------------
+    # --- parameter generator -----------------------------------------------
 
     def test_sample_params_matches_requested_verdict(self):
         for level in ('low', 'medium', 'high'):
@@ -73,7 +73,7 @@ class SensorsCase(unittest.TestCase):
                 self.assertEqual(verdict_of_scores(score(params)), level,
                                   f'{level}: {params}')
 
-    # --- марковские переходы -----------------------------------------------
+    # --- Markov transitions --------------------------------------------------
 
     def test_ticks_never_skip_a_level(self):
         svc._rng.seed(20261115)
@@ -85,7 +85,7 @@ class SensorsCase(unittest.TestCase):
             for sid in svc._SECTOR_IDS:
                 cur = svc._state[sid]['level']
                 self.assertLessEqual(abs(order[cur] - order[prev[sid]]), 1,
-                                      f'{sid}: {prev[sid]} -> {cur} за один тик')
+                                      f'{sid}: {prev[sid]} -> {cur} in a single tick')
                 prev[sid] = cur
 
     def test_non_seed_non_neighbour_sectors_stay_low(self):
@@ -109,17 +109,17 @@ class SensorsCase(unittest.TestCase):
         self.assertEqual(len(reports), 7)
 
     def test_mid_cycle_tick_writes_without_report(self):
-        """Между отчётными кругами (report_every=10 при дефолтных конфигах)
-        изменившийся сектор пишется как анализ без отчёта."""
+        """Between report rounds (report_every=10 with default config)
+        a changed sector is written as an analysis without a report."""
         svc.set_enabled(True)
-        svc.tick(self.app)  # тик 0 — полный отчётный круг (report_round всегда)
+        svc.tick(self.app)  # tick 0 — always a full report round (report_round)
         with self.app.app_context():
             before = len(query('SELECT * FROM analyses'))
 
         svc._seed = 'km'
         svc._state['km'] = {'level': 'low', 'trend': 'rising'}
         real_random = svc._rng.random
-        svc._rng.random = lambda: 0.0  # форсируем шаг эскалации на этом тике
+        svc._rng.random = lambda: 0.0  # force an escalation step on this tick
         try:
             svc.tick(self.app)
         finally:
@@ -140,7 +140,7 @@ class SensorsCase(unittest.TestCase):
         with self.app.app_context():
             self.assertEqual(query('SELECT * FROM analyses'), [])
 
-    # --- API -----------------------------------------------------------
+    # --- API -------------------------------------------------------------
 
     def test_status_requires_auth(self):
         self.assertEqual(self.client.get('/api/sensors').status_code, 401)
@@ -154,7 +154,7 @@ class SensorsCase(unittest.TestCase):
                               headers=self.auth_headers())
         self.assertEqual(r.get_json(), {'enabled': True, 'manual_override': False})
 
-        # override без включённых датчиков не действует
+        # override has no effect while sensors are disabled
         svc.set_enabled(False)
         r = self.client.post('/api/sensors/override', json={'enabled': True},
                               headers=self.auth_headers())
@@ -165,7 +165,7 @@ class SensorsCase(unittest.TestCase):
                               headers=self.auth_headers())
         self.assertEqual(r.get_json(), {'enabled': True, 'manual_override': True})
 
-        # повторное включение датчиков сбрасывает override
+        # re-enabling sensors resets the override
         r = self.client.post('/api/sensors/toggle', json={'enabled': True},
                               headers=self.auth_headers())
         self.assertEqual(r.get_json(), {'enabled': True, 'manual_override': False})

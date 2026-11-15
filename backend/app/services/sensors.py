@@ -1,21 +1,22 @@
 """
-Имитация датчиков (прототип). Раз в XSCI_SENSOR_TICK_S сервер сам продвигает
-марковское состояние каждого сектора (low → medium → high и обратно, не
-перескакивая через ступень) и, если сектор реально поменял уровень, пишет
-обычный анализ (§4.2, те же правила §14) с source='sensor' — этим и держится
-«живой» дашборд: существующий поллинг GET /api/analyses подхватывает новую
-запись сам.
+Sensor simulation (prototype). Once every XSCI_SENSOR_TICK_S, the server
+itself advances each sector's Markov state (low → medium → high and back,
+never skipping a step), and if a sector's level actually changed, writes a
+regular analysis (§4.2, the same §14 rules) with source='sensor' — this is
+what keeps the dashboard "live": the existing GET /api/analyses polling
+picks up the new record on its own.
 
-Раз в XSCI_SHIP_REPORT_INTERVAL_S секунд (кратно тику) фиксируется полный
-круг по всем семи секторам с отчётом (make_report=True) — это то, что видит
-вкладка «Отчёты» (там report_status непустой). Между такими кругами пишутся
-только сектора с реально изменившимся уровнем, без отчёта.
+Once every XSCI_SHIP_REPORT_INTERVAL_S seconds (a multiple of the tick), a
+full round over all seven sectors is recorded with a report (make_report=True)
+— this is what the "Reports" tab shows (where report_status is non-empty).
+Between such rounds, only sectors whose level actually changed are written,
+without a report.
 
-Обычно активен один «очаг» — сектор, который марковски идёт low→medium→high
-и обратно; его смежные сектора (sector_adjacency, §3.4) могут «подхватить»
-risk до medium, пока очаг на high, и возвращаются к low, когда он остывает.
-Остальные сектора всегда остаются low — так «безопасно» всегда наиболее
-вероятный исход.
+Usually one "hotspot" is active — a sector that Markov-walks low→medium→high
+and back; its adjacent sectors (sector_adjacency, §3.4) can "pick up" risk to
+medium while the hotspot is at high, and return to low once it cools down.
+All other sectors always stay at low — so "safe" is always the most likely
+outcome.
 """
 from __future__ import annotations
 
@@ -55,8 +56,8 @@ _TIME_BUCKET_RANGE = {0: (0, 10), 1: (10.5, 30), 2: (30.5, 60), 3: (60.5, 300)}
 
 
 def reset() -> None:
-    """Сбрасывает модульное состояние — только для тестов: модуль синглтон
-    на процесс, без явного сброса тесты будут видеть чужое состояние."""
+    """Resets module state — for tests only: the module is a per-process
+    singleton, and without an explicit reset, tests would see each other's state."""
     global _enabled, _manual_override, _seed, _seed_high_ticks, _tick_count
     with _lock:
         _enabled = False
@@ -74,8 +75,8 @@ def get_status() -> dict[str, Any]:
 
 
 def set_enabled(value: bool) -> dict[str, Any]:
-    """Включение сбрасывает симуляцию в спокойное состояние и снимает override
-    (§ «если датчики активированы — ручной ввод изначально заблокирован»)."""
+    """Enabling resets the simulation to a calm state and clears the override
+    (§ "when sensors are active, manual input starts out locked")."""
     global _enabled, _manual_override, _seed, _seed_high_ticks, _tick_count
     with _lock:
         _enabled = value
@@ -90,7 +91,7 @@ def set_enabled(value: bool) -> dict[str, Any]:
 
 
 def set_manual_override(value: bool) -> dict[str, Any]:
-    """Без эффекта, пока датчики выключены — форма и так разблокирована."""
+    """Has no effect while sensors are disabled — the form is already unlocked."""
     global _manual_override
     with _lock:
         if _enabled:
@@ -107,8 +108,8 @@ def _step_down(level: str) -> str:
 
 
 def _advance_locked() -> dict[str, bool]:
-    """Продвигает марковское состояние на один тик. Возвращает, какие
-    сектора реально поменяли уровень (вызывающий решает, писать ли их)."""
+    """Advances the Markov state by one tick. Returns which sectors actually
+    changed level (the caller decides whether to write them)."""
     global _seed, _seed_high_ticks
     changed = {sid: False for sid in _SECTOR_IDS}
 
@@ -151,11 +152,11 @@ def _advance_locked() -> dict[str, bool]:
 
 def _sample_once(level: str) -> dict[str, Any]:
     """
-    Подбирает параметры так, чтобы индекс опасности §14.4 (risk со
-    стабилизацией по ext) попадал в нужный диапазон вердикта. flow=0 и
-    o2 < 18 держат ext >= 4 почти всегда (od>=2, lf=2), что даёт
-    stability_adjust=-1 и d = risk - 1 независимо от толщины/материала —
-    поэтому остаётся только подобрать risk под нужный вердикт.
+    Picks parameters so that the §14.4 danger index (risk stabilized by ext)
+    lands in the desired verdict range. flow=0 and o2 < 18 keep ext >= 4
+    almost always (od>=2, lf=2), which gives stability_adjust=-1 and
+    d = risk - 1 regardless of thickness/material — so all that's left is
+    to pick risk for the desired verdict.
     """
     o2 = round(_rng.uniform(13, 17.9), 1)
     o2r = 0 if o2 < 16 else 1
@@ -164,7 +165,7 @@ def _sample_once(level: str) -> dict[str, Any]:
 
     lo, hi = _RISK_BUCKET[level]
     target = _rng.randint(lo, hi)
-    budget = target - 1 - o2r - gravr  # 1 = flow_risk при flow=0
+    budget = target - 1 - o2r - gravr  # 1 = flow_risk when flow=0
 
     pool = (_RISKY_MATERIALS if level == 'high' else _SAFE_MATERIALS
             if level == 'low' else _SAFE_MATERIALS + _RISKY_MATERIALS)
@@ -187,8 +188,8 @@ def _sample_once(level: str) -> dict[str, Any]:
 
 
 def sample_params(level: str, attempts: int = 6) -> dict[str, Any]:
-    """Генерирует и проверяет параметры через настоящий расчёт §14; при
-    промахе пересэмплирует (дёшево — чистые функции, без побочных эффектов)."""
+    """Generates and checks parameters through the real §14 calculation;
+    resamples on a miss (cheap — pure functions, no side effects)."""
     best = None
     for _ in range(attempts):
         candidate = _sample_once(level)
@@ -199,7 +200,7 @@ def sample_params(level: str, attempts: int = 6) -> dict[str, Any]:
 
 
 def tick(app: Flask) -> None:
-    """Один шаг имитации — вызывается фоновым потоком раз в SENSOR_TICK_S."""
+    """One simulation step — called by the background thread every SENSOR_TICK_S."""
     global _tick_count
     with _lock:
         if not _enabled:
@@ -222,12 +223,12 @@ def tick(app: Flask) -> None:
                 analyses_svc.create(params, sid, 'sensor', None, '',
                                      source='sensor', make_report=report_round)
             except Exception:
-                app.logger.exception('sensor tick: не удалось записать сектор %s', sid)
+                app.logger.exception('sensor tick: failed to write sector %s', sid)
 
 
 def start_tick_worker(app: Flask) -> None:
-    """Фоновый поток имитации. Выключается конфигом SENSOR_WORKER (сама
-    генерация — отдельным рантайм-тумблером через /api/sensors/toggle)."""
+    """Background simulation thread. Disabled via the SENSOR_WORKER config
+    (actual generation is a separate runtime toggle via /api/sensors/toggle)."""
     tick_s = app.config['SENSOR_TICK_S']
     stop = threading.Event()
     app.extensions['sensor_worker_stop'] = stop
@@ -236,7 +237,7 @@ def start_tick_worker(app: Flask) -> None:
         while not stop.wait(tick_s):
             try:
                 tick(app)
-            except Exception:  # pragma: no cover — поток не должен падать
+            except Exception:  # pragma: no cover — the thread must not crash
                 app.logger.exception('sensor worker tick failed')
 
     threading.Thread(target=loop, name='sensor-tick', daemon=True).start()

@@ -1,8 +1,8 @@
 """
-Серверная валидация входа анализа (§4.1, §9.3, §18.9).
-Сервер проверяет вход заново и независимо от клиента; при ошибке — 422
-со списком полей в именах API (§18.9).
-Порт правил из frontend/src/domain/validation.ts, но на именах §4.1.
+Server-side validation of analysis input (§4.1, §9.3, §18.9).
+The server re-validates input independently of the client; on error — 422
+with a list of fields using API names (§18.9).
+Port of the rules from frontend/src/domain/validation.ts, but using the §4.1 names.
 """
 from __future__ import annotations
 
@@ -10,27 +10,27 @@ from typing import Any
 
 from .reference import GRAVITY_OPTIONS, MAT, PARAM_NAMES, RANGES, SEC
 
-#: Числовые поля API → (ключ диапазона, текст ошибки §18.9).
+#: API numeric fields → (range key, §18.9 error text).
 NUMERIC_FIELDS: dict[str, tuple[str, str]] = {
-    'thickness_mm': ('thickness', 'Введите толщину материала от 0.05 до 10 миллиметров'),
-    'oxygen_percent': ('o2', 'Введите концентрацию кислорода от 13 до 35 процентов'),
-    'air_flow_cm_s': ('flow', 'Введите скорость потока воздуха от 0 до 30 сантиметров в секунду'),
-    'temperature_C': ('temp', 'Введите температуру от 20 до 300 градусов Цельсия'),
-    'time_s': ('time', 'Введите время горения от 0 до 600 секунд'),
+    'thickness_mm': ('thickness', 'Enter a material thickness from 0.05 to 10 millimeters'),
+    'oxygen_percent': ('o2', 'Enter an oxygen concentration from 13 to 35 percent'),
+    'air_flow_cm_s': ('flow', 'Enter an air flow velocity from 0 to 30 centimeters per second'),
+    'temperature_C': ('temp', 'Enter a temperature from 20 to 300 degrees Celsius'),
+    'time_s': ('time', 'Enter a burn time from 0 to 600 seconds'),
 }
 
 MESSAGES = {
-    'sector': 'Выберите сектор корабля',
-    'material_type': 'Выберите тип материала',
-    'material_description': 'Опишите материал или выберите один из предложенных вариантов',
-    'gravity': 'Выберите условия гравитации',
+    'sector': 'Select a ship sector',
+    'material_type': 'Select a material type',
+    'material_description': 'Describe the material or choose one of the suggested options',
+    'gravity': 'Select gravity conditions',
 }
 
 GRAVITY_CODES = {g['code'] for g in GRAVITY_OPTIONS}
 
 
 def _number(v: Any) -> float | None:
-    """Строгое приведение: bool и строки-нечисла не проходят (§23, «O₂ = abc»)."""
+    """Strict coercion: bools and non-numeric strings are rejected (§23, "O₂ = abc")."""
     if isinstance(v, bool) or v is None:
         return None
     if isinstance(v, (int, float)):
@@ -45,14 +45,14 @@ def _number(v: Any) -> float | None:
 
 def validate_input(body: Any) -> tuple[dict[str, str], dict[str, Any]]:
     """
-    Проверяет AnalysisInput. Возвращает (ошибки по полям, нормализованный вход).
-    Пустые ошибки = вход годен; нормализованный вход — числа как float.
+    Validates AnalysisInput. Returns (errors by field, normalized input).
+    Empty errors = valid input; normalized input has numbers as float.
     """
     errors: dict[str, str] = {}
     clean: dict[str, Any] = {}
 
     if not isinstance(body, dict):
-        return {'_': 'Ожидается объект JSON с параметрами анализа'}, {}
+        return {'_': 'Expected a JSON object with analysis parameters'}, {}
 
     sector = body.get('sector')
     if not isinstance(sector, str) or sector not in SEC:
@@ -70,7 +70,7 @@ def validate_input(body: Any) -> tuple[dict[str, str], dict[str, Any]]:
     if not isinstance(desc, str):
         desc = ''
     desc = desc.strip()
-    # §4.1 — описание обязательно только для материала «Другое».
+    # §4.1 — the description is only required for the "Other" material.
     if clean.get('material_type') == 'other' and not desc:
         errors['material_description'] = MESSAGES['material_description']
     clean['material_description'] = desc
@@ -84,7 +84,7 @@ def validate_input(body: Any) -> tuple[dict[str, str], dict[str, Any]]:
     for api_name, (range_key, message) in NUMERIC_FIELDS.items():
         v = _number(body.get(api_name))
         lo, hi = RANGES[range_key]
-        if v is None or v != v or v < lo or v > hi:  # v != v отсекает NaN
+        if v is None or v != v or v < lo or v > hi:  # v != v filters out NaN
             errors[api_name] = message
         else:
             clean[api_name] = v
@@ -93,11 +93,11 @@ def validate_input(body: Any) -> tuple[dict[str, str], dict[str, Any]]:
 
 
 def to_params(clean: dict[str, Any]) -> dict[str, Any]:
-    """Нормализованный вход API (§4.1) → параметры расчёта (§4.2, `p`)."""
+    """Normalized API input (§4.1) → calculation parameters (§4.2, `p`)."""
     return {PARAM_NAMES[k]: v for k, v in clean.items() if k in PARAM_NAMES}
 
 
 def to_input(params: dict[str, Any]) -> dict[str, Any]:
-    """Параметры расчёта → вход API (§4.1) без сектора."""
+    """Calculation parameters → API input (§4.1) without the sector."""
     from .reference import API_NAMES
     return {API_NAMES[k]: v for k, v in params.items() if k in API_NAMES}

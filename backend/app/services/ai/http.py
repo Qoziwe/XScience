@@ -1,4 +1,4 @@
-"""JSON по HTTP на стандартной библиотеке — чтобы у бэкенда не было зависимостей."""
+"""JSON over HTTP using the standard library — so the backend has no dependencies."""
 from __future__ import annotations
 
 import json
@@ -22,23 +22,23 @@ def post_json(url: str, payload: dict[str, Any], headers: dict[str, str],
         with urllib.request.urlopen(req, timeout=timeout_s) as resp:
             raw = resp.read().decode('utf-8', 'replace')
     except urllib.error.HTTPError as e:
-        with e:  # закрываем соединение, иначе остаётся ResourceWarning
+        with e:  # close the connection, otherwise a ResourceWarning is left behind
             detail = e.read().decode('utf-8', 'replace')[:500]
-        raise LlmError(f'HTTP {e.code} от {_host(url)}: {detail}') from e
+        raise LlmError(f'HTTP {e.code} from {_host(url)}: {detail}') from e
     except (urllib.error.URLError, TimeoutError, OSError) as e:
-        raise LlmError(f'нет связи с {_host(url)}: {e}') from e
+        raise LlmError(f'cannot reach {_host(url)}: {e}') from e
     try:
         data = json.loads(raw)
     except ValueError as e:
-        raise LlmError(f'{_host(url)} вернул не JSON: {raw[:200]}') from e
+        raise LlmError(f'{_host(url)} did not return JSON: {raw[:200]}') from e
     if not isinstance(data, dict):
-        raise LlmError(f'{_host(url)} вернул не объект JSON')
+        raise LlmError(f'{_host(url)} did not return a JSON object')
     return data
 
 
 def _host(url: str) -> str:
-    """Только хост — чтобы в сообщение об ошибке не попал ключ из query."""
+    """Host only — so a key from the query string never ends up in the error message."""
     try:
         return urllib.parse.urlsplit(url).netloc or url
     except Exception:  # pragma: no cover
-        return 'провайдера'
+        return 'the provider'

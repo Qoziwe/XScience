@@ -1,4 +1,4 @@
-"""§18.3 — анализы."""
+"""§18.3 — analyses."""
 from __future__ import annotations
 
 from flask import Blueprint, Response, jsonify, request
@@ -26,8 +26,8 @@ def _int_arg(name: str) -> int | None:
 @bp.post('/analyses')
 def create():
     """
-    Тело — AnalysisInput (§4.1). Клиент не присылает баллы, уровни, вердикт
-    и тексты: сервер проверяет вход заново и считает всё сам (§18.3).
+    Body is AnalysisInput (§4.1). The client does not send scores, levels, the
+    verdict, or texts: the server re-validates the input and computes everything itself (§18.3).
     """
     row = auth.require_auth()
     auth.require_csrf(row)
@@ -47,7 +47,7 @@ def create():
         request_hash=body_hash(request.get_data()),
     )
     rec = res['record']
-    # §18.3 — alert_level: null при вердикте low, иначе вердикт (§10.1).
+    # §18.3 — alert_level: null for a low verdict, otherwise the verdict (§10.1).
     return jsonify({
         'analysis': rec,
         'report': {'id': rec['report_id'], 'status': rec.get('report_status'),
@@ -58,7 +58,7 @@ def create():
 
 @bp.get('/analyses')
 def listing():
-    """Список, новые сверху (§18.3)."""
+    """List, newest first (§18.3)."""
     auth.require_auth()
     return jsonify(svc.listing(sector=request.args.get('sector'),
                                limit=_int_arg('limit') or 100,
@@ -67,7 +67,7 @@ def listing():
 
 @bp.get('/analyses.csv')
 def csv_export():
-    """§16.2 — выгрузка истории."""
+    """§16.2 — history export."""
     auth.require_auth()
     body = history_csv(svc.all_ascending())
     return Response('﻿' + body, mimetype='text/csv; charset=utf-8', headers={
@@ -85,7 +85,7 @@ def one(analysis_id: int):
 
 @bp.post('/analyses/<int:analysis_id>/ack')
 def ack(analysis_id: int):
-    """Подтверждение «Принято» оператором (§10.2)."""
+    """Operator's "Acknowledged" confirmation (§10.2)."""
     row = auth.require_auth()
     auth.require_csrf(row)
     return jsonify(svc.ack(analysis_id, row['user_id']))

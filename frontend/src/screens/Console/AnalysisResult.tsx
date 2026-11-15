@@ -1,4 +1,4 @@
-/** Результат на вкладке «Анализ». FUNCTIONAL_SPEC.md §9.6, §9.7. */
+/** Result on the "Analysis" tab. FUNCTIONAL_SPEC.md §9.6, §9.7. */
 import {
   DOT,
   EXT_LEVEL_RU,
@@ -33,15 +33,15 @@ export function AnalysisResult() {
   );
 }
 
-/** §9.6 — нет активного анализа. */
+/** §9.6 — no active analysis. */
 function NoResult() {
   const { state } = useStore();
   const model = useFormModel();
   const { form, cur } = state;
 
   const valueOf = (k: (typeof FIELD_ORDER)[number]): string => {
-    if (model.status[k] === 'bad') return 'вне диапазона';
-    if (model.status[k] !== 'ok') return 'не заполнено';
+    if (model.status[k] === 'bad') return 'out of range';
+    if (model.status[k] !== 'ok') return 'not filled in';
     if (k === 'sector') return `${SEC[cur!].code} · ${SEC[cur!].name}`;
     if (k === 'material') return MAT[form.material!].label;
     if (k === 'gravity') return gravityRu(form.gravity!);
@@ -50,11 +50,11 @@ function NoResult() {
 
   return (
     <Card>
-      <CardHead title="Результата пока нет" />
+      <CardHead title="No Result Yet" />
       <div className="card__body">
         <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-          Оценка выдаётся только при выбранном секторе и заполненных всех семи параметрах.
-          Недостающие значения не подставляются и не угадываются.
+          An assessment is only produced once a sector is selected and all seven parameters are
+          filled in. Missing values are never substituted or guessed.
         </p>
         <div className="rows">
           {FIELD_ORDER.map((k) => (
@@ -84,7 +84,7 @@ function NoResult() {
   );
 }
 
-/** §9.7 — есть активный анализ. */
+/** §9.7 — an active analysis exists. */
 function ResultBody({ r }: { r: ResultModel }) {
   const { state, dispatch } = useStore();
   const { entry, scores } = r;
@@ -93,38 +93,38 @@ function ResultBody({ r }: { r: ResultModel }) {
   const palette = state.tweaks.palette;
 
   const paramLine =
-    `${MAT[p.material].label} ${f1(p.thickness)} мм · O₂ ${f1(p.o2)} % · ` +
-    `${f1(p.flow)} см/с · ${p.temp} °C · ${p.time} с · ${gravityRu(p.gravity)}`;
+    `${MAT[p.material].label} ${f1(p.thickness)} mm · O₂ ${f1(p.o2)} % · ` +
+    `${f1(p.flow)} cm/s · ${p.temp} °C · ${p.time} s · ${gravityRu(p.gravity)}`;
 
   return (
     <>
-      {/* 1. Заголовок */}
+      {/* 1. Header */}
       <Card>
         <CardHead
-          title="Результат анализа"
+          title="Analysis Result"
           kicker={`#${pad(entry.id)} · ${entry.ts} · ${sec.code} · ${sec.name}`}
         />
         <div className="card__body">
           {r.stale ? (
             <div className="notice notice--stale">
-              Параметры изменены — результат относится к прошлому запуску
+              Parameters have changed — this result reflects a previous run
             </div>
           ) : null}
           <span className="mono muted" style={{ fontSize: 12.5 }}>
             {paramLine}
           </span>
           <span className="muted" style={{ fontSize: 12 }}>
-            Оценка по правилам раздела 9. Не прогноз развития пожара.
+            Assessment per the Section 9 rules. Not a fire-development forecast.
           </span>
         </div>
       </Card>
 
-      {/* 2. Оценка ИИ-модуля по сектору */}
+      {/* 2. Sector AI-module assessment */}
       <Card>
         <CardHead
-          title="Оценка ИИ-модуля по сектору"
-          kicker="модель состояния · v0.1"
-          right={<span className="card__kicker">обновлено {entry.ts}</span>}
+          title="Sector AI-Module Assessment"
+          kicker="state model · v0.1"
+          right={<span className="card__kicker">updated {entry.ts}</span>}
         />
         <div className="card__body">
           <div className="two-col">
@@ -137,7 +137,7 @@ function ResultBody({ r }: { r: ResultModel }) {
               />
               <p style={{ margin: 0, fontSize: 13.5 }}>{r.summary}</p>
               <div style={{ fontWeight: 500, fontSize: 13 }}>
-                Уверенность оценки <span className="mono">{entry.conf} %</span>
+                Assessment confidence <span className="mono">{entry.conf} %</span>
               </div>
               <Bar percent={entry.conf} color={r.verdictSignal.fill} />
               <span className="muted" style={{ fontSize: 12 }}>
@@ -145,16 +145,16 @@ function ResultBody({ r }: { r: ResultModel }) {
               </span>
             </div>
             <div>
-              <span className="field__label">Что учтено в оценке</span>
+              <span className="field__label">Factored Into the Assessment</span>
               <div className="rows">
                 {[
-                  ['Материал', MAT[p.material].label, scores.t.mat, 3],
-                  ['Толщина', `${f1(p.thickness)} мм`, scores.t.th, 3],
-                  ['Кислород', `${f1(p.o2)} %`, scores.t.o2, 3],
-                  ['Поток воздуха', `${f1(p.flow)} см/с`, scores.t.flow, 3],
-                  ['Температура', `${p.temp} °C`, scores.t.temp, 3],
-                  ['Время горения', `${p.time} с`, scores.t.time, 3],
-                  ['Гравитация', gravityShort(p.gravity), scores.t.grav, 1],
+                  ['Material', MAT[p.material].label, scores.t.mat, 3],
+                  ['Thickness', `${f1(p.thickness)} mm`, scores.t.th, 3],
+                  ['Oxygen', `${f1(p.o2)} %`, scores.t.o2, 3],
+                  ['Air Flow', `${f1(p.flow)} cm/s`, scores.t.flow, 3],
+                  ['Temperature', `${p.temp} °C`, scores.t.temp, 3],
+                  ['Burn Time', `${p.time} s`, scores.t.time, 3],
+                  ['Gravity', gravityShort(p.gravity), scores.t.grav, 1],
                 ].map(([name, val, v, max]) => (
                   <div
                     key={name as string}
@@ -173,18 +173,18 @@ function ResultBody({ r }: { r: ResultModel }) {
                 ))}
               </div>
               <span className="muted" style={{ fontSize: 12 }}>
-                Оценка состояния — рекомендательная. Решение о действиях принимает экипаж.
+                The state assessment is advisory. The crew decides on actions.
               </span>
             </div>
           </div>
         </div>
       </Card>
 
-      {/* 3. Строка отчёта */}
+      {/* 3. Report row */}
       <Card>
         <div className="card__head" style={{ paddingBottom: 16 }}>
           <Dot color={entry.sent ? 'var(--color-accent-700)' : DOT.medium} large />
-          <span style={{ fontSize: 13.5 }}>Отчёт {reportNo(entry.id)} для Земли</span>
+          <span style={{ fontSize: 13.5 }}>Report {reportNo(entry.id)} for Earth</span>
           <span className="muted" style={{ fontSize: 12.5 }}>
             {sentFull(entry.sent)}
           </span>
@@ -194,7 +194,7 @@ function ResultBody({ r }: { r: ResultModel }) {
               className="btn"
               onClick={() => dispatch({ type: 'modal', modal: { id: entry.id, view: 'recs' } })}
             >
-              Рекомендации
+              Recommendations
             </button>
             <button
               type="button"
@@ -204,19 +204,19 @@ function ResultBody({ r }: { r: ResultModel }) {
                 dispatch({ type: 'tab', tab: 'reports' });
               }}
             >
-              Открыть отчёт
+              Open Report
             </button>
           </span>
         </div>
       </Card>
 
-      {/* 4. Две карточки шкал */}
+      {/* 4. Two scale cards */}
       <div className="two-col">
         <Card>
           <div className="card__body" style={{ paddingTop: 16 }}>
             <div className="scale-card">
               <div className="scale-card__head">
-                <span className="field__label">Уровень риска</span>
+                <span className="field__label">Risk Level</span>
                 <span className="mono muted" style={{ fontSize: 11 }}>
                   RiskScore
                 </span>
@@ -227,7 +227,7 @@ function ResultBody({ r }: { r: ResultModel }) {
                 fill={r.signal.fill}
                 ink={r.signal.ink}
               />
-              {/* Шкала 14 ячеек для значений 3…16 (§9.7). */}
+              {/* 14-cell scale for values 3…16 (§9.7). */}
               <div className="scale-cells">
                 {Array.from({ length: 14 }, (_, i) => {
                   const n = i + 3;
@@ -238,9 +238,9 @@ function ResultBody({ r }: { r: ResultModel }) {
                 })}
               </div>
               <div className="scale-legend">
-                <span>3 · низкий</span>
-                <span>4–6 · средний</span>
-                <span>≥ 7 · высокий</span>
+                <span>3 · low</span>
+                <span>4–6 · medium</span>
+                <span>≥ 7 · high</span>
               </div>
             </div>
           </div>
@@ -250,7 +250,7 @@ function ResultBody({ r }: { r: ResultModel }) {
           <div className="card__body" style={{ paddingTop: 16 }}>
             <div className="scale-card">
               <div className="scale-card__head">
-                <span className="field__label">Вероятность затухания</span>
+                <span className="field__label">Extinction Probability</span>
                 <span className="mono muted" style={{ fontSize: 11 }}>
                   ExtinctionScore
                 </span>
@@ -261,7 +261,7 @@ function ResultBody({ r }: { r: ResultModel }) {
                 fill="var(--color-accent-500)"
                 ink="var(--color-accent-900)"
               />
-              {/* Шкала 9 ячеек для 0…8; закрашено E ячеек. */}
+              {/* 9-cell scale for 0…8; E cells are filled. */}
               <div className="scale-cells">
                 {Array.from({ length: 9 }, (_, i) => (
                   <span
@@ -280,27 +280,27 @@ function ResultBody({ r }: { r: ResultModel }) {
                 ))}
               </div>
               <div className="scale-legend">
-                <span>0–1 · низкая</span>
-                <span>2–3 · средняя</span>
-                <span>≥ 4 · высокая</span>
+                <span>0–1 · low</span>
+                <span>2–3 · medium</span>
+                <span>≥ 4 · high</span>
               </div>
             </div>
           </div>
         </Card>
       </div>
 
-      {/* 5. Плашка 16.2 */}
+      {/* 5. 16.2 banner */}
       {r.combo ? (
         <div className="notice notice--combo">
-          Высокий риск при высокой вероятности затухания: пламя нестабильно, возможны срыв и
-          повторное воспламенение. Оценки рассчитываются независимо.
+          High risk combined with a high extinction probability: the flame is unstable, with
+          possible extinguishment and reignition. The scores are calculated independently.
         </div>
       ) : null}
 
-      {/* 6. Почему такой уровень / Рекомендуемые действия */}
+      {/* 6. Why This Level / Recommended Actions */}
       <div className="two-col">
         <Card>
-          <CardHead title="Почему такой уровень" />
+          <CardHead title="Why This Level" />
           <div className="card__body">
             <p style={{ margin: 0, fontSize: 13 }}>{r.why}</p>
             <p style={{ margin: 0, fontSize: 13 }}>{r.whyExt}</p>
@@ -308,11 +308,11 @@ function ResultBody({ r }: { r: ResultModel }) {
         </Card>
         <Card>
           <CardHead
-            title="Рекомендуемые действия"
-            right={<span className="notice notice--draft">черновик · 16.9</span>}
+            title="Recommended Actions"
+            right={<span className="notice notice--draft">draft · 16.9</span>}
           />
           <div className="card__body">
-            {/* Первые 3 шага ЕДИНОГО генератора — те же, что в окне и отчёте (§15.3). */}
+            {/* First 3 steps of the SINGLE generator — the same as in the window and the report (§15.3). */}
             <div className="steps">
               {r.recs.steps.slice(0, 3).map((s, i) => (
                 <div className={`step${i === 0 ? ' step--first' : ''}`} key={s.n}>
@@ -334,28 +334,28 @@ function ResultBody({ r }: { r: ResultModel }) {
               className="btn"
               onClick={() => dispatch({ type: 'modal', modal: { id: entry.id, view: 'recs' } })}
             >
-              Рекомендации
+              Recommendations
             </button>
           </div>
         </Card>
       </div>
 
-      {/* 7. Разложение */}
+      {/* 7. Breakdown */}
       <div className="two-col">
         <Card>
           <CardHead
-            title="Из чего сложился риск"
+            title="What Made Up the Risk"
             right={<span className="mono">Σ R {scores.risk}</span>}
           />
           <div className="card__body">
             <div className="rows">
               {[
-                ['Материал', 'MaterialRisk', MAT[p.material].label, scores.t.mat, 3],
-                ['Кислород', 'OxygenRisk', `${f1(p.o2)} %`, scores.t.o2, 3],
-                ['Поток воздуха', 'FlowRisk', `${f1(p.flow)} см/с`, scores.t.flow, 3],
-                ['Температура', 'TemperatureRisk', `${p.temp} °C`, scores.t.temp, 3],
-                ['Время горения', 'TimeRisk', `${p.time} с`, scores.t.time, 3],
-                ['Гравитация', 'GravityRisk', gravityRu(p.gravity), scores.t.grav, 1],
+                ['Material', 'MaterialRisk', MAT[p.material].label, scores.t.mat, 3],
+                ['Oxygen', 'OxygenRisk', `${f1(p.o2)} %`, scores.t.o2, 3],
+                ['Air Flow', 'FlowRisk', `${f1(p.flow)} cm/s`, scores.t.flow, 3],
+                ['Temperature', 'TemperatureRisk', `${p.temp} °C`, scores.t.temp, 3],
+                ['Burn Time', 'TimeRisk', `${p.time} s`, scores.t.time, 3],
+                ['Gravity', 'GravityRisk', gravityRu(p.gravity), scores.t.grav, 1],
               ].map(([name, code, input, v, max]) => (
                 <ScoreRow
                   key={code as string}
@@ -372,36 +372,36 @@ function ResultBody({ r }: { r: ResultModel }) {
 
         <Card>
           <CardHead
-            title="Из чего сложилось затухание"
+            title="What Made Up the Extinction Score"
             right={<span className="mono">Σ E {scores.ext}</span>}
           />
           <div className="card__body">
             <div className="rows">
               <ScoreRow
-                name="Дефицит O₂"
+                name="O₂ Deficit"
                 code="OxygenDeficit"
                 input={`${f1(p.o2)} %`}
                 value={scores.t.od}
                 max={3}
               />
               <ScoreRow
-                name="Слабый поток"
+                name="Weak Flow"
                 code="LowFlowPenalty"
-                input={`${f1(p.flow)} см/с`}
+                input={`${f1(p.flow)} cm/s`}
                 value={scores.t.lf}
                 max={2}
               />
               <ScoreRow
-                name="Толщина"
+                name="Thickness"
                 code="ThicknessBonus"
-                input={`${f1(p.thickness)} мм`}
+                input={`${f1(p.thickness)} mm`}
                 value={scores.t.th}
                 max={3}
               />
             </div>
             <span className="muted" style={{ fontSize: 12 }}>
-              Толщина влияет только на затухание, не на риск — это противоречит описанию параметра
-              (16.3).
+              Thickness affects only extinction, not risk — this contradicts the parameter
+              description (16.3).
             </span>
           </div>
         </Card>

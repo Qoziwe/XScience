@@ -1,17 +1,17 @@
-/** Таблицы баллов для вкладки «Правила». FUNCTIONAL_SPEC.md §13. [БЭКЕНД] GET /api/reference. */
+/** Score tables for the "Rules" tab. FUNCTIONAL_SPEC.md §13. [BACKEND] GET /api/reference. */
 import type { PartialScores } from './types';
 
 export interface Band {
   range: string;
   score: number;
-  /** Ключ частичного балла, по которому подсвечивается диапазон. */
+  /** Partial-score key that highlights the range. */
   on: (t: Partial<PartialScores>, raw: { flow: number }) => boolean;
 }
 
 export interface RuleCard {
   name: string;
   code: string;
-  /** Какое поле формы показывается как «текущее значение». */
+  /** Which form field is shown as the "current value". */
   field: 'material' | 'o2' | 'flow' | 'temp' | 'time' | 'gravity' | 'thickness';
   bands: Band[];
 }
@@ -20,38 +20,38 @@ const by = (key: keyof PartialScores, value: number): Band['on'] => (t) => t[key
 
 export const RULE_CARDS: RuleCard[] = [
   {
-    name: 'Материал',
+    name: 'Material',
     code: 'MaterialRisk',
     field: 'material',
     bands: [
-      { range: 'бумага, пластик, изоляция', score: 3, on: by('mat', 3) },
-      { range: 'ткань, дерево, другое', score: 2, on: by('mat', 2) },
+      { range: 'paper, plastic, insulation', score: 3, on: by('mat', 3) },
+      { range: 'fabric, wood, other', score: 2, on: by('mat', 2) },
     ],
   },
   {
-    name: 'Кислород',
+    name: 'Oxygen',
     code: 'OxygenRisk',
     field: 'o2',
     bands: [
       { range: '< 16 %', score: 0, on: by('o2', 0) },
       { range: '16–18 %', score: 1, on: by('o2', 1) },
-      { range: '18–21 % (разрыв 18–19)', score: 2, on: by('o2', 2) },
+      { range: '18–21 % (18–19 gap)', score: 2, on: by('o2', 2) },
       { range: '> 21 %', score: 3, on: by('o2', 3) },
     ],
   },
   {
-    name: 'Поток',
+    name: 'Flow',
     code: 'FlowRisk',
     field: 'flow',
     bands: [
       { range: '= 0', score: 1, on: (_t, r) => r.flow === 0 },
-      { range: '0–5 см/с', score: 2, on: (_t, r) => r.flow > 0 && r.flow <= 5 },
-      { range: '5–15 см/с', score: 3, on: (_t, r) => r.flow > 5 && r.flow <= 15 },
-      { range: '15–30 см/с', score: 2, on: (_t, r) => r.flow > 15 },
+      { range: '0–5 cm/s', score: 2, on: (_t, r) => r.flow > 0 && r.flow <= 5 },
+      { range: '5–15 cm/s', score: 3, on: (_t, r) => r.flow > 5 && r.flow <= 15 },
+      { range: '15–30 cm/s', score: 2, on: (_t, r) => r.flow > 15 },
     ],
   },
   {
-    name: 'Температура',
+    name: 'Temperature',
     code: 'TemperatureRisk',
     field: 'temp',
     bands: [
@@ -62,27 +62,27 @@ export const RULE_CARDS: RuleCard[] = [
     ],
   },
   {
-    name: 'Время',
+    name: 'Time',
     code: 'TimeRisk',
     field: 'time',
     bands: [
-      { range: '0–10 с', score: 0, on: by('time', 0) },
-      { range: '10–30 с', score: 1, on: by('time', 1) },
-      { range: '30–60 с', score: 2, on: by('time', 2) },
-      { range: '> 60 с', score: 3, on: by('time', 3) },
+      { range: '0–10 s', score: 0, on: by('time', 0) },
+      { range: '10–30 s', score: 1, on: by('time', 1) },
+      { range: '30–60 s', score: 2, on: by('time', 2) },
+      { range: '> 60 s', score: 3, on: by('time', 3) },
     ],
   },
   {
-    name: 'Гравитация',
+    name: 'Gravity',
     code: 'GravityRisk',
     field: 'gravity',
     bands: [
-      { range: 'микрогравитация', score: 1, on: by('grav', 1) },
-      { range: 'Земля', score: 0, on: by('grav', 0) },
+      { range: 'microgravity', score: 1, on: by('grav', 1) },
+      { range: 'Earth', score: 0, on: by('grav', 0) },
     ],
   },
   {
-    name: 'Дефицит O₂',
+    name: 'O₂ Deficit',
     code: 'OxygenDeficit',
     field: 'o2',
     bands: [
@@ -93,24 +93,24 @@ export const RULE_CARDS: RuleCard[] = [
     ],
   },
   {
-    name: 'Слабый поток',
+    name: 'Weak Flow',
     code: 'LowFlowPenalty',
     field: 'flow',
     bands: [
-      { range: '< 1 см/с', score: 2, on: by('lf', 2) },
-      { range: '1–3 см/с', score: 1, on: by('lf', 1) },
-      { range: '≥ 3 см/с', score: 0, on: by('lf', 0) },
+      { range: '< 1 cm/s', score: 2, on: by('lf', 2) },
+      { range: '1–3 cm/s', score: 1, on: by('lf', 1) },
+      { range: '≥ 3 cm/s', score: 0, on: by('lf', 0) },
     ],
   },
   {
-    name: 'Толщина',
+    name: 'Thickness',
     code: 'ThicknessBonus',
     field: 'thickness',
     bands: [
-      { range: '< 0.2 мм', score: 3, on: by('th', 3) },
-      { range: '0.2–0.5 мм', score: 2, on: by('th', 2) },
-      { range: '0.5–2 мм', score: 1, on: by('th', 1) },
-      { range: '> 2 мм', score: 0, on: by('th', 0) },
+      { range: '< 0.2 mm', score: 3, on: by('th', 3) },
+      { range: '0.2–0.5 mm', score: 2, on: by('th', 2) },
+      { range: '0.5–2 mm', score: 1, on: by('th', 1) },
+      { range: '> 2 mm', score: 0, on: by('th', 0) },
     ],
   },
 ];

@@ -1,4 +1,4 @@
-"""Реестр адаптеров. Чтобы добавить свой — положить модуль с complete() и NAME."""
+"""Adapter registry. To add your own — drop in a module with complete() and NAME."""
 from __future__ import annotations
 
 from typing import Callable
@@ -14,7 +14,7 @@ REGISTRY: dict[str, Complete] = {
     google.NAME: google.complete,
 }
 
-#: Понятные синонимы, чтобы в конфиге можно было писать имя сервиса.
+#: Friendly aliases, so the config can use a service's common name.
 ALIASES = {
     'openai': openai_compat.NAME,
     'openrouter': openai_compat.NAME,

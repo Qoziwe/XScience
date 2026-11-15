@@ -1,4 +1,4 @@
-/** Вкладка «Обзор». FUNCTIONAL_SPEC.md §7. */
+/** "Overview" tab. FUNCTIONAL_SPEC.md §7. */
 import {
   EXT_LEVEL_RU,
   RISK_LEVEL_RU,
@@ -29,29 +29,29 @@ export function OverviewTab() {
   return (
     <main className="main">
       <div className="stack">
-        {/* §7.1 — плашка опасности */}
+        {/* §7.1 — danger banner */}
         {ship.dangers.length ? (
           <div className="banner">
-            <span className="banner__tag">ОПАСНОСТЬ</span>
+            <span className="banner__tag">DANGER</span>
             <span>
               {ship.dangers.length === 1
-                ? `Сектор ${SEC[ship.dangers[0]].code} · ${SEC[ship.dangers[0]].name}. Требуются немедленные действия.`
-                : `Секторы: ${ship.dangers.map((id) => SEC[id].code).join(', ')}. Требуются немедленные действия.`}
+                ? `Sector ${SEC[ship.dangers[0]].code} · ${SEC[ship.dangers[0]].name}. Immediate action required.`
+                : `Sectors: ${ship.dangers.map((id) => SEC[id].code).join(', ')}. Immediate action required.`}
             </span>
             <button
               type="button"
               className="banner__btn"
               onClick={() => ship.latestDanger && openRecs(ship.latestDanger.id)}
             >
-              Открыть рекомендации
+              Open Recommendations
             </button>
           </div>
         ) : null}
 
-        {/* §7.2 — строка заголовка */}
+        {/* §7.2 — header row */}
         <div className="card__head" style={{ padding: 0 }}>
           <h1 className="card__title" style={{ fontSize: 20 }}>
-            Обзор
+            Overview
           </h1>
           <div className="chip-row">
             <button
@@ -60,7 +60,7 @@ export function OverviewTab() {
               aria-pressed={!cur}
               onClick={() => dispatch({ type: 'pickSector', sector: null })}
             >
-              Весь корабль
+              Whole Ship
             </button>
             {cur ? (
               <button
@@ -79,34 +79,34 @@ export function OverviewTab() {
               className="btn btn--primary"
               onClick={() => dispatch({ type: 'tab', tab: 'analysis' })}
             >
-              {cur ? 'Анализ в секторе' : 'Новый анализ'}
+              {cur ? 'Analyze Sector' : 'New Analysis'}
             </button>
           </span>
         </div>
 
-        {/* §7.3 — карточка оценки, §7.5 — мини-карта: в оригинале стоят в один ряд,
-            карточка оценки растёт первой (flex 999), карта — узкая боковая (max 480px). */}
+        {/* §7.3 — assessment card, §7.5 — mini-map: in the original they sit in one row,
+            the assessment card grows first (flex 999), the map is a narrow sidebar (max 480px). */}
         <div className="ov-row">
           <Card className="ov-main">
             <div className="card__head ov-score-head">
               <h2 className="card__title">
-                {cur ? 'Оценка сектора' : 'Общая оценка корабля'}
+                {cur ? 'Sector Assessment' : 'Overall Ship Assessment'}
               </h2>
               <span className="card__kicker">
-                {cur ? `${SEC[cur].code} · ${SEC[cur].name}` : 'все сектора'}
+                {cur ? `${SEC[cur].code} · ${SEC[cur].name}` : 'all sectors'}
               </span>
-              <span className="card__spacer card__kicker">ИИ-модуль · макет</span>
+              <span className="card__spacer card__kicker">AI module · mock-up</span>
             </div>
             {!cur && !ship.analysed ? (
               <Empty
-                title="Данных пока нет"
-                text="Запустите анализ в любом секторе — результат появится здесь и окрасит сектор на карте."
+                title="No Data Yet"
+                text="Run an analysis in any sector — the result will appear here and color the sector on the map."
               />
             ) : null}
             {cur && !sectorEntry ? (
               <Empty
-                title="Данных пока нет"
-                text={`В секторе ${SEC[cur].code} анализ ещё не проводился.`}
+                title="No Data Yet"
+                text={`No analysis has been run in sector ${SEC[cur].code} yet.`}
               />
             ) : null}
 
@@ -137,13 +137,13 @@ export function OverviewTab() {
 
           <Card className="ov-map">
             <div className="ov-map-head">
-              <span className="ov-map-label">Карта корабля</span>
+              <span className="ov-map-label">Ship Map</span>
               <button
                 type="button"
                 className="btn--link card__spacer"
                 onClick={() => dispatch({ type: 'tab', tab: 'map' })}
               >
-                Открыть карту
+                Open Map
               </button>
             </div>
             <ShipMap
@@ -154,24 +154,24 @@ export function OverviewTab() {
             />
             <MapLegend />
             <span className="muted" style={{ fontSize: 12 }}>
-              Нажмите на сектор — оценка выше покажет только его.
+              Click a sector — the assessment above will show it alone.
             </span>
           </Card>
         </div>
 
-        {/* §7.6 — таблица секторов */}
+        {/* §7.6 — sectors table */}
         <Card>
-          <CardHead title="Сектора" />
+          <CardHead title="Sectors" />
           <div className="table-wrap">
             <table className="table table--sectors">
               <thead>
                 <tr>
-                  <th>Сектор</th>
-                  <th>Название</th>
-                  <th>Состояние</th>
-                  <th>Оценки</th>
-                  <th>Последний анализ</th>
-                  <th>Отчёт</th>
+                  <th>Sector</th>
+                  <th>Name</th>
+                  <th>Status</th>
+                  <th>Scores</th>
+                  <th>Last Analysis</th>
+                  <th>Report</th>
                   <th />
                 </tr>
               </thead>
@@ -192,7 +192,7 @@ export function OverviewTab() {
                       <td>
                         <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                           <StatusDot status={st} />
-                          {e ? VERDICT_RU[e.v] : 'Нет данных'}
+                          {e ? VERDICT_RU[e.v] : 'No data'}
                         </span>
                       </td>
                       <td className="mono">{sc ? `R${sc.risk} · E${sc.ext}` : '—'}</td>
@@ -208,7 +208,7 @@ export function OverviewTab() {
                             dispatch({ type: 'tab', tab: 'analysis' });
                           }}
                         >
-                          Анализ →
+                          Analyze →
                         </button>
                       </td>
                     </tr>
@@ -245,7 +245,7 @@ function ShipAssessment({
         </div>
         <div>
             <div style={{ fontWeight: 500, fontSize: 13 }}>
-              Уверенность оценки <span className="mono">{ship.confidence} %</span>
+              Assessment confidence <span className="mono">{ship.confidence} %</span>
             </div>
             <Bar percent={ship.confidence!} color={sig.fill} />
             <span className="muted" style={{ fontSize: 12 }}>
@@ -253,19 +253,19 @@ function ShipAssessment({
             </span>
             <div className="tiles">
               <Tile
-                k="Опасно"
+                k="Dangerous"
                 v={String(ship.counts.high)}
                 color={ship.counts.high ? 'oklch(0.46 0.15 28)' : undefined}
               />
-              <Tile k="Требуют внимания" v={String(ship.counts.medium)} />
-              <Tile k="Безопасно" v={String(ship.counts.low)} />
-              <Tile k="Нет данных" v={String(ship.counts.none)} />
+              <Tile k="Needs Attention" v={String(ship.counts.medium)} />
+              <Tile k="Safe" v={String(ship.counts.low)} />
+              <Tile k="No Data" v={String(ship.counts.none)} />
             </div>
         </div>
       </div>
       <div className="card__foot">
-        Данные последних анализов по {ship.analysed} из {ship.total} секторов. Оценка
-        рекомендательная, решение принимает экипаж.
+        Based on the latest analyses for {ship.analysed} of {ship.total} sectors. The assessment
+        is advisory, the crew decides.
       </div>
     </>
   );
@@ -297,37 +297,37 @@ function SectorAssessment(props: {
             <p style={{ margin: 0, fontSize: 13.5 }}>{summaryOf(props.scores)}</p>
             <div className="chip-row">
               <button type="button" className="btn" onClick={props.onOpenResult}>
-                Открыть результат
+                Open Result
               </button>
               <button type="button" className="btn" onClick={props.onOpenRecs}>
-                Рекомендации
+                Recommendations
               </button>
               <button type="button" className="btn" onClick={props.onOpenReport}>
-                Отчёт
+                Report
               </button>
             </div>
         </div>
         <div>
             <div style={{ fontWeight: 500, fontSize: 13 }}>
-              Уверенность оценки <span className="mono">{props.conf} %</span>
+              Assessment confidence <span className="mono">{props.conf} %</span>
             </div>
             <Bar percent={props.conf} color={sig.fill} />
             <span className="muted" style={{ fontSize: 12 }}>
               {props.boundaries
-                ? `Снижена: ${props.boundaries} знач. на неопределённых границах (16.1).`
-                : 'Все показания в определённых диапазонах.'}
+                ? `Reduced: ${props.boundaries} value(s) on uncertain boundaries (16.1).`
+                : 'All readings are within well-defined ranges.'}
             </span>
             <div className="tiles">
               <Tile k="RiskScore" v={`${props.scores.risk} / 16`} />
               <Tile k="ExtinctionScore" v={`${props.scores.ext} / 8`} />
-              <Tile k="Риск" v={RISK_LEVEL_RU[props.scores.level]} />
-              <Tile k="Затухание" v={EXT_LEVEL_RU[props.scores.extLevel]} />
+              <Tile k="Risk" v={RISK_LEVEL_RU[props.scores.level]} />
+              <Tile k="Extinction" v={EXT_LEVEL_RU[props.scores.extLevel]} />
             </div>
         </div>
       </div>
       <div className="card__foot">
-        Анализ #{pad(props.entryId)} · {props.ts}. Оценка рекомендательная, решение принимает
-        экипаж.
+        Analysis #{pad(props.entryId)} · {props.ts}. The assessment is advisory, the crew
+        decides.
       </div>
     </>
   );

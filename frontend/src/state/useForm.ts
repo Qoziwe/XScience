@@ -1,4 +1,4 @@
-/** Производные значения формы «Анализ». FUNCTIONAL_SPEC.md §9.1–9.4. */
+/** Derived values for the "Analysis" form. FUNCTIONAL_SPEC.md §9.1–9.4. */
 import { useMemo } from 'react';
 import { FIELD_NAMES, FIELD_ORDER } from '@/domain/reference';
 import { pn } from '@/domain/format';
@@ -17,7 +17,7 @@ import {
 import type { PartialScores, SectorId } from '@/domain/types';
 import { useStore } from './store';
 
-/** Частичные баллы по заполненным полям; null у полей не в статусе ok. */
+/** Partial scores for the filled fields; null for fields not in "ok" status. */
 export type LiveScores = Record<keyof PartialScores, number | null>;
 
 export interface FormModel {
@@ -26,11 +26,11 @@ export interface FormModel {
   complete: boolean;
   anyBad: boolean;
   filledCount: number;
-  /** Названия незаполненных полей строчными, в порядке §9.2. */
+  /** Names of unfilled fields in lowercase, in §9.2 order. */
   missing: string[];
   live: LiveScores;
   warnings: Warnings;
-  /** Итоговые суммы для вкладки «Правила»: только при полностью готовой форме. */
+  /** Total sums for the "Rules" tab: only when the form is fully complete. */
   totals: { risk: string; ext: string };
 }
 
@@ -43,8 +43,8 @@ export function useFormModel(): FormModel {
     const complete = isComplete(status);
     const filledCount = FIELD_ORDER.filter((k) => status[k] === 'ok').length;
 
-    // §9.2: вклады считаются только по полям в статусе ok — значения
-    // остальных полей не подставляются, поэтому заглушки обнуляются ниже.
+    // §9.2: contributions are only computed for fields in "ok" status — the
+    // other fields' values are not substituted, hence the placeholders zeroed below.
     const t = score({
       material: form.material ?? 'other',
       desc: '',
@@ -89,5 +89,5 @@ export function useFormModel(): FormModel {
   }, [form, cur]);
 }
 
-/** Сектор, зафиксированный для запуска расчёта. */
+/** Sector locked in for running the calculation. */
 export const fixedSector = (cur: SectorId | null): SectorId => cur as SectorId;

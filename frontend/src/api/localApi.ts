@@ -1,7 +1,7 @@
 /**
- * Локальная реализация контракта: всё в браузере.
- * FUNCTIONAL_SPEC.md §2.1, §16.1 — localStorage, ключ xsci.hist.v3, до 100 записей.
- * [ПРОТОТИП] расчёт, тексты и «передача на Землю» имитируются здесь.
+ * Local implementation of the contract: everything runs in the browser.
+ * FUNCTIONAL_SPEC.md §2.1, §16.1 — localStorage, key xsci.hist.v3, up to 100 records.
+ * [PROTOTYPE] calculation, texts, and "transmission to Earth" are simulated here.
  */
 import { MAT, SEC } from '@/domain/reference';
 import { now } from '@/domain/format';
@@ -18,17 +18,17 @@ import type {
 import { AuthError } from './types';
 
 const KEY = 'xsci.hist.v3';
-/** Сессия прототипа: переживает перезагрузку, чтобы /console не выкидывал на вход. */
+/** Prototype session: survives a reload so /console doesn't bounce back to login. */
 const SESSION_KEY = 'xsci.session.v1';
-/** §9.5 — имитация времени расчёта. [БЭКЕНД] не нужна. */
+/** §9.5 — simulated calculation time. [BACKEND] not needed. */
 const CALC_DELAY_MS = 650;
-/** §11.4 — имитация передачи отчёта на Землю. */
+/** §11.4 — simulated transmission of the report to Earth. */
 const SEND_DELAY_MS = 2500;
 const HISTORY_LIMIT = 100;
 
 const sleep = (ms: number) => new Promise<void>((r) => setTimeout(r, ms));
 
-/** §16.1 — записи без корректного sector / p / p.material отбрасываются. */
+/** §16.1 — records without a valid sector / p / p.material are discarded. */
 function readHistory(): Analysis[] {
   try {
     const raw = JSON.parse(localStorage.getItem(KEY) ?? 'null');
@@ -50,7 +50,7 @@ function writeHistory(hist: Analysis[]): void {
   try {
     localStorage.setItem(KEY, JSON.stringify(hist));
   } catch {
-    /* хранилище недоступно — история живёт только в памяти страницы */
+    /* storage unavailable — history lives only in the page's memory */
   }
 }
 
@@ -77,8 +77,8 @@ class LocalAnalyses implements AnalysesApi {
   private timers = new Set<ReturnType<typeof setTimeout>>();
 
   constructor() {
-    // §11.4 — при загрузке страницы таймер передачи запускается заново
-    // для всех записей со статусом «в очереди».
+    // §11.4 — on page load the transmission timer restarts
+    // for every record with "queued" status.
     this.hist.filter((h) => !h.sent).forEach((h) => this.queueSend(h.id));
   }
 
@@ -86,7 +86,7 @@ class LocalAnalyses implements AnalysesApi {
     return this.hist;
   }
 
-  /** [ПРОТОТИП] «Принято» отмечается только в истории браузера. */
+  /** [PROTOTYPE] "Acknowledged" is only marked in the browser history. */
   async ack(id: number): Promise<void> {
     this.commit(this.hist.map((h) => (h.id === id ? { ...h, acked: true } : h)));
   }
@@ -104,11 +104,11 @@ class LocalAnalyses implements AnalysesApi {
     const analysis = makeAnalysis(params, id, now(), sector);
     this.commit([...this.hist, analysis].slice(-HISTORY_LIMIT));
     this.queueSend(id);
-    // §10.1 — окно оповещения открывается при вердикте medium и high.
+    // §10.1 — the alert window opens for a medium or high verdict.
     return { analysis, alertLevel: analysis.v === 'low' ? null : analysis.v };
   }
 
-  /** §11.4 [МАКЕТ] — через 2.5 с отчёт помечается переданным. */
+  /** §11.4 [MOCK-UP] — after 2.5 s the report is marked as transmitted. */
   private queueSend(id: number): void {
     const t = setTimeout(() => {
       this.timers.delete(t);
@@ -129,7 +129,7 @@ class LocalAnalyses implements AnalysesApi {
   }
 }
 
-/** §6 [ПРОТОТИП] — демо-учётка в коде клиента. [БЭКЕНД] см. §6.5. */
+/** §6 [PROTOTYPE] — demo account hardcoded in client code. [BACKEND] see §6.5. */
 const DEMO = { login: 'demo', password: 'xscience-demo', code: '123456' };
 
 class LocalAuth implements AuthApi {
@@ -161,7 +161,7 @@ class LocalAuth implements AuthApi {
     writeSession(null);
   }
 
-  /** Сессия прототипа из localStorage; по истечении срока — null. */
+  /** Prototype session from localStorage; null once it has expired. */
   async me(): Promise<SessionUser | null> {
     const s = readSession();
     if (!s) return null;
@@ -192,14 +192,14 @@ function writeSession(s: StoredSession | null): void {
     if (s) localStorage.setItem(SESSION_KEY, JSON.stringify(s));
     else localStorage.removeItem(SESSION_KEY);
   } catch {
-    /* хранилище недоступно — сессия живёт только в памяти страницы */
+    /* storage unavailable — session lives only in the page's memory */
   }
 }
 
 /**
- * Разделы models / dataset / photos прототип не реализует: у него нет сервера.
- * Экраны это учитывают и работают на локальных константах §19/§17 и на снимке
- * в памяти страницы (§17.3).
+ * The prototype does not implement the models / dataset / photos sections: it has no server.
+ * Screens account for this and work off local constants §19/§17 and an
+ * in-memory page snapshot (§17.3).
  */
 export const localApi: XScienceApi = {
   auth: new LocalAuth(),

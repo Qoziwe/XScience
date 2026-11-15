@@ -1,4 +1,4 @@
-/** Окно оповещения и окно рекомендаций. FUNCTIONAL_SPEC.md §10. */
+/** Alert window and recommendations window. FUNCTIONAL_SPEC.md §10. */
 import { useState } from 'react';
 import { api } from '@/api';
 import { DANGER_BG, VERDICT_RU, WARN_BG, WARN_BTN, WARN_INK, SEC, sentFull } from '@/domain/reference';
@@ -7,10 +7,10 @@ import { useStore } from '@/state/store';
 import { useModalModel } from '@/state/useResult';
 import { Tile } from './ui';
 
-const ALERT_TITLE = { high: 'ОПАСНОСТЬ', medium: 'ВНИМАНИЕ' } as const;
+const ALERT_TITLE = { high: 'DANGER', medium: 'WARNING' } as const;
 const ALERT_SUB = {
-  high: 'Обнаружены опасные значения. Требуются немедленные действия.',
-  medium: 'Обнаружены повышенные значения. Требуется контроль и устранение ведущего фактора.',
+  high: 'Dangerous values detected. Immediate action required.',
+  medium: 'Elevated values detected. Monitoring and removal of the leading factor required.',
 } as const;
 
 export function AlertModal() {
@@ -23,7 +23,7 @@ export function AlertModal() {
   const sec = SEC[entry.sector];
   const high = entry.v === 'high';
 
-  // §10.2 — шапка по вердикту; у вида «Рекомендации» low получает тёмно-синюю шапку.
+  // §10.2 — header color follows the verdict; in "Recommendations" view, low gets a dark blue header.
   const headBg = high ? DANGER_BG : entry.v === 'medium' ? WARN_BG : 'var(--color-accent-800)';
   const headInk = entry.v === 'medium' ? WARN_INK : '#fff';
   const primaryBg = high ? DANGER_BG : entry.v === 'medium' ? WARN_BTN : 'var(--color-accent-700)';
@@ -31,15 +31,15 @@ export function AlertModal() {
   const close = () => dispatch({ type: 'modal', modal: null });
 
   /**
-   * §10.2 — «Принято». Отметка уходит на сервер; окно закрывается в любом
-   * случае, чтобы отказ сети не держал оператора в модальном окне.
+   * §10.2 — "Acknowledged". The acknowledgment is sent to the server; the window
+   * closes regardless, so a network failure doesn't trap the operator in the modal.
    */
   const accept = async () => {
     setAcking(true);
     try {
       await api.analyses.ack(entry.id);
     } catch {
-      /* отметка не критична для работы: вердикт и отчёт уже сохранены */
+      /* the acknowledgment isn't critical: the verdict and report are already saved */
     } finally {
       setAcking(false);
       close();
@@ -51,13 +51,13 @@ export function AlertModal() {
     dispatch({ type: 'modal', modal: null });
   };
 
-  // Нажатие на фон окно не закрывает (§10.2); закрывает только Esc и кнопки.
+  // Clicking the backdrop does not close the window (§10.2); only Esc and buttons do.
   return (
     <div className="backdrop" role="presentation">
-      <div className="modal" role="dialog" aria-modal="true" aria-label={`Сектор ${sec.code}`}>
+      <div className="modal" role="dialog" aria-modal="true" aria-label={`Sector ${sec.code}`}>
         <div className="modal__head" style={{ background: headBg, color: headInk }}>
           <span className="modal__sector">
-            Сектор {sec.code} · {sec.name}
+            Sector {sec.code} · {sec.name}
           </span>
           {view === 'alert' ? (
             <>
@@ -70,7 +70,7 @@ export function AlertModal() {
             </>
           ) : (
             <div className="modal__title modal__title--recs">
-              {high ? 'ОПАСНОСТЬ' : entry.v === 'medium' ? 'ВНИМАНИЕ' : VERDICT_RU.low}
+              {high ? 'DANGER' : entry.v === 'medium' ? 'WARNING' : VERDICT_RU.low}
             </div>
           )}
         </div>
@@ -82,12 +82,12 @@ export function AlertModal() {
               <div className="modal__tiles">
                 <Tile k="RiskScore" v={`${scores.risk} / 16`} />
                 <Tile k="ExtinctionScore" v={`${scores.ext} / 8`} />
-                <Tile k="Уверенность" v={`${entry.conf} %`} />
+                <Tile k="Confidence" v={`${entry.conf} %`} />
               </div>
             </>
           ) : (
             <>
-              <h3 style={{ fontSize: 17 }}>Рекомендации по нейтрализации</h3>
+              <h3 style={{ fontSize: 17 }}>Neutralization Recommendations</h3>
               <p style={{ margin: 0, fontSize: 13 }} className="muted">
                 {recs.intro}
               </p>
@@ -105,7 +105,7 @@ export function AlertModal() {
             </>
           )}
           <div className="notice">
-            Отчёт {reportNo(entry.id)}: {sentFull(entry.sent)}
+            Report {reportNo(entry.id)}: {sentFull(entry.sent)}
           </div>
         </div>
 
@@ -118,15 +118,15 @@ export function AlertModal() {
                 style={{ background: primaryBg, borderColor: primaryBg }}
                 onClick={() => dispatch({ type: 'modalView', view: 'recs' })}
               >
-                Открыть рекомендации
+                Open Recommendations
               </button>
               <button type="button" className="btn" onClick={close}>
-                Закрыть
+                Close
               </button>
             </>
           ) : (
             <>
-              {/* §10.2 — подтверждение оператора уходит на сервер (ack). */}
+              {/* §10.2 — operator acknowledgment is sent to the server (ack). */}
               <button
                 type="button"
                 className="btn btn--primary"
@@ -134,15 +134,15 @@ export function AlertModal() {
                 disabled={acking}
                 onClick={accept}
               >
-                {acking ? 'Отправка…' : 'Принято'}
+                {acking ? 'Sending…' : 'Acknowledge'}
               </button>
               <button type="button" className="btn" onClick={openReport}>
-                Открыть отчёт
+                Open Report
               </button>
             </>
           )}
           <span className="card__spacer kbd muted" style={{ alignSelf: 'center' }}>
-            Esc — закрыть
+            Esc — close
           </span>
         </div>
       </div>

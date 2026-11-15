@@ -1,10 +1,10 @@
 """
-Конфигурация ИИ из окружения.
+AI configuration from the environment.
 
-Общие настройки — XSCI_AI_*; у каждой функции (тексты отчёта, распознавание
-фото) можно переопределить любое поле через XSCI_AI_TEXTS_* / XSCI_AI_VISION_*
-и выключить её отдельно. Если провайдер не задан, слой выключен и всё
-работает на детерминированных правилах §15.
+Shared settings — XSCI_AI_*; each feature (report texts, photo recognition)
+can override any field via XSCI_AI_TEXTS_* / XSCI_AI_VISION_* and be disabled
+separately. If no provider is set, the layer is disabled and everything runs
+on the deterministic §15 rules.
 """
 from __future__ import annotations
 
@@ -14,12 +14,12 @@ import os
 from .base import ProviderConfig
 from .providers import REGISTRY, resolve
 
-#: Функции, у которых может быть свой провайдер и своя модель.
+#: Features that can each have their own provider and model.
 FEATURES = ('texts', 'vision')
 
 
 def _env(feature: str, key: str, default: str = '') -> str:
-    """Значение для функции: сначала XSCI_AI_<FEATURE>_<KEY>, потом XSCI_AI_<KEY>."""
+    """Value for a feature: first XSCI_AI_<FEATURE>_<KEY>, then XSCI_AI_<KEY>."""
     specific = os.environ.get(f'XSCI_AI_{feature.upper()}_{key}')
     if specific is not None and specific != '':
         return specific
@@ -60,8 +60,8 @@ def _enabled(feature: str) -> bool:
 
 def load(feature: str) -> ProviderConfig | None:
     """
-    Настройки для функции или None, если ИИ для неё не настроен/выключен.
-    None — штатная ситуация: вызывающий код уходит на правила.
+    Settings for a feature, or None if AI is not configured/disabled for it.
+    None is a normal situation: the calling code falls back to the rules.
     """
     if feature not in FEATURES or not _enabled(feature):
         return None
@@ -85,7 +85,7 @@ def load(feature: str) -> ProviderConfig | None:
 
 
 def describe() -> dict[str, str]:
-    """Что настроено — для /api/health и вкладки «Модели». Без ключей."""
+    """What is configured — for /api/health and the "Models" tab. No keys."""
     out: dict[str, str] = {}
     for feature in FEATURES:
         cfg = load(feature)

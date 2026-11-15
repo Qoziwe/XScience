@@ -1,6 +1,6 @@
 """
-Фабрика Flask-приложения XScience.
-Контракт API — FUNCTIONAL_SPEC.md §18; расчёт — §14; тексты — §15.
+XScience Flask application factory.
+API contract — FUNCTIONAL_SPEC.md §18; calculation — §14; texts — §15.
 """
 from __future__ import annotations
 
@@ -16,7 +16,7 @@ from .errors import register_error_handlers
 def create_app(overrides: dict[str, Any] | None = None) -> Flask:
     app = Flask(__name__)
     app.config.from_object(Config)
-    # Русские тексты отдаём как есть, без \uXXXX — ответы читаемы и короче.
+    # Send non-ASCII text as-is, without \uXXXX — responses are readable and shorter.
     app.json.ensure_ascii = False
     if overrides:
         app.config.update(overrides)
@@ -34,11 +34,11 @@ def create_app(overrides: dict[str, Any] | None = None) -> Flask:
         from .services.ai import config as ai_config
         return jsonify({'status': 'ok', 'env': app.config['ENV'],
                         'model_version': app.config['MODEL_VERSION'],
-                        # Что настроено из ИИ (без ключей): провайдер:модель или rules/off.
+                        # What's configured for AI (no keys): provider:model or rules/off.
                         'ai': ai_config.describe()})
 
-    # CORS нужен только если фронт и бэк на разных origin
-    # (в dev Vite проксирует /api на этот порт, и CORS не требуется).
+    # CORS is only needed if the front end and back end are on different origins
+    # (in dev, Vite proxies /api to this port, and CORS is not required).
     origin = app.config.get('CORS_ORIGIN')
     if origin:
         @app.after_request

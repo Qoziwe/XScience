@@ -1,4 +1,4 @@
-/** Производная модель активного результата. FUNCTIONAL_SPEC.md §9.7, §9.8. */
+/** Derived model of the active result. FUNCTIONAL_SPEC.md §9.7, §9.8. */
 import { useMemo } from 'react';
 import { signalOf, type Signal } from '@/domain/reference';
 import { score } from '@/domain/scoring';
@@ -23,7 +23,7 @@ export interface ResultModel {
   boundaries: number;
   notes: Note[];
   recs: Recommendations;
-  /** Плашка 16.2: высокий риск при высокой вероятности затухания. */
+  /** 16.2 banner: high risk together with a high extinction probability. */
   combo: boolean;
 }
 
@@ -56,7 +56,7 @@ export function useResult(): ResultModel | null {
   }, [hist, activeId, form, cur, tweaks.palette]);
 }
 
-/** Модель анализа для окна оповещения/рекомендаций (§10). */
+/** Analysis model for the alert/recommendations window (§10). */
 export function useModalModel() {
   const { state } = useStore();
   const { hist, modal, tweaks } = state;

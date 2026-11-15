@@ -1,4 +1,4 @@
-"""§17–18.5: набор данных, готовность и обучение ML-модели, закон d²."""
+"""§17–18.5: dataset, readiness, and training of the ML model, the d² law."""
 from __future__ import annotations
 
 import unittest
@@ -13,10 +13,10 @@ class TestDatasetDomain(unittest.TestCase):
     def test_v1_matches_spec(self):
         v1 = [r for r in all_rows() if r['dataset'] == 'v1']
         self.assertEqual(len(v1), 30)
-        # §19.3 — единственное расхождение с формулами: строка 13.
+        # §19.3 — the only mismatch with the formulas: row 13.
         self.assertEqual([r['n'] for r in v1 if not r['ok']], [13])
         self.assertEqual(sorted({r['risk_level'] for r in v1}), ['high'])
-        # §19.1 — simulated_rule_based в схему не входит.
+        # §19.1 — simulated_rule_based is not part of the schema.
         self.assertFalse(any(r['data_source_valid'] for r in v1))
 
     def test_extension_fixes_the_blocking_problems(self):
@@ -26,7 +26,7 @@ class TestDatasetDomain(unittest.TestCase):
         self.assertGreater(info['earth_rows'], 0)
         train = training_rows()
         self.assertTrue(all(r['data_source_valid'] for r in train))
-        # Метки расширения посчитаны формулами §14 — расхождений быть не может.
+        # Extension labels are computed by the §14 formulas — there can be no mismatches.
         self.assertTrue(all(r['ok'] for r in train))
 
 
@@ -56,7 +56,7 @@ class TestModelsApi(ApiCase):
         state = self.client.get('/api/models/ml/readiness').get_json()
         keys = [c['key'] for c in state['checks']]
         self.assertEqual(keys, ['rows', 'risk_classes', 'data_source', 'earth_rows'])
-        # Проверка data_source не проходит: 30 строк v1 вне схемы §19.1.
+        # The data_source check fails: the 30 v1 rows are outside the §19.1 schema.
         self.assertFalse(next(c for c in state['checks'] if c['key'] == 'data_source')['passed'])
         self.assertEqual(state['mismatches'], 1)
         self.assertFalse(state['model']['trained'])

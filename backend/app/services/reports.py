@@ -1,9 +1,10 @@
 """
-Отчёты и их «передача на Землю» (§11.4, §18.4).
-[МАКЕТ] реальной передачи нет: отчёт лежит в очереди REPORT_SEND_DELAY_S,
-затем помечается переданным. Статус хранится в БД и поэтому переживает
-перезапуск процесса — в отличие от прототипа, где таймер запускался заново.
-[ВОПРОС 16.16] формат и канал подтверждения приёма на Земле не согласованы.
+Reports and their "transmission to Earth" (§11.4, §18.4).
+[MOCK-UP] there is no real transmission: the report sits in the queue for
+REPORT_SEND_DELAY_S, then is marked as sent. The status is stored in the DB
+and so survives a process restart — unlike the prototype, where the timer
+restarted from zero.
+[QUESTION 16.16] the format and channel for confirming receipt on Earth are not settled.
 """
 from __future__ import annotations
 
@@ -23,15 +24,15 @@ from ..errors import not_found
 def insert_report(con: Any, report_id: str, analysis_id: int, sector: str, verdict: str,
                    created_at: str, doc: dict[str, Any]) -> None:
     """
-    Общая вставка строки отчёта — переиспользуется ручным/датчиковым созданием
-    анализа (services/analyses.py, в той же транзакции через con) и
-    периодическим сводным отчётом по кораблю (services/sensors.py).
+    Shared report-row insert — reused by manual/sensor analysis creation
+    (services/analyses.py, in the same transaction via con) and by the
+    periodic ship-wide summary report (services/sensors.py).
     """
     con.execute(
         'INSERT INTO reports (id, analysis_id, sector, verdict, created_at, author, '
         'status, sent_at, channel, content) VALUES (?,?,?,?,?,?,?,?,?,?)',
         (report_id, analysis_id, sector, verdict, created_at,
-         'ИИ-модуль состояния (макет генерации)', 'queued', None, 'mock',
+         'AI status module (generation mock-up)', 'queued', None, 'mock',
          json.dumps(doc, ensure_ascii=False)))
 
 
@@ -49,7 +50,7 @@ def _public(row: Any) -> dict[str, Any]:
 
 
 def listing(limit: int = 100, since: str | None = None) -> list[dict[str, Any]]:
-    """§18.4 — список отчётов, новые сверху; since — ISO-время создания."""
+    """§18.4 — report list, newest first; since — ISO creation time."""
     sql = 'SELECT * FROM reports WHERE 1 = 1'
     args: list[Any] = []
     if since:
@@ -76,7 +77,7 @@ def _as_int(v: str) -> int:
 
 
 def document(report_id: str) -> dict[str, Any]:
-    """§11.2 — документ отчёта. Содержимое зафиксировано при создании анализа."""
+    """§11.2 — report document. Content is fixed at analysis creation time."""
     row = _row(report_id)
     sent = hhmmss(parse_iso(row['sent_at'])) if row['sent_at'] else None
     doc = with_sent(json.loads(row['content']), sent)
@@ -84,12 +85,12 @@ def document(report_id: str) -> dict[str, Any]:
 
 
 def txt(report_id: str) -> str:
-    """§11.3 — TXT."""
+    """§11.3 — plain-text report."""
     return report_txt(document(report_id)['content'])
 
 
 def resend(report_id: str) -> dict[str, Any]:
-    """§18.4 — повторная отправка при failed."""
+    """§18.4 — resend when failed."""
     row = _row(report_id)
     if row['status'] == 'sent':
         return _public(row)
@@ -100,8 +101,8 @@ def resend(report_id: str) -> dict[str, Any]:
 
 def flush_queue(db_path: str, delay_s: float) -> int:
     """
-    Помечает переданными отчёты, пролежавшие в очереди дольше delay_s.
-    Вызывается фоновым потоком и тестами; работает на своём соединении.
+    Marks as sent any reports that have sat in the queue longer than delay_s.
+    Called by the background thread and by tests; uses its own connection.
     """
     cutoff = iso(utc_now() - timedelta(seconds=delay_s))
     con = connect(db_path)
@@ -115,7 +116,7 @@ def flush_queue(db_path: str, delay_s: float) -> int:
 
 
 def start_worker(app: Flask) -> None:
-    """Фоновый поток-макет передачи. Выключается конфигом REPORT_WORKER."""
+    """Background mock transmission thread. Disabled via the REPORT_WORKER config."""
     db_path = app.config['DB_PATH']
     delay = app.config['REPORT_SEND_DELAY_S']
     tick = max(0.2, min(delay / 2, 2.0))
@@ -126,7 +127,7 @@ def start_worker(app: Flask) -> None:
         while not stop.wait(tick):
             try:
                 flush_queue(db_path, delay)
-            except Exception:  # pragma: no cover — поток не должен падать
+            except Exception:  # pragma: no cover — the thread must not crash
                 app.logger.exception('report worker tick failed')
 
     threading.Thread(target=loop, name='report-sender', daemon=True).start()

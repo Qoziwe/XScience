@@ -1,8 +1,8 @@
 /**
- * Состояние вкладки «Модели» (§17.1–17.2).
- * Готовность, обучение и прогноз живут на сервере; без раздела `models`
- * (прототип, VITE_API=local) хук отдаёт `available: false`, и экран
- * показывает то же, что прототип — проверки по локальному набору.
+ * State for the "Models" tab (§17.1–17.2).
+ * Readiness, training, and prediction live on the server; without the `models`
+ * section (prototype, VITE_API=local) the hook returns `available: false`, and the
+ * screen shows the same thing as the prototype — checks against the local dataset.
  */
 import { useCallback, useEffect, useState } from 'react';
 import { api, NotConfiguredError, type Prediction, type Readiness } from '@/api';
@@ -63,7 +63,7 @@ export function useModels(params: AnalysisParams | null) {
     }
   }, [source, refresh]);
 
-  // Прогноз обновляется, когда модель обучена и форма анализа заполнена целиком.
+  // The prediction updates when the model is trained and the analysis form is fully filled in.
   const trained = !!state.readiness?.model.trained;
   const key = params ? JSON.stringify(params) : '';
   useEffect(() => {
@@ -81,7 +81,7 @@ export function useModels(params: AnalysisParams | null) {
     return () => {
       alive = false;
     };
-    // params сравниваем по значению: объект пересоздаётся на каждый рендер.
+    // params is compared by value: the object is recreated on every render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [source, trained, key]);
 

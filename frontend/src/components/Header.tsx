@@ -1,4 +1,4 @@
-/** Шапка панели. FUNCTIONAL_SPEC.md §5.1. */
+/** Console header. FUNCTIONAL_SPEC.md §5.1. */
 import { useNavigate } from 'react-router-dom';
 import { api } from '@/api';
 import { useStore, type Tab } from '@/state/store';
@@ -7,16 +7,16 @@ import { DOT } from '@/domain/reference';
 import { Dot } from '@/components/ui';
 
 const MAIN_TABS: [Tab, string][] = [
-  ['overview', 'Обзор'],
-  ['map', 'Карта'],
-  ['analysis', 'Анализ'],
-  ['reports', 'Отчёты'],
+  ['overview', 'Overview'],
+  ['map', 'Map'],
+  ['analysis', 'Analysis'],
+  ['reports', 'Reports'],
 ];
 
 const REF_TABS: [Tab, string][] = [
-  ['data', 'Данные'],
-  ['rules', 'Правила'],
-  ['models', 'Модели'],
+  ['data', 'Data'],
+  ['rules', 'Rules'],
+  ['models', 'Models'],
 ];
 
 export function Header({ user }: { user: string }) {
@@ -25,18 +25,18 @@ export function Header({ user }: { user: string }) {
   const { enabled, manualOverride } = state.sensors;
   const ship = shipStatus(state.hist);
   const dangerCount = ship.dangers.length;
-  // [ПРОТОТИП] счётчик вкладки «Отчёты» — как и сама вкладка, без показаний
-  // имитации датчиков между отчётными кругами (hasReport=false).
+  // [PROTOTYPE] "Reports" tab counter — like the tab itself, it has no readings
+  // from the sensor simulation between reporting cycles (hasReport=false).
   const reportCount = state.hist.filter((h) => h.hasReport !== false).length;
 
   const countFor = (tab: Tab): { text: string; danger: boolean } | null => {
-    if (tab === 'overview' && dangerCount) return { text: `${dangerCount} опасн.`, danger: true };
+    if (tab === 'overview' && dangerCount) return { text: `${dangerCount} danger`, danger: true };
     if (tab === 'reports' && reportCount) return { text: String(reportCount), danger: false };
     return null;
   };
 
   const logout = async () => {
-    // [ПРОТОТИП] сессия не завершается. [БЭКЕНД] POST /api/auth/logout.
+    // [PROTOTYPE] the session is not actually terminated. [BACKEND] POST /api/auth/logout.
     await api.auth.logout();
     navigate('/login');
   };
@@ -47,11 +47,11 @@ export function Header({ user }: { user: string }) {
         <div className="brand__mark">X</div>
         <div className="brand__text">
           <span className="brand__name">XScience</span>
-          <span className="brand__sub">Пожарная обстановка · микрогравитация</span>
+          <span className="brand__sub">Fire situation · microgravity</span>
         </div>
       </div>
 
-      <nav className="tabs" aria-label="Основные вкладки">
+      <nav className="tabs" aria-label="Main tabs">
         {MAIN_TABS.map(([tab, label]) => {
           const c = countFor(tab);
           return (
@@ -73,7 +73,7 @@ export function Header({ user }: { user: string }) {
         })}
       </nav>
 
-      <nav className="tabs-ref" aria-label="Справочные вкладки">
+      <nav className="tabs-ref" aria-label="Reference tabs">
         {REF_TABS.map(([tab, label]) => (
           <button
             key={tab}
@@ -91,18 +91,18 @@ export function Header({ user }: { user: string }) {
         <span className="sensors">
           <Dot color={enabled ? DOT.low : DOT.none} />
           {enabled
-            ? `Датчики активны · ${manualOverride ? 'ручной ввод' : 'авто'}`
-            : 'Датчики не подключены · ручной ввод'}
+            ? `Sensors active · ${manualOverride ? 'manual input' : 'auto'}`
+            : 'Sensors not connected · manual input'}
         </span>
         {api.sensors ? (
-          <div className="seg" role="group" aria-label="Имитация датчиков">
+          <div className="seg" role="group" aria-label="Sensor simulation">
             <button
               type="button"
               className="seg__opt"
               aria-pressed={!enabled}
               onClick={() => toggleSensors(false)}
             >
-              Выкл
+              Off
             </button>
             <button
               type="button"
@@ -110,12 +110,12 @@ export function Header({ user }: { user: string }) {
               aria-pressed={enabled}
               onClick={() => toggleSensors(true)}
             >
-              Вкл
+              On
             </button>
           </div>
         ) : null}
         <button type="button" className="logout" onClick={logout}>
-          {user} · Выход
+          {user} · Log out
         </button>
       </div>
     </header>
@@ -126,10 +126,10 @@ export function Footer() {
   return (
     <footer className="footer">
       <span>
-        Прототип для обучения и исследований. Не является сертифицированным средством пожарной
-        безопасности.
+        Prototype for training and research purposes. Not a certified fire safety
+        instrument.
       </span>
-      <span>Диапазоны NASA не проверены (16.13)</span>
+      <span>NASA ranges not verified (16.13)</span>
     </footer>
   );
 }

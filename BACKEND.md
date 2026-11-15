@@ -1,47 +1,50 @@
-# XScience — план бэкенда (Flask)
+# XScience — backend plan (Flask)
 
-> **Состояние (2026-11-14): план выполнен.** Бэкенд реализован в `backend/`,
-> клиент переключён на него (`frontend/src/api/httpApi.ts`). Актуальное
-> описание сервера, команды запуска и принятые решения по §24 —
-> в `backend/README.md`. Этот файл сохранён как исходный план и история
-> решений; отложенное из него перечислено в конце.
+> **Status (2026-11-14): the plan has been carried out.** The backend is implemented in `backend/`,
+> and the client has been switched over to it (`frontend/src/api/httpApi.ts`). The current
+> description of the server, startup commands, and the decisions made for §24 are
+> in `backend/README.md`. This file is kept as the original plan and decision
+> history; what was deferred from it is listed at the end.
 
-Этот файл — чек-лист и контракт для следующей сессии, когда будем писать
-бэкенд. Фронтенд (React, в `frontend/`) уже готов и ждёт API; экраны и
-логику менять не придётся — нужно реализовать сервер и подключить один файл.
+This file is a checklist and contract for the next session, when the
+backend gets written. The frontend (React, in `frontend/`) is already done and
+waiting for the API; the screens and logic won't need to change — only the
+server needs to be implemented and one file connected.
 
-Источник истины по поведению — **FUNCTIONAL_SPEC.md**, раздел 18
-(«Предлагаемое API бэкенда») и раздел 14 («Расчёт»). Здесь — выжимка того,
-что конкретно нужно сделать, без пересказа всей спецификации.
+The source of truth for behavior is **FUNCTIONAL_SPEC.md**, section 18
+("Proposed Backend API") and section 14 ("Calculation"). This is a digest of
+what specifically needs to be done, without restating the whole specification.
 
-## Что уже сделано (фронтенд)
+## What's already done (frontend)
 
-- Полностью рабочий React-клиент в `frontend/`, расчёт сейчас выполняется
-  в браузере (`frontend/src/api/localApi.ts`), история — в `localStorage`.
-- Клиент уже разделён швом `frontend/src/api/types.ts` — интерфейс
-  `XScienceApi` с двумя блоками: `auth` (login/verifyCode/logout) и
+- A fully working React client in `frontend/`; the calculation currently runs
+  in the browser (`frontend/src/api/localApi.ts`), with history in `localStorage`.
+- The client is already split along a seam at `frontend/src/api/types.ts` — the
+  `XScienceApi` interface with two blocks: `auth` (login/verifyCode/logout) and
   `analyses` (list/create/subscribe).
-- Вся бизнес-логика (расчёт R/E, тексты, рекомендации, отчёт, агрегация
-  корабля) уже реализована на TypeScript в `frontend/src/domain/` — это
-  прямой перенос §14–15 спецификации. **Используй её как эталон при
-  портировании на Python**, а не вычисляй с нуля по тексту спецификации:
-  - `domain/scoring.ts` — R, E, уровни, вердикт, уверенность (§14)
-  - `domain/texts.ts` — объяснения, заключение, рекомендации, допущения (§15)
-  - `domain/ship.ts` — агрегация состояния корабля (§7.4)
-  - `domain/report.ts` — документ отчёта, TXT, CSV
-  - `domain/reference.ts` — справочники (материалы, секторы, уровни, цвета)
-- Dev-прокси уже настроен: `frontend/vite.config.ts` проксирует `/api` →
-  `http://127.0.0.1:5000`. Бэкенд должен слушать порт 5000.
-- 6 контрольных примеров §23 (A–F) и пример агрегации сверены и совпадают
-  с текущей TS-реализацией — те же числа должны получаться на Python.
+- All business logic (R/E calculation, texts, recommendations, report, ship
+  aggregation) is already implemented in TypeScript in `frontend/src/domain/` —
+  this is a direct port of §14–15 of the specification. **Use it as the
+  reference when porting to Python**, rather than computing from the
+  specification text from scratch:
+  - `domain/scoring.ts` — R, E, levels, verdict, confidence (§14)
+  - `domain/texts.ts` — explanations, conclusion, recommendations, assumptions (§15)
+  - `domain/ship.ts` — ship-status aggregation (§7.4)
+  - `domain/report.ts` — report document, TXT, CSV
+  - `domain/reference.ts` — reference tables (materials, sectors, levels, colors)
+- The dev proxy is already set up: `frontend/vite.config.ts` proxies `/api` →
+  `http://127.0.0.1:5000`. The backend must listen on port 5000.
+- The 6 control examples from §23 (A–F) and the aggregation example have been
+  checked and match the current TS implementation — Python must produce the
+  same numbers.
 
-## Что нужно сделать
+## What needs to be done
 
-### 1. Контракт `XScienceApi` → HTTP
+### 1. The `XScienceApi` contract → HTTP
 
-Реализовать `frontend/src/api/httpApi.ts` с тем же интерфейсом, что и
-`localApi.ts` (см. `frontend/src/api/types.ts`), и переключить экспорт в
-`frontend/src/api/index.ts`. Экраны не трогать.
+Implement `frontend/src/api/httpApi.ts` with the same interface as
+`localApi.ts` (see `frontend/src/api/types.ts`), and switch the export in
+`frontend/src/api/index.ts`. Do not touch the screens.
 
 ```ts
 export interface AuthApi {
@@ -52,155 +55,160 @@ export interface AuthApi {
 export interface AnalysesApi {
   list(): Promise<Analysis[]>;
   create(input: { sector: SectorId; params: AnalysisParams }): Promise<{ analysis: Analysis; alertLevel: Level | null }>;
-  subscribe(listener: (hist: Analysis[]) => void): () => void; // поллинг или SSE/WS
+  subscribe(listener: (hist: Analysis[]) => void): () => void; // polling or SSE/WS
 }
 ```
 
-### 2. Минимальный набор эндпоинтов (§18)
+### 2. Minimal set of endpoints (§18)
 
-Для первой версии бэкенда достаточно этого подмножества — остального
-(модели ML, фото, датчики) пока нет и на фронте ему не из чего брать данные:
+For the first version of the backend, this subset is enough — the rest
+(ML models, photos, sensors) doesn't exist yet and the frontend has nothing
+to source data from for it:
 
-| Метод и путь | §   | Назначение |
+| Method and path | § | Purpose |
 | --- | --- | --- |
 | `POST /api/auth/login` | 18.1 | `{login, password}` → `200 {stage:"code_required"}` / `401 {error, attempts_left}` / `429 {error:"locked", retry_after_s}` |
 | `POST /api/auth/code` | 18.1 | `{code}` → `200 {user, expires_at}` / `401 {error:"invalid_code", attempts_left}` / `401 {error:"restart_login"}` |
 | `POST /api/auth/logout` | 18.1 | `204` |
 | `GET /api/me` | 18.1 | `200 {login, role, expires_at}` / `401` |
-| `POST /api/analyses` | 18.3 | тело — `AnalysisInput` (§4.1) → `201` полная запись (§4.2) + `report` + `alert_level` |
-| `GET /api/analyses` | 18.3 | список по возрастанию `id` |
-| `GET /api/analyses/{id}` | 18.3 | одна запись |
-| `GET /api/analyses.csv` | 18.3, 16.2 | выгрузка CSV |
-| `GET /api/sectors` | 18.2 | список секторов с геометрией — сейчас хардкод и на фронте (`domain/reference.ts: SECTORS`), на бэке можно отдавать как константу |
-| `GET /api/ship/status` | 18.2 | агрегация — см. `domain/ship.ts` |
-| `GET /api/reports/{id}` / `.txt` | 18.4 | документ отчёта / TXT |
-| `GET /api/reports?limit=&since=` | 18.4 | список отчётов |
+| `POST /api/analyses` | 18.3 | body — `AnalysisInput` (§4.1) → `201` full record (§4.2) + `report` + `alert_level` |
+| `GET /api/analyses` | 18.3 | list, ascending by `id` |
+| `GET /api/analyses/{id}` | 18.3 | a single record |
+| `GET /api/analyses.csv` | 18.3, 16.2 | CSV export |
+| `GET /api/sectors` | 18.2 | list of sectors with geometry — currently hardcoded in the frontend too (`domain/reference.ts: SECTORS`); on the backend it can be served as a constant |
+| `GET /api/ship/status` | 18.2 | aggregation — see `domain/ship.ts` |
+| `GET /api/reports/{id}` / `.txt` | 18.4 | report document / TXT |
+| `GET /api/reports?limit=&since=` | 18.4 | list of reports |
 
-Отложить до отдельной задачи: `/api/analyses/{id}/ack`, `/api/models/*`,
-`/api/photos`, `/api/sensors/*` — на фронте есть заглушки (кнопка
-«Принято» ничего не пишет, вкладка «Модели» не вызывает API), подключать
-по готовности.
+Defer to a separate task: `/api/analyses/{id}/ack`, `/api/models/*`,
+`/api/photos`, `/api/sensors/*` — the frontend has stubs for these (the
+"Acknowledged" button doesn't write anything, the "Models" tab doesn't call
+the API); wire them up once ready.
 
-### 3. Контракт расчёта — жёсткое правило
+### 3. The calculation contract — a hard rule
 
-> Клиент **не** присылает баллы, уровни, вердикт и тексты — всё считает
-> сервер. Сервер заново валидирует вход независимо от клиента (§9.3, §18.9).
+> The client **does not** send scores, levels, verdict, or texts — the server
+> computes all of it. The server re-validates the input independently of the
+> client (§9.3, §18.9).
 
-Это значит: `POST /api/analyses` принимает только сырые параметры
-(`AnalysisInput`, §4.1), а баллы/уровни/вердикт/уверенность/тексты/отчёт
-сервер вычисляет сам и возвращает в ответе целиком. Портировать на Python:
+This means: `POST /api/analyses` only accepts raw parameters
+(`AnalysisInput`, §4.1), and the server computes the scores/levels/verdict/
+confidence/texts/report itself and returns them in full in the response. To
+port to Python:
 
-- Диапазоны и статусы полей — §9.3 (`domain/validation.ts`)
-- Формулы баллов и вердикта — §14 (`domain/scoring.ts`), включая
-  `stabilityAdjust`/`dangerIndex` (§14.4) и границы неопределённости (§14.5)
-- Генерация текстов (объяснение, заключение, рекомендации, допущения) —
-  §15 (`domain/texts.ts`) — правила детерминированные, не ИИ
-- `Idempotency-Key` на повторную отправку (§18.3) — защита от дублей при
-  двойном клике/ретрае
+- Field ranges and statuses — §9.3 (`domain/validation.ts`)
+- Score and verdict formulas — §14 (`domain/scoring.ts`), including
+  `stabilityAdjust`/`dangerIndex` (§14.4) and the uncertainty boundaries (§14.5)
+- Text generation (explanation, conclusion, recommendations, assumptions) —
+  §15 (`domain/texts.ts`) — the rules are deterministic, not AI
+- `Idempotency-Key` for resubmission (§18.3) — protection against duplicates
+  from a double-click or retry
 
-Ошибки — единый формат (§18.9):
+Errors — a single format (§18.9):
 ```json
-{ "error": "validation_failed", "fields": { "oxygen_percent": "Введите концентрацию кислорода от 13 до 35 процентов" } }
+{ "error": "validation_failed", "fields": { "oxygen_percent": "Enter an oxygen concentration between 13 and 35 percent" } }
 ```
-Коды: 400 (плохой JSON), 401, 403, 404, 409 (конфликт Idempotency-Key),
-422 (валидация), 429 (блокировка/частота).
+Codes: 400 (bad JSON), 401, 403, 404, 409 (Idempotency-Key conflict),
+422 (validation), 429 (lockout/rate limit).
 
-**Проверка**: контрольные примеры §23 (A–F) должны дать те же R/E/вердикт/
-уверенность, что в таблице спецификации и в текущей TS-реализации —
-см. `frontend/scripts/smoke.tsx` как пример структуры теста, но для
-бэкенда нужны отдельные Python-тесты на `score()`/`verdict()`.
+**Verification**: the control examples from §23 (A–F) must produce the same
+R/E/verdict/confidence as in the specification's table and in the current TS
+implementation — see `frontend/scripts/smoke.tsx` for an example of the test
+structure, but the backend needs its own Python tests for `score()`/`verdict()`.
 
-### 4. Авторизация (§6.5)
+### 4. Authorization (§6.5)
 
-Сейчас на фронте [ПРОТОТИП]: демо-учётка `demo` / `xscience-demo`, код
-`123456`, зашита в `localApi.ts`. Бэкенду нужно:
+Currently on the frontend [PROTOTYPE]: a demo account `demo` / `xscience-demo`,
+code `123456`, hardcoded in `localApi.ts`. The backend needs:
 
-- Пароли — argon2id или bcrypt, без обратимого шифрования
-- TOTP (RFC 6238), 6 цифр, окно ±1 шаг
-- Лимит пароля: 5 неудач → блокировка 30 с, считать по логину **и** IP
-- Лимит кода: 3 неудачи → аннулировать сессию шага 1
-- Одинаковый ответ и время ответа на «нет такого логина» и «неверный пароль»
-- Сессия: cookie `HttpOnly; Secure; SameSite=Strict`, абсолютный срок 8 ч,
-  бездействие 15 мин
-- CSRF-токен на все изменяющие запросы
-- Регистрации нет — учётки создаёт администратор; демо-учётки в проде быть
-  не должно
-- Таблица `login_attempts` — журналировать все попытки
+- Passwords — argon2id or bcrypt, no reversible encryption
+- TOTP (RFC 6238), 6 digits, a ±1 step window
+- Password limit: 5 failures → 30 s lockout, counted by login **and** IP
+- Code limit: 3 failures → invalidate the step-1 session
+- Identical response and response time for "no such login" and "wrong password"
+- Session: cookie `HttpOnly; Secure; SameSite=Strict`, 8 h absolute lifetime,
+  15 min idle timeout
+- A CSRF token on every mutating request
+- No self-registration — accounts are created by an administrator; there
+  must be no demo account in production
+- A `login_attempts` table — log every attempt
 
-### 5. Модель данных (§4, §16.3)
+### 5. Data model (§4, §16.3)
 
-Таблицы: `users`, `sessions`, `login_attempts`, `analyses`, `reports`,
-`photos` (фото — позже, см. §17.3/§18.7). Анализы и отчёты **не удаляются
-и не редактируются** (журнал безопасности) — только `INSERT`.
+Tables: `users`, `sessions`, `login_attempts`, `analyses`, `reports`,
+`photos` (photos — later, see §17.3/§18.7). Analyses and reports are
+**never deleted or edited** (a safety log) — `INSERT` only.
 
-Рекомендуемая полная запись анализа — §4.2, блок `[БЭКЕНД]` с примером
-JSON (`scores`, `verdict`, `confidence_reasons`, `texts`, `model_version`,
-`report_id`). Хранить тексты вместе с анализом — чтобы отчёт не менялся
-задним числом при правке правил (§15).
+The recommended full analysis record is §4.2, the `[BACKEND]` block with a
+sample JSON (`scores`, `verdict`, `confidence_reasons`, `texts`,
+`model_version`, `report_id`). Store the texts together with the analysis —
+so the report doesn't change after the fact when the rules are edited (§15).
 
-БД без лимита в 100 записей (лимит `localStorage` — только у прототипа);
-на клиенте — пагинация (`GET /api/analyses?limit=&before_id=`).
+The DB has no 100-record limit (the `localStorage` limit is only in the
+prototype); pagination on the client (`GET /api/analyses?limit=&before_id=`).
 
-### 6. Передача отчёта на Землю (§11.4, §18.4)
+### 6. Report transmission to Earth (§11.4, §18.4)
 
-Сейчас [МАКЕТ]: через 2.5 с статус меняется `queued` → `sent`. На бэкенде
-можно оставить тем же макетом (фоновая задача/таймер), но статус должен
-переживать перезапуск процесса (не теряться) и отдаваться клиенту через
-поллинг `GET /api/reports?since=` или SSE/WS — решить при реализации,
-клиенту всё равно, он просто вызывает `subscribe()`.
+Currently [MOCK-UP]: after 2.5 s the status flips `queued` → `sent`. On the
+backend this can remain the same mock-up (a background task/timer), but the
+status must survive a process restart (not be lost) and be delivered to the
+client via polling `GET /api/reports?since=` or SSE/WS — decide at
+implementation time; the client doesn't care, it just calls `subscribe()`.
 
-### 7. Инфраструктура
+### 7. Infrastructure
 
-- Flask, порт **5000** (прокси фронтенда уже настроен на него)
-- CORS не нужен в dev (Vite проксирует), но нужен, если фронт и бэк будут
-  на разных origin в проде
-- `.env`/конфиг — секрет сессии, параметры БД; не коммитить секреты
-- Выбор БД и ORM — на твоё усмотрение (SQLite для начала вполне достаточно,
-  миграция на Postgres позже не критична)
+- Flask, port **5000** (the frontend proxy is already configured for it)
+- CORS isn't needed in dev (Vite proxies), but is needed if the frontend and
+  backend end up on different origins in production
+- `.env`/config — session secret, DB settings; don't commit secrets
+- Choice of DB and ORM — up to you (SQLite is plenty to start with; migrating
+  to Postgres later isn't critical)
 
-### 8. Открытые вопросы, которые бэкенду придётся решить явно (§24)
+### 8. Open questions the backend will have to resolve explicitly (§24)
 
-Эти пункты спецификация оставляет открытыми — для бэкенда нужно принять
-решение (можно временное, с комментарием), а не заблокироваться:
+The specification leaves these points open — the backend needs to make a
+decision (even a temporary one, with a comment) rather than get stuck:
 
-- 16.1 — включение границ диапазонов (сейчас принято как в §14.1, совпадает
-  с 29 из 30 строк набора данных)
-- 16.16 — формат/канал подтверждения отчёта на Землю (пока макет)
-- 16.19 — срок актуальности анализа сектора для общей оценки корабля
-- 16.21 — роли пользователей и права (сейчас только `operator`)
+- 16.1 — range-boundary inclusion (currently adopted as in §14.1, matching
+  29 of 30 dataset rows)
+- 16.16 — format/channel for confirming a report to Earth (a mock-up for now)
+- 16.19 — how long a sector analysis stays valid for the overall ship assessment
+- 16.21 — user roles and permissions (currently only `operator`)
 
-## С чего начать следующую сессию
+## Where to start the next session
 
-1. Поднять Flask-приложение со storage (SQLite) и моделью `Analysis`.
-2. Портировать `domain/scoring.ts` → Python 1:1, проверить на контрольных
-   примерах §23 (A–F) — это даст уверенность, что дальше не нужно сверяться
-   с TS-версией построчно.
-3. Эндпоинты в порядке зависимости фронта: `POST/GET /api/analyses` →
+1. Stand up the Flask app with storage (SQLite) and an `Analysis` model.
+2. Port `domain/scoring.ts` → Python 1:1, check it against the control
+   examples in §23 (A–F) — this gives confidence that you won't need to
+   cross-check against the TS version line by line from then on.
+3. Endpoints in order of frontend dependency: `POST/GET /api/analyses` →
    `GET /api/sectors`, `GET /api/ship/status` → auth (`/api/auth/*`, `/api/me`).
-4. Написать `frontend/src/api/httpApi.ts`, переключить `index.ts`, прогнать
-   `npm run smoke` и ручной прогон сценария из §23 через UI.
+4. Write `frontend/src/api/httpApi.ts`, switch over `index.ts`, run
+   `npm run smoke` and manually walk through the §23 scenario via the UI.
 
-## Выполнено и что осталось
+## Done, and what remains
 
-Сделано: порт расчёта и текстов на Python (`backend/app/domain/`, сверен с
-контрольными примерами §23 A–F и примером агрегации), эндпоинты §18.1–18.4
-(auth, analyses + CSV + ack, sectors, ship/status, reports + TXT + resend),
-SQLite-схема §4.2/§4.3/§4.4, авторизация §6.5 (argon2id/scrypt, TOTP,
-лимиты, сессии-cookie, CSRF, журнал попыток), `Idempotency-Key`, макет
-передачи отчёта со статусом в БД, `frontend/src/api/httpApi.ts` +
-переключатель `VITE_API`. Тесты: `backend/tests` (34) и `npm run e2e`.
+Done: the port of the calculation and texts to Python (`backend/app/domain/`,
+checked against the §23 A–F control examples and the aggregation example),
+the §18.1–18.4 endpoints (auth, analyses + CSV + ack, sectors, ship/status,
+reports + TXT + resend), the §4.2/§4.3/§4.4 SQLite schema, §6.5 authorization
+(argon2id/scrypt, TOTP, limits, cookie sessions, CSRF, attempt log),
+`Idempotency-Key`, a report-transmission mock-up with status in the DB,
+`frontend/src/api/httpApi.ts` + the `VITE_API` switch. Tests:
+`backend/tests` (34) and `npm run e2e`.
 
-Добавлено после первой итерации (по запросу пользователя — ИИ-часть):
-провайдер-независимый ИИ-слой (`app/services/ai/`, подключается конфигом:
-OpenAI-совместимые шлюзы, Anthropic, Google AI Studio) с генерацией текстов
-отчёта и фолбэком на правила §15; ML-модель §17.1 (softmax-регрессия на
-stdlib) с проверками готовности, обучением и прогнозом; расширение набора
-данных §19 (`scripts/gen_dataset.py`, 90 строк, все три класса risk_level);
-закон d² §17.2; фото пламени §17.3/§18.7 с распознаванием признаков
-vision-моделью. Тесты: 79.
+Added after the first iteration (at the user's request — the AI part):
+a provider-independent AI layer (`app/services/ai/`, configured via env:
+OpenAI-compatible gateways, Anthropic, Google AI Studio) that generates
+report texts with a fallback to the §15 rules; the §17.1 ML model (softmax
+regression on the standard library) with readiness checks, training, and
+prediction; the §19 dataset expansion (`scripts/gen_dataset.py`, 90 rows, all
+three risk_level classes); the §17.2 d² law; §17.3/§18.7 flame photos with
+feature recognition by a vision model. Tests: 79.
 
-Осталось: `/api/sensors/*` (§18.8 — датчиков нет, формат открыт),
-`/api/reference` (§18.5 — клиент держит справочники у себя) и фронтендная
-часть: вкладка «Модели» не вызывает готовые эндпоинты, загрузка фото живёт
-в памяти страницы, кнопка «Принято» не вызывает `POST /api/analyses/{id}/ack`,
-маршрут `/console` не защищён сессией (§22).
+Remaining: `/api/sensors/*` (§18.8 — there are no sensors yet, the format is
+open), `/api/reference` (§18.5 — the client keeps its own reference tables),
+and a frontend part: the "Models" tab doesn't call the endpoints that already
+exist, photo upload lives only in the page's memory, the "Acknowledged"
+button doesn't call `POST /api/analyses/{id}/ack`, and the `/console` route
+isn't protected by a session (§22).

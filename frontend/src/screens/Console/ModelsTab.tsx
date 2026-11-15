@@ -1,4 +1,4 @@
-/** Вкладка «Модели». FUNCTIONAL_SPEC.md §17. */
+/** "Models" tab. FUNCTIONAL_SPEC.md §17. */
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { api, type Photo as ApiPhoto, type Readiness } from '@/api';
 import {
@@ -15,53 +15,53 @@ import { useStore } from '@/state/store';
 import { useModels } from '@/state/useModels';
 import { Card, CardHead, Dot } from '@/components/ui';
 
-/** §17.1 — проверки по локальному набору: то, что показывает прототип без сервера. */
+/** §17.1 — checks against the local dataset: what the prototype shows without a server. */
 const LOCAL_CHECKS: Readiness['checks'] = [
   {
     key: 'rows',
-    label: 'Строк в наборе',
+    label: 'Rows in dataset',
     value: DATASET.length,
     target: 50,
     passed: false,
     required: true,
-    note: 'минимум для обучения по разделу 13 не достигнут',
+    note: 'the Section 13 training minimum has not been reached',
   },
   {
     key: 'risk_classes',
-    label: 'Классов risk_level',
+    label: 'risk_level classes',
     value: DATASET_RISK_CLASSES,
     target: 3,
     passed: false,
     required: true,
-    note: 'все строки — high, классификатор обучить нельзя (16.4)',
+    note: 'all rows are high, the classifier cannot be trained (16.4)',
   },
   {
     key: 'data_source',
-    label: 'Корректный data_source',
+    label: 'Valid data_source',
     value: 0,
     target: DATASET.length,
     passed: false,
     required: true,
-    note: 'значение simulated_rule_based отсутствует в схеме 12.1',
+    note: 'the value simulated_rule_based is absent from schema 12.1',
   },
   {
     key: 'earth_rows',
-    label: 'Строк с gravity = earth',
+    label: 'Rows with gravity = earth',
     value: 0,
     target: DATASET.length,
     passed: false,
     required: false,
-    note: 'признак не варьируется, вклад оценить невозможно',
+    note: 'the feature does not vary, its contribution cannot be assessed',
   },
 ];
 
 const NOT_IMPLEMENTED = [
-  'перенос массы',
-  'перенос компонентов',
-  'уравнение энергии',
-  'реакция',
-  'излучение q_rad',
-  'момент затухания',
+  'mass transfer',
+  'species transfer',
+  'energy equation',
+  'reaction',
+  'q_rad radiation',
+  'extinction moment',
 ];
 
 export function ModelsTab() {
@@ -78,12 +78,12 @@ export function ModelsTab() {
   );
 }
 
-/** §17.1 — Stage 2. Проверки, обучение и прогноз выполняет сервер. */
+/** §17.1 — Stage 2. Checks, training, and prediction are performed by the server. */
 function MlStage() {
   const { state } = useStore();
   const { form, cur } = state;
 
-  // Прогноз запрашивается только по заполненной целиком форме анализа (§9.3).
+  // A prediction is only requested once the analysis form is fully filled in (§9.3).
   const params = useMemo(() => {
     const st = statuses(form, cur);
     return isComplete(st) ? toParams(form) : null;
@@ -97,20 +97,20 @@ function MlStage() {
   const canTrain = !!training?.canTrain;
 
   const kicker = !m.available
-    ? 'не обучена'
+    ? 'not trained'
     : m.loading
-      ? 'загрузка…'
+      ? 'loading…'
       : model?.trained
-        ? `обучена · ${model.version}`
-        : 'не обучена';
+        ? `trained · ${model.version}`
+        : 'not trained';
 
   return (
     <Card>
-      <CardHead title="Stage 2 — ML-модель риска и затухания" kicker={kicker} />
+      <CardHead title="Stage 2 — Risk and Extinction ML Model" kicker={kicker} />
       <div className="card__body">
         <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-          Прогноз не выдаётся и не подменяется расчётом по правилам: вердикт в любом случае
-          считает модуль расчёта раздела 14.
+          No prediction is issued and it never substitutes for the rule-based calculation: the
+          verdict is always computed by the Section 14 calculation module.
         </p>
 
         {checks.map((c) => (
@@ -138,10 +138,10 @@ function MlStage() {
 
         {training && (
           <span className="muted" style={{ fontSize: 12 }}>
-            Обучающий набор: {training.rows} строк
+            Training set: {training.rows} rows
             {training.excludedRows > 0 &&
-              ` (исключено ${training.excludedRows} — data_source вне схемы §19.1)`}
-            , классов risk_level {training.riskClasses.length}.
+              ` (${training.excludedRows} excluded — data_source outside schema §19.1)`}
+            , risk_level classes {training.riskClasses.length}.
           </span>
         )}
 
@@ -151,19 +151,19 @@ function MlStage() {
           disabled={!m.available || !canTrain || m.training}
           onClick={() => void m.train()}
         >
-          {m.training ? 'Обучение…' : model?.trained ? 'Обучить заново' : 'Обучить модель'}
+          {m.training ? 'Training…' : model?.trained ? 'Retrain' : 'Train Model'}
         </button>
 
         <span className="muted" style={{ fontSize: 12 }}>
           {!m.available
-            ? `Обучение недоступно: набор данных не проходит ${failedRequired} проверки из четырёх.`
+            ? `Training unavailable: the dataset fails ${failedRequired} of four checks.`
             : canTrain
-              ? 'Обучение доступно: обязательные проверки пройдены на строках с допустимым data_source.'
-              : `Обучение недоступно: ${training?.reasons.join('; ') || 'проверки не пройдены'}.`}
+              ? 'Training available: required checks pass on rows with a valid data_source.'
+              : `Training unavailable: ${training?.reasons.join('; ') || 'checks not passed'}.`}
         </span>
 
         {m.error && (
-          <span style={{ fontSize: 12, color: ALERT_INK }}>Сервер: {m.error}</span>
+          <span style={{ fontSize: 12, color: ALERT_INK }}>Server: {m.error}</span>
         )}
 
         {model?.trained && model.metrics && (
@@ -171,13 +171,13 @@ function MlStage() {
             {Object.entries(model.metrics.targets).map(([target, acc]) => (
               <div key={target}>
                 <span className="field__label">
-                  {target === 'risk_level' ? 'Точность: риск' : 'Точность: затухание'}
+                  {target === 'risk_level' ? 'Accuracy: risk' : 'Accuracy: extinction'}
                 </span>
                 <span className="mono" style={{ fontSize: 18 }}>
                   {(acc.testAccuracy * 100).toFixed(0)} %
                 </span>
                 <span className="muted" style={{ fontSize: 12 }}>
-                  на отложенной выборке ({model.metrics?.testRows} строк)
+                  on the held-out set ({model.metrics?.testRows} rows)
                 </span>
               </div>
             ))}
@@ -186,14 +186,14 @@ function MlStage() {
 
         <div className="two-col">
           <PredictionField
-            name="Прогноз уровня риска"
+            name="Risk Level Prediction"
             level={m.prediction?.predictions.risk_level}
             words={RISK_LEVEL_RU}
             palette={state.tweaks.palette}
             hint={predictionHint(m.available, !!model?.trained, !!params, m.predictError)}
           />
           <PredictionField
-            name="Прогноз вероятности затухания"
+            name="Extinction Probability Prediction"
             level={m.prediction?.predictions.extinction_probability}
             words={EXT_LEVEL_RU}
             palette={state.tweaks.palette}
@@ -203,9 +203,9 @@ function MlStage() {
 
         {training?.labelsAreRuleDerived && (
           <span className="muted" style={{ fontSize: 12 }}>
-            Метки набора посчитаны формулами раздела 14: модель приближает правила, а не
-            независимые наблюдения. Пока в наборе нет измерений, прогноз ничего не добавляет
-            к расчёту (16.4, §19.3).
+            The dataset labels are computed by the Section 14 formulas: the model approximates the
+            rules, not independent observations. Until the dataset has real measurements, the
+            prediction adds nothing to the calculation (16.4, §19.3).
           </span>
         )}
         {m.trainNote && (
@@ -224,11 +224,11 @@ function predictionHint(
   hasParams: boolean,
   error: string,
 ): string {
-  if (!available) return 'выдаётся только обученной моделью';
-  if (!trained) return 'выдаётся только обученной моделью';
-  if (!hasParams) return 'заполните форму анализа целиком';
+  if (!available) return 'only produced by a trained model';
+  if (!trained) return 'only produced by a trained model';
+  if (!hasParams) return 'fill in the entire analysis form';
   if (error) return error;
-  return 'прогноз по текущим значениям формы';
+  return 'prediction based on the current form values';
 }
 
 function PredictionField({
@@ -254,8 +254,8 @@ function PredictionField({
             {words[level.label]}
           </span>
           <span className="mono muted" style={{ fontSize: 12 }}>
-            {(Math.max(...Object.values(level.probabilities)) * 100).toFixed(0)} % уверенности
-            модели
+            {(Math.max(...Object.values(level.probabilities)) * 100).toFixed(0)} % model
+            confidence
           </span>
         </>
       ) : (
@@ -270,7 +270,7 @@ function PredictionField({
   );
 }
 
-/** §17.2 — закон d²(t) = d₀² − K·t. */
+/** §17.2 — the d²(t) = d₀² − K·t law. */
 function D2Stage() {
   const { state, dispatch } = useStore();
   const d0 = pn(state.d0);
@@ -283,9 +283,9 @@ function D2Stage() {
   const sq = d0 * d0;
   const xEnd = 624;
 
-  // Кривая считается на месте — она мгновенная и совпадает с серверной формулой.
-  // Сервер (§18.6) опрашивается с задержкой и служит сверкой: расхождение
-  // означало бы, что реализации разошлись.
+  // The curve is computed locally — it's instantaneous and matches the server formula.
+  // The server (§18.6) is polled with a delay and serves as a cross-check: a
+  // discrepancy would mean the implementations have diverged.
   const [serverT, setServerT] = useState<number | null>(null);
   const [serverErr, setServerErr] = useState('');
   useEffect(() => {
@@ -310,7 +310,7 @@ function D2Stage() {
 
   const drift = serverT != null && tBurn != null ? Math.abs(serverT - tBurn) : 0;
 
-  // Пунктир d(t) = √(d₀² − K·t), нормированный на d₀ (41 точка).
+  // Dashed curve d(t) = √(d₀² − K·t), normalized to d₀ (41 points).
   const dPath = ready
     ? Array.from({ length: 41 }, (_, i) => {
         const t = (tBurn as number) * (i / 40);
@@ -323,16 +323,16 @@ function D2Stage() {
 
   return (
     <Card>
-      <CardHead title="Stage 3 — закон d²" kicker="сокращённая форма" />
+      <CardHead title="Stage 3 — the d² Law" kicker="reduced form" />
       <div className="card__body">
         <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-          Реализован только закон d²(t) = d₀² − K·t. Полная модель в прототип не входит, источник
-          константы K не задан.
+          Only the law d²(t) = d₀² − K·t is implemented. The full model is not part of the
+          prototype, and the source of the constant K is unspecified.
         </p>
 
         <div className="two-col">
           <div>
-            <span className="field__label">Начальный диаметр d₀</span>
+            <span className="field__label">Initial diameter d₀</span>
             <div className="field__row">
               <input
                 type="number"
@@ -342,14 +342,14 @@ function D2Stage() {
                 step={0.05}
                 value={state.d0}
                 placeholder="—"
-                aria-label="Начальный диаметр d0, мм"
+                aria-label="Initial diameter d0, mm"
                 onChange={(e) => dispatch({ type: 'd2', patch: { d0: e.target.value } })}
               />
-              <span className="unit">мм</span>
+              <span className="unit">mm</span>
             </div>
           </div>
           <div>
-            <span className="field__label">Константа горения K</span>
+            <span className="field__label">Burning constant K</span>
             <div className="field__row">
               <input
                 type="number"
@@ -359,30 +359,30 @@ function D2Stage() {
                 step={0.01}
                 value={state.k}
                 placeholder="—"
-                aria-label="Константа горения K, мм²/с"
+                aria-label="Burning constant K, mm²/s"
                 onChange={(e) => dispatch({ type: 'd2', patch: { k: e.target.value } })}
               />
-              <span className="unit">мм²/с</span>
+              <span className="unit">mm²/s</span>
             </div>
             <span className="muted" style={{ fontSize: 12 }}>
-              значение задаёт оператор, по умолчанию не подставляется
+              the value is set by the operator and is not defaulted
             </span>
           </div>
         </div>
 
         <div className="field__head">
-          <span className="field__label">Полное выгорание</span>
+          <span className="field__label">Complete Burnout</span>
           <span
             className="field__status mono"
             style={{ color: ready ? undefined : 'var(--color-neutral-700)' }}
           >
-            {ready ? `${(tBurn as number).toFixed(1)} с` : '—'}
+            {ready ? `${(tBurn as number).toFixed(1)} s` : '—'}
           </span>
         </div>
 
         {ready ? (
           <div className="chart">
-            <svg viewBox="0 0 660 220" role="img" aria-label="График d²(t)">
+            <svg viewBox="0 0 660 220" role="img" aria-label="d²(t) chart">
               <line className="chart__axis" x1={52} y1={192} x2={xEnd} y2={192} />
               <line className="chart__axis" x1={52} y1={20} x2={52} y2={192} />
               <line
@@ -399,13 +399,13 @@ function D2Stage() {
                 {sq.toFixed(2)}
               </text>
               <text className="chart__label" x={xEnd - 30} y={208}>
-                {(tBurn as number).toFixed(1)} с
+                {(tBurn as number).toFixed(1)} s
               </text>
             </svg>
           </div>
         ) : (
           <span className="muted" style={{ fontSize: 12.5 }}>
-            Задайте d₀ и K — график строится только по введённым значениям.
+            Set d₀ and K — the chart is only drawn from entered values.
           </span>
         )}
 
@@ -415,17 +415,17 @@ function D2Stage() {
             style={{ fontSize: 12, color: drift > 0.05 ? ALERT_INK : undefined }}
           >
             {serverErr
-              ? `Сверка с сервером не удалась: ${serverErr}`
+              ? `Server cross-check failed: ${serverErr}`
               : serverT == null
-                ? 'Сверка с сервером…'
+                ? 'Cross-checking with the server…'
                 : drift > 0.05
-                  ? `Расхождение с сервером: ${serverT.toFixed(1)} с против ${(tBurn as number).toFixed(1)} с`
-                  : `Сверено с сервером: ${serverT.toFixed(1)} с`}
+                  ? `Discrepancy with the server: ${serverT.toFixed(1)} s vs. ${(tBurn as number).toFixed(1)} s`
+                  : `Cross-checked with the server: ${serverT.toFixed(1)} s`}
           </span>
         )}
 
         <div>
-          <span className="field__label">Не реализовано в прототипе</span>
+          <span className="field__label">Not Implemented in the Prototype</span>
           <div className="chip-row">
             {NOT_IMPLEMENTED.map((n) => (
               <span key={n} className="chip" style={{ cursor: 'default' }}>
@@ -435,20 +435,20 @@ function D2Stage() {
           </div>
         </div>
         <span className="muted" style={{ fontSize: 12 }}>
-          Значения не сохраняются и с анализом не связаны.
+          Values are not saved and are not linked to the analysis.
         </span>
       </div>
     </Card>
   );
 }
 
-/** §17.3 — фото пламени: загрузка, разметка оператора, распознавание моделью. */
+/** §17.3 — flame photo: upload, operator annotation, model recognition. */
 type AnnotationKey = keyof import('@/state/store').Annotation;
-/** Ключ в состоянии интерфейса, подпись, варианты §17.3, ключ в API. */
+/** UI state key, label, §17.3 options, API key. */
 const ANNOTATIONS: [AnnotationKey, string, string[], 'size' | 'brightness' | 'shape'][] = [
-  ['size', 'Размер', ['малое', 'среднее', 'большое'], 'size'],
-  ['bright', 'Яркость', ['тусклое', 'умеренное', 'яркое'], 'brightness'],
-  ['shape', 'Форма', ['вытянутое', 'округлое'], 'shape'],
+  ['size', 'Size', ['small', 'medium', 'large'], 'size'],
+  ['bright', 'Brightness', ['dim', 'moderate', 'bright'], 'brightness'],
+  ['shape', 'Shape', ['elongated', 'round'], 'shape'],
 ];
 
 function PhotoStage() {
@@ -466,13 +466,13 @@ function PhotoStage() {
     if (photo && !photo.id) URL.revokeObjectURL(photo.url);
 
     if (!photos) {
-      // [ПРОТОТИП] снимок живёт только в памяти страницы.
+      // [PROTOTYPE] the photo lives only in the page's memory.
       dispatch({
         type: 'photo',
         photo: {
           url: URL.createObjectURL(file),
           name: file.name,
-          size: `${(file.size / 1024).toFixed(0)} КБ`,
+          size: `${(file.size / 1024).toFixed(0)} KB`,
         },
       });
       return;
@@ -488,7 +488,7 @@ function PhotoStage() {
           id: uploaded.id,
           url: uploaded.fileUrl,
           name: uploaded.fileName,
-          size: `${(uploaded.sizeBytes / 1024).toFixed(0)} КБ`,
+          size: `${(uploaded.sizeBytes / 1024).toFixed(0)} KB`,
         },
       });
     } catch (e) {
@@ -529,7 +529,7 @@ function PhotoStage() {
     }
   };
 
-  /** Разметку оператора храним и локально (для подсветки), и на сервере. */
+  /** The operator's annotation is kept both locally (for highlighting) and on the server. */
   const setAnnotation = async (
     key: AnnotationKey,
     apiKey: 'size' | 'brightness' | 'shape',
@@ -550,14 +550,14 @@ function PhotoStage() {
   return (
     <Card>
       <CardHead
-        title="Фото пламени"
-        kicker={photos ? (rec ? `распознано · ${rec.model}` : 'распознавание по кнопке') : 'распознавание не подключено'}
+        title="Flame Photo"
+        kicker={photos ? (rec ? `recognized · ${rec.model}` : 'recognition on demand') : 'recognition not connected'}
       />
       <div className="card__body">
         <p className="muted" style={{ margin: 0, fontSize: 13 }}>
           {photos
-            ? 'Снимок хранится на сервере как материал наблюдения. Признаки заполняет оператор; модель может предложить свои — они показаны отдельно и в расчёт не входят.'
-            : 'Снимок прикладывается как материал наблюдения, признаки заполняет оператор. Автоматического распознавания нет.'}
+            ? 'The photo is stored on the server as observational material. The operator fills in the features; the model may suggest its own — shown separately and not included in the calculation.'
+            : 'The photo is attached as observational material, the operator fills in the features. There is no automatic recognition.'}
         </p>
 
         <input
@@ -570,7 +570,7 @@ function PhotoStage() {
 
         {photo ? (
           <div className="photo-preview">
-            <img src={photo.url} alt="Загруженный снимок пламени" />
+            <img src={photo.url} alt="Uploaded flame photo" />
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, minWidth: 0 }}>
               <span style={{ fontSize: 13, wordBreak: 'break-all' }}>{photo.name}</span>
               <span className="mono muted" style={{ fontSize: 12 }}>
@@ -583,11 +583,11 @@ function PhotoStage() {
                   disabled={!!busy}
                   onClick={() => void recognize()}
                 >
-                  {busy === 'recognize' ? 'Распознаю…' : 'Распознать'}
+                  {busy === 'recognize' ? 'Recognizing…' : 'Recognize'}
                 </button>
               )}
               <button type="button" className="btn" disabled={!!busy} onClick={() => void remove()}>
-                Убрать
+                Remove
               </button>
             </div>
           </div>
@@ -599,10 +599,10 @@ function PhotoStage() {
             onClick={() => inputRef.current?.click()}
           >
             <span style={{ fontWeight: 500 }}>
-              {busy === 'upload' ? 'Загрузка…' : 'Загрузить фото пламени'}
+              {busy === 'upload' ? 'Uploading…' : 'Upload Flame Photo'}
             </span>
             <span className="muted" style={{ fontSize: 12 }}>
-              JPEG или PNG, один снимок
+              JPEG or PNG, one photo
             </span>
           </button>
         )}
@@ -615,7 +615,7 @@ function PhotoStage() {
               <span className="field__label">{name}</span>
               {rec && (
                 <span className="field__status muted" style={{ fontSize: 12 }}>
-                  модель: {rec[apiKey] ?? '—'}
+                  model: {rec[apiKey] ?? '—'}
                 </span>
               )}
             </div>
@@ -638,14 +638,14 @@ function PhotoStage() {
 
         {rec && (
           <span className="muted" style={{ fontSize: 12 }}>
-            {rec.flameVisible ? rec.note : `Модель: ${rec.note}`}
+            {rec.flameVisible ? rec.note : `Model: ${rec.note}`}
           </span>
         )}
 
         <span className="muted" style={{ fontSize: 12 }}>
           {photo
-            ? 'Наблюдения оператора. В расчёт риска и затухания не входят.'
-            : 'Заполняется после загрузки снимка.'}
+            ? "Operator's observations. Not included in the risk and extinction calculation."
+            : 'Filled in after uploading a photo.'}
         </span>
       </div>
     </Card>

@@ -1,4 +1,4 @@
-/** Схема корабля. FUNCTIONAL_SPEC.md §7.5 (мини) и §8.1 (полная). */
+/** Ship diagram. FUNCTIONAL_SPEC.md §7.5 (mini) and §8.1 (full). */
 import { MAP_FILL, SECTORS, STATUS_LEGEND, STATUS_WORD } from '@/domain/reference';
 import type { SectorId, SectorStatus } from '@/domain/types';
 
@@ -6,7 +6,7 @@ export interface ShipMapProps {
   statusOf: (id: SectorId) => SectorStatus;
   selected: SectorId | null;
   onPick: (id: SectorId) => void;
-  /** Мини-карта показывает только метку сектора; полная — метку, название и статус. */
+  /** The mini map shows only the sector label; the full map shows label, name, and status. */
   variant: 'mini' | 'full';
 }
 
@@ -14,7 +14,7 @@ export function ShipMap({ statusOf, selected, onPick, variant }: ShipMapProps) {
   const mini = variant === 'mini';
   return (
     <div className="map">
-      <svg viewBox="0 0 720 250" role="img" aria-label="Схема корабля по секторам">
+      <svg viewBox="0 0 720 250" role="img" aria-label="Ship diagram by sector">
         <line
           x1={94}
           y1={130}

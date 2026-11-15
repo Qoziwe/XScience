@@ -1,7 +1,7 @@
 /**
- * Валидация формы. FUNCTIONAL_SPEC.md §9.3.
- * Значения формы хранятся строками (пустая строка = не заполнено).
- * [БЭКЕНД] повторяет эти правила независимо от клиента и отвечает 422 (§18.9).
+ * Form validation. FUNCTIONAL_SPEC.md §9.3.
+ * Form values are stored as strings (empty string = not filled in).
+ * [BACKEND] repeats these rules independently of the client and responds with 422 (§18.9).
  */
 import { FIELD_ORDER, RANGES } from './reference';
 import { pn } from './format';
@@ -21,14 +21,14 @@ export interface FormState {
   thickness: string;
   o2: string;
   flow: string;
-  /** Состояние интерфейса, в анализ не сохраняется (§3.3). */
+  /** UI state, not saved into the analysis (§3.3). */
   flowMode: 'simple' | 'precise';
   gravity: Gravity | null;
   temp: string;
   time: string;
 }
 
-/** §9.1 — пустое состояние формы. По умолчанию режим потока «Точный». */
+/** §9.1 — empty form state. Flow mode defaults to "Precise". */
 export const EMPTY_FORM: FormState = {
   material: null,
   desc: '',
@@ -71,7 +71,7 @@ export const hasBad = (s: FieldStatuses): boolean => FIELD_ORDER.some((k) => s[k
 export const missingKeys = (s: FieldStatuses): FieldKey[] =>
   FIELD_ORDER.filter((k) => s[k] !== 'ok');
 
-/** Строки формы → числа. Вызывать только когда все поля в статусе ok. */
+/** Form strings → numbers. Call only when all fields have status ok. */
 export function toParams(form: FormState): AnalysisParams {
   return {
     material: form.material as MaterialType,
@@ -85,7 +85,7 @@ export function toParams(form: FormState): AnalysisParams {
   };
 }
 
-/** Параметры анализа → форма (открытие анализа из истории, §5.3). */
+/** Analysis parameters → form (opening an analysis from history, §5.3). */
 export function toForm(p: AnalysisParams): FormState {
   return {
     material: p.material,
@@ -101,9 +101,9 @@ export function toForm(p: AnalysisParams): FormState {
 }
 
 /**
- * §9.7 — результат устарел, если любое из полей как строка отличается
- * от параметров анализа или сектор отличается от текущего.
- * Описание материала в сравнении не участвует.
+ * §9.7 — the result is stale if any field, as a string, differs
+ * from the analysis parameters, or the sector differs from the current one.
+ * The material description does not participate in the comparison.
  */
 const COMPARED = ['material', 'thickness', 'o2', 'flow', 'gravity', 'temp', 'time'] as const;
 
@@ -117,7 +117,7 @@ export function isStale(
   return COMPARED.some((k) => ref[k] !== form[k]) || analysisSector !== currentSector;
 }
 
-/** §9.3 — предупреждения, не блокирующие расчёт (только при статусе ok). */
+/** §9.3 — warnings that do not block the calculation (only when status is ok). */
 export interface Warnings {
   lowO2: boolean;
   noFlow: boolean;
@@ -133,7 +133,7 @@ export function warningsOf(form: FormState, s: FieldStatuses): Warnings {
 }
 
 export const WARNING_TEXTS = {
-  lowO2: 'При такой концентрации кислорода пламя может не поддерживаться',
-  noFlow: 'Без потока пламя может быть неустойчивым, особенно в микрогравитации',
-  highFlow: 'При очень сильном потоке пламя может сорваться',
+  lowO2: 'At this oxygen concentration the flame may not be sustained',
+  noFlow: 'Without air flow the flame may be unstable, especially in microgravity',
+  highFlow: 'At very high flow the flame may be extinguished',
 } as const;

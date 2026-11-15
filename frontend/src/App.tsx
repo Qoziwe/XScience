@@ -12,7 +12,7 @@ export function App() {
       <Route
         path="/console"
         element={
-          // §6.5 — панель доступна только с живой сессией; без неё — на вход.
+          // §6.5 — the console is only accessible with a live session; otherwise, redirect to login.
           <RequireSession>
             <StoreProvider>
               <ConsolePage />

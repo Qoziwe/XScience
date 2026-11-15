@@ -1,4 +1,4 @@
-/* Компоновка и компоненты панели. */
+/* Console layout and components. */
 
 .app {
   min-height: 100vh;
@@ -6,7 +6,7 @@
   flex-direction: column;
 }
 
-/* ─── шапка (§5.1) ─── */
+/* ─── header (§5.1) ─── */
 .header {
   display: flex;
   align-items: center;
@@ -140,7 +140,7 @@
   color: var(--color-neutral-800);
 }
 
-/* ─── подвал (§5.2) ─── */
+/* ─── footer (§5.2) ─── */
 .footer {
   display: flex;
   flex-wrap: wrap;
@@ -151,7 +151,7 @@
   color: var(--color-neutral-700);
 }
 
-/* ─── общая раскладка ─── */
+/* ─── general layout ─── */
 .main {
   flex: 1;
   display: flex;
@@ -188,7 +188,7 @@
   min-width: 0;
 }
 
-/* ─── карточка ─── */
+/* ─── card ─── */
 .card {
   background: var(--color-surface);
   border: 1px solid var(--color-divider);
@@ -235,7 +235,7 @@
   border-top: 1px solid var(--color-divider);
 }
 
-/* ─── кнопки ─── */
+/* ─── buttons ─── */
 .btn {
   display: inline-flex;
   align-items: center;
@@ -290,7 +290,7 @@
   background: transparent;
 }
 
-/* ─── чипы / сегменты ─── */
+/* ─── chips / segments ─── */
 .chip {
   display: inline-flex;
   align-items: center;
@@ -336,7 +336,7 @@
   box-shadow: var(--shadow-tab);
 }
 
-/* ─── поля формы (§9.2) ─── */
+/* ─── form fields (§9.2) ─── */
 .field__head {
   display: flex;
   align-items: baseline;
@@ -529,7 +529,7 @@
   opacity: 0.8;
 }
 
-/* ─── индикаторы ─── */
+/* ─── indicators ─── */
 .dot {
   width: 8px;
   height: 8px;
@@ -633,7 +633,7 @@
   text-align: right;
 }
 
-/* ─── плашки ─── */
+/* ─── tiles ─── */
 .banner {
   display: flex;
   align-items: center;
@@ -688,7 +688,7 @@
   padding: 0;
 }
 
-/* ─── таблицы ─── */
+/* ─── tables ─── */
 .table-wrap {
   overflow-x: auto;
 }
@@ -734,7 +734,7 @@
   white-space: nowrap;
 }
 
-/* ─── карта (§7.5, §8.1) ─── */
+/* ─── map (§7.5, §8.1) ─── */
 .map svg {
   width: 100%;
   height: auto;
@@ -772,7 +772,7 @@
   border: 1px solid;
 }
 
-/* ─── списки истории / отчётов ─── */
+/* ─── history / report lists ─── */
 .list {
   display: flex;
   flex-direction: column;
@@ -820,7 +820,7 @@
   white-space: nowrap;
 }
 
-/* ─── разложение баллов (§9.7) ─── */
+/* ─── score breakdown (§9.7) ─── */
 .rows {
   display: flex;
   flex-direction: column;
@@ -881,7 +881,7 @@
   font-family: var(--font-mono);
 }
 
-/* ─── шаги рекомендаций ─── */
+/* ─── recommendation steps ─── */
 .steps {
   display: flex;
   flex-direction: column;
@@ -911,7 +911,7 @@
   font-weight: 600;
 }
 
-/* ─── модальное окно (§10) ─── */
+/* ─── modal window (§10) ─── */
 .backdrop {
   position: fixed;
   inset: 0;
@@ -980,7 +980,7 @@
   gap: 8px;
 }
 
-/* ─── вход (§6) ─── */
+/* ─── login (§6) ─── */
 .login {
   min-height: 100vh;
   display: flex;
@@ -1067,7 +1067,7 @@
   flex-wrap: wrap;
 }
 
-/* ─── график d² (§17.2) ─── */
+/* ─── d² chart (§17.2) ─── */
 .chart svg {
   width: 100%;
   height: auto;
@@ -1094,7 +1094,7 @@
   fill: var(--color-neutral-700);
 }
 
-/* ─── фото (§17.3) ─── */
+/* ─── photo (§17.3) ─── */
 .photo-drop {
   display: flex;
   flex-direction: column;
@@ -1122,7 +1122,7 @@
   border: 1px solid var(--color-divider);
 }
 
-/* ─── Обзор: карточка оценки + мини-карта в один ряд ─── */
+/* ─── Overview: score card + mini map in one row ─── */
 .ov-row {
   display: flex;
   flex-wrap: wrap;
@@ -1172,7 +1172,7 @@
   padding: 20px;
 }
 
-/* ─── точные пропорции колонок «Карта» (§8) и «Отчёты» (§11) ─── */
+/* ─── exact column proportions for "Map" (§8) and "Reports" (§11) ─── */
 .map-main {
   flex: 999 1 520px;
   min-width: 0;

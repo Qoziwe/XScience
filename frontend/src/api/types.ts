@@ -1,7 +1,7 @@
 /**
- * Контракт клиента с источником данных.
- * Реализации: httpApi (Flask API, FUNCTIONAL_SPEC.md §18) и localApi
- * (прототип, расчёт в браузере). Экраны работают только через этот шов.
+ * Client contract with the data source.
+ * Implementations: httpApi (Flask API, FUNCTIONAL_SPEC.md §18) and localApi
+ * (prototype, calculation in the browser). Screens only ever go through this seam.
  */
 import type { Analysis, AnalysisParams, Level, MaterialType, SectorId } from '@/domain/types';
 
@@ -12,7 +12,7 @@ export interface NewAnalysis {
 
 export interface CreateAnalysisResult {
   analysis: Analysis;
-  /** §18.3 — null при вердикте low; иначе вердикт, по нему клиент открывает окно оповещения. */
+  /** §18.3 — null for a "low" verdict; otherwise the verdict, which the client uses to open the alert window. */
   alertLevel: Level | null;
 }
 
@@ -23,7 +23,7 @@ export interface LoginResult {
 export interface SessionUser {
   login: string;
   role: string;
-  /** HH:MM — до какого времени активна сессия. */
+  /** HH:MM — the time until which the session is active. */
   expiresAt: string;
 }
 
@@ -34,22 +34,22 @@ export interface AuthApi {
   verifyCode(code: string): Promise<SessionUser>;
   /** POST /api/auth/logout */
   logout(): Promise<void>;
-  /** GET /api/me — null, если сессии нет (§6.5). Этим защищён маршрут /console. */
+  /** GET /api/me — null if there is no session (§6.5). This is what guards the /console route. */
   me(): Promise<SessionUser | null>;
 }
 
 export interface AnalysesApi {
-  /** GET /api/analyses — по возрастанию id. */
+  /** GET /api/analyses — in ascending id order. */
   list(): Promise<Analysis[]>;
   /** POST /api/analyses */
   create(input: NewAnalysis): Promise<CreateAnalysisResult>;
-  /** Изменения истории (включая смену статуса передачи отчёта). */
+  /** History changes (including a change in report transmission status). */
   subscribe(listener: (hist: Analysis[]) => void): () => void;
-  /** POST /api/analyses/{id}/ack — «Принято» оператором (§10.2). */
+  /** POST /api/analyses/{id}/ack — "Acknowledged" by the operator (§10.2). */
   ack(id: number): Promise<void>;
 }
 
-/** §17.1 — одна из четырёх проверок готовности данных. */
+/** §17.1 — one of the four data-readiness checks. */
 export interface ReadinessCheck {
   key: string;
   label: string;
@@ -67,7 +67,7 @@ export interface TrainingSet {
   canTrain: boolean;
   reasons: string[];
   excludedRows: number;
-  /** Метки набора посчитаны правилами §14 — модель приближает их, а не наблюдения. */
+  /** Dataset labels are computed by the §14 rules — the model approximates them, not the observations. */
   labelsAreRuleDerived: boolean;
 }
 
@@ -106,7 +106,7 @@ export interface TrainResult {
 
 export interface Prediction {
   modelVersion: string;
-  /** Ключи — risk_level и extinction_probability. */
+  /** Keys are risk_level and extinction_probability. */
   predictions: Record<string, { label: Level; probabilities: Record<string, number> }>;
   note: string;
 }
@@ -134,7 +134,7 @@ export interface ModelsApi {
   d2(d0mm: number, kMm2S: number): Promise<D2Result>;
 }
 
-/** Строка набора данных (§19) с результатом сверки по формулам §14. */
+/** A dataset row (§19) with the result of checking it against the §14 formulas. */
 export interface DatasetRow {
   n: number;
   dataset: string;
@@ -163,7 +163,7 @@ export interface DatasetApi {
   load(): Promise<{ summary: DatasetSummary; rows: DatasetRow[] }>;
 }
 
-/** §17.3 — признаки снимка. Пустая строка = выбор снят. */
+/** §17.3 — photo attributes. An empty string means the selection was cleared. */
 export interface PhotoAnnotation {
   size?: string;
   brightness?: string;
@@ -184,7 +184,7 @@ export interface Photo {
   analysisId: number | null;
   annotation: PhotoAnnotation;
   recognition: Recognition | null;
-  /** Путь к самому снимку; отдаётся только по сессии. */
+  /** Path to the photo itself; only served with a valid session. */
   fileUrl: string;
 }
 
@@ -199,7 +199,7 @@ export interface PhotosApi {
   remove(id: string): Promise<void>;
 }
 
-/** Имитация датчиков (прототип) — серверная генерация показаний. */
+/** Sensor simulation (prototype) — server-side reading generation. */
 export interface SensorsStatus {
   enabled: boolean;
   manualOverride: boolean;
@@ -208,7 +208,7 @@ export interface SensorsStatus {
 export interface SensorsApi {
   /** GET /api/sensors */
   status(): Promise<SensorsStatus>;
-  /** Изменения статуса (вкл/выкл, переопределение). */
+  /** Status changes (on/off, override). */
   subscribe(listener: (s: SensorsStatus) => void): () => void;
   /** POST /api/sensors/toggle */
   setEnabled(enabled: boolean): Promise<SensorsStatus>;
@@ -220,17 +220,17 @@ export interface XScienceApi {
   auth: AuthApi;
   analyses: AnalysesApi;
   /**
-   * Разделы, которых нет у прототипа: localApi их не реализует, и экраны
-   * работают по-прежнему на локальных константах и снимке в памяти страницы.
+   * Sections the prototype doesn't have: localApi doesn't implement them, and
+   * screens still work off local constants and an in-memory page snapshot.
    */
   models?: ModelsApi;
   dataset?: DatasetApi;
   photos?: PhotosApi;
-  /** Имитация — только у httpApi: генерация полностью серверная. */
+  /** Simulation — httpApi only: generation is entirely server-side. */
   sensors?: SensorsApi;
 }
 
-/** Ошибка валидации входа. §18.9 */
+/** Input validation error. §18.9 */
 export class ValidationError extends Error {
   constructor(
     public fields: Record<string, string>,
@@ -252,7 +252,7 @@ export class AuthError extends Error {
   }
 }
 
-/** Запрошенная возможность на сервере не настроена (§18.9: 409). */
+/** The requested capability is not configured on the server (§18.9: 409). */
 export class NotConfiguredError extends Error {
   constructor(
     public code: string,
@@ -263,5 +263,5 @@ export class NotConfiguredError extends Error {
   }
 }
 
-/** Материал строки набора данных — для фильтров вкладки «Данные». */
+/** Dataset row material — for the "Data" tab filters. */
 export type DatasetMaterial = MaterialType;

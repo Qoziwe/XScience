@@ -1,8 +1,8 @@
-/** Набор данных. FUNCTIONAL_SPEC.md §19. [БЭКЕНД] GET /api/dataset. */
+/** Dataset. FUNCTIONAL_SPEC.md §19. [BACKEND] GET /api/dataset. */
 import { score } from './scoring';
 import type { AnalysisParams, Level, MaterialType, Scores } from './types';
 
-/** §19.2 — все строки: gravity = microgravity, data_source = simulated_rule_based. */
+/** §19.2 — all rows: gravity = microgravity, data_source = simulated_rule_based. */
 const RAW = `paper,0.1,20,2,150,10,3.78,0.14,high,high,possible_extinction
 paper,0.2,16,20,40,90,3.42,0.34,high,high,possible_extinction
 fabric,0.5,26,0,200,45,5.68,0.21,high,high,possible_extinction
@@ -37,19 +37,19 @@ wire_insulation,0.4,22,8,60,300,4.02,0.29,high,medium,fast_flame_spread`;
 export interface DatasetRow {
   n: number;
   p: AnalysisParams;
-  /** flame_size_cm — выход, правило не задано. */
+  /** flame_size_cm — output, no rule defined. */
   size: string;
-  /** flame_spread_rate_cm_s — выход, правило не задано. */
+  /** flame_spread_rate_cm_s — output, no rule defined. */
   rate: string;
-  /** risk_level из файла. */
+  /** risk_level from the file. */
   risk: Level;
-  /** extinction_probability из файла. */
+  /** extinction_probability from the file. */
   ext: Level;
-  /** expected_result из файла. */
+  /** expected_result from the file. */
   res: string;
-  /** Пересчёт по формулам §14 для сверки. */
+  /** Recomputed via the §14 formulas for verification. */
   s: Scores;
-  /** Совпали и risk_level, и extinction_probability. */
+  /** Both risk_level and extinction_probability matched. */
   ok: boolean;
 }
 

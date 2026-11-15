@@ -1,13 +1,14 @@
 """
-ИИ-генерация текстов отчёта (§2.2, §15).
+AI generation of report texts (§2.2, §15).
 
-Модель получает уже посчитанные сервером баллы и вердикт и пишет только
-прозу: заключение, объяснение, вводку и шаги рекомендаций. Числа, уровни и
-вердикт она изменить не может — они в ответе не участвуют (§18.3).
+The model receives scores and a verdict already computed by the server and
+writes only prose: the conclusion, explanation, intro, and recommendation
+steps. It cannot change the numbers, levels, or verdict — those are not part
+of its response (§18.3).
 
-Любая неудача (нет настроек, таймаут, непригодный ответ) — не ошибка запроса:
-возвращаются детерминированные тексты правил §15, а в записи анализа
-остаётся честный `texts_source: "rules"`.
+Any failure (no config, timeout, unusable response) is not a request error:
+the deterministic §15 rule-based texts are returned instead, and the analysis
+record honestly records `texts_source: "rules"`.
 """
 from __future__ import annotations
 
@@ -25,54 +26,57 @@ from .base import LlmError, TextPart
 from .client import complete_json
 
 SYSTEM = """\
-Ты — бортовой ИИ-модуль оценки пожарной обстановки на космическом корабле.
-Пишешь разделы отчёта для оператора и для Земли.
+You are the onboard AI module for assessing fire conditions on a spacecraft.
+You write report sections for the operator and for Earth.
 
-Жёсткие правила:
-1. Баллы, уровни, вердикт и уверенность уже посчитаны инженерным расчётом и
-   даны тебе как факты. Не пересчитывай, не оспаривай и не меняй их. Не
-   называй других чисел, кроме приведённых во входных данных.
-2. Не выдумывай оборудование, системы, регламенты, названия отсеков и
-   показания, которых нет во входных данных.
-3. Текст должен соответствовать вердикту: при «Безопасно» не требуй
-   экстренных действий, при «Опасно» не успокаивай.
-4. Язык — русский, тон — сухой бортовой протокол, без воды и без обращений.
-   Никакого маркдауна, эмодзи и заголовков внутри значений.
-   Не начинай summary со слова-вердикта («Безопасно», «Требует внимания»,
-   «Опасно») — в отчёте вердикт стоит перед заключением отдельной строкой.
-5. Учитывай микрогравитацию, если она указана: расплав собирается в
-   горящие капли, поток воздуха определяет подпитку пламени, затухание
-   может быть обманчивым — после срыва возможно повторное воспламенение.
+Hard rules:
+1. Scores, levels, verdict, and confidence have already been computed by the
+   engineering calculation and are given to you as facts. Do not recompute,
+   dispute, or change them. Do not cite any numbers other than those given in
+   the input data.
+2. Do not invent equipment, systems, procedures, compartment names, or
+   readings that are not present in the input data.
+3. The text must match the verdict: for "Safe" do not demand emergency
+   action; for "Dangerous" do not reassure.
+4. Language — English, tone — dry onboard-protocol style, no filler and no
+   direct address. No markdown, emoji, or headings inside values. Do not
+   start the summary with the verdict word ("Safe", "Needs Attention",
+   "Dangerous") — in the report the verdict appears on its own line before
+   the conclusion.
+5. Account for microgravity when it is given: melt collects into burning
+   droplets, air flow determines flame feed, extinction can be deceptive —
+   reignition is possible after the flame goes out.
 
-Ответ — только объект JSON, без пояснений вокруг, строго такой формы:
+Respond with a JSON object only, no surrounding explanation, in exactly this
+shape:
 {
-  "summary":   "заключение, 1-3 предложения",
-  "why":       "почему такой уровень риска, 1-3 предложения",
-  "why_ext":   "почему такая вероятность затухания, 1-2 предложения",
-  "rec_intro": "вводка к рекомендациям, 1-2 предложения",
-  "rec_steps": [{"title": "действие в повелительном наклонении",
-                 "detail": "зачем и как, 1-2 предложения"}]
+  "summary":   "conclusion, 1-3 sentences",
+  "why":       "why this risk level, 1-3 sentences",
+  "why_ext":   "why this extinction probability, 1-2 sentences",
+  "rec_intro": "intro to the recommendations, 1-2 sentences",
+  "rec_steps": [{"title": "action in the imperative mood",
+                 "detail": "why and how, 1-2 sentences"}]
 }
-Шагов от 2 до 8, в порядке выполнения. Последним шагом — подтверждение
-приёма отчёта на Земле."""
+Between 2 and 8 steps, in execution order. The last step must be confirming
+report receipt on Earth."""
 
-#: Границы пригодности ответа: за ними текст в отчёт не пускаем.
-#: Верхние границы с запасом — модели пишут длиннее, чем правила §15, и
-#: отбрасывать содержательный ответ из-за лишних 50 символов неправильно.
+#: Acceptability bounds for the response: beyond these the text is rejected.
+#: Upper bounds have headroom — models write longer than the §15 rules do,
+#: and discarding a substantive response over 50 extra characters is wrong.
 LIMITS = {'summary': (40, 1200), 'why': (30, 1200), 'why_ext': (20, 800),
           'rec_intro': (30, 900)}
 STEPS_RANGE = (2, 10)
 TITLE_MAX = 140
 DETAIL_MAX = 600
 
-#: Нумерация, которую модели ставят в заголовок шага, хотя её ставит сервер.
-_STEP_PREFIX = re.compile(r'^\s*(?:шаг\s*)?\d{1,2}\s*[.):\-–—]\s*', re.IGNORECASE)
-#: Разметка, которую просили не использовать, но она изредка просачивается.
+#: Step numbering that models sometimes add to the title, even though the server adds it.
+_STEP_PREFIX = re.compile(r'^\s*(?:step\s*)?\d{1,2}\s*[.):\-–—]\s*', re.IGNORECASE)
+#: Markup we asked the model not to use, but which occasionally leaks through.
 _MARKUP = re.compile(r'[*`_#]+')
 
 
 def clean_line(raw: object) -> str:
-    """Одна строка ответа: без разметки, нумерации, кавычек и переносов."""
+    """One line of the response: no markup, numbering, quotes, or line breaks."""
     text = ' '.join(str(raw or '').split())
     text = _MARKUP.sub('', text)
     text = _STEP_PREFIX.sub('', text)
@@ -80,7 +84,7 @@ def clean_line(raw: object) -> str:
 
 
 def trim(text: str, limit: int) -> str:
-    """Обрезка по границе слова — лучше короткий шаг, чем потерянный ответ."""
+    """Trim at a word boundary — a short step is better than a lost response."""
     if len(text) <= limit:
         return text
     cut = text[:limit].rstrip()
@@ -91,7 +95,7 @@ def trim(text: str, limit: int) -> str:
 
 
 def rules_texts(p: Params, s: Scores, sector_id: str, v: str) -> dict[str, Any]:
-    """Детерминированные тексты §15 — и штатный результат, и фолбэк для ИИ."""
+    """Deterministic §15 texts — both the standard result and the AI fallback."""
     ex = explain(p, s)
     rc = recommendations(p, s, sector_id, v)
     return {
@@ -104,67 +108,68 @@ def rules_texts(p: Params, s: Scores, sector_id: str, v: str) -> dict[str, Any]:
 
 
 def facts(p: Params, s: Scores, sector_id: str, v: str, conf: int) -> str:
-    """Входные данные для модели: параметры, баллы и вердикт как факты."""
+    """Input data for the model: parameters, scores, and verdict as facts."""
     sec = SEC[sector_id]
     t = s['t']
     notes = notes_of(p, s)
     return '\n'.join([
-        f'Сектор: {sec["code"]} — {sec["name"]}. {sec["desc"]}',
-        f'Материал: {MAT[p["material"]]["label"]}'
-        + (f' (описание оператора: {p["desc"]})' if p.get('desc') else ''),
-        f'Толщина: {f1(p["thickness"])} мм',
-        f'Кислород: {f1(p["o2"])} %',
-        f'Поток воздуха: {f1(p["flow"])} см/с',
-        f'Температура: {f1(p["temp"])} °C',
-        f'Время горения: {f1(p["time"])} с',
-        f'Гравитация: {gravity_ru(p["gravity"])}',
+        f'Sector: {sec["code"]} — {sec["name"]}. {sec["desc"]}',
+        f'Material: {MAT[p["material"]]["label"]}'
+        + (f' (operator description: {p["desc"]})' if p.get('desc') else ''),
+        f'Thickness: {f1(p["thickness"])} mm',
+        f'Oxygen: {f1(p["o2"])} %',
+        f'Air flow: {f1(p["flow"])} cm/s',
+        f'Temperature: {f1(p["temp"])} °C',
+        f'Burn time: {f1(p["time"])} s',
+        f'Gravity: {gravity_ru(p["gravity"])}',
         '',
-        f'RiskScore: {s["risk"]} из 16 — уровень {RISK_LEVEL_RU[s["level"]].lower()}',
-        f'  слагаемые: материал {t["mat"]}, кислород {t["o2"]}, поток {t["flow"]}, '
-        f'температура {t["temp"]}, время {t["time"]}, гравитация {t["grav"]}',
-        f'ExtinctionScore: {s["ext"]} из 8 — вероятность затухания '
+        f'RiskScore: {s["risk"]} of 16 — level {RISK_LEVEL_RU[s["level"]].lower()}',
+        f'  terms: material {t["mat"]}, oxygen {t["o2"]}, flow {t["flow"]}, '
+        f'temperature {t["temp"]}, time {t["time"]}, gravity {t["grav"]}',
+        f'ExtinctionScore: {s["ext"]} of 8 — extinction probability '
         f'{EXT_LEVEL_RU[s["extLevel"]].lower()}',
-        f'  слагаемые: дефицит кислорода {t["od"]}, слабый поток {t["lf"]}, '
-        f'тонкий материал {t["th"]}',
-        f'Вердикт: {VERDICT_RU[v]}',
-        f'Уверенность оценки: {conf} %. {confidence_note(p)}',
+        f'  terms: oxygen deficit {t["od"]}, weak flow {t["lf"]}, '
+        f'thin material {t["th"]}',
+        f'Verdict: {VERDICT_RU[v]}',
+        f'Assessment confidence: {conf} %. {confidence_note(p)}',
         '',
-        'Допущения расчёта: ' + '; '.join(n['text'] for n in notes),
+        'Calculation assumptions: ' + '; '.join(n['text'] for n in notes),
     ])
 
 
 def validate(data: Any) -> dict[str, Any]:
     """
-    Пригоден ли ответ модели. Форматирование чиним молча (разметка, нумерация,
-    длина), на содержательный брак — LlmError, и тогда в отчёт идут правила §15.
+    Whether the model's response is usable. Formatting is fixed silently
+    (markup, numbering, length); substantive defects raise LlmError, and then
+    the §15 rules go into the report.
     """
     if not isinstance(data, dict):
-        raise LlmError('ответ не объект')
+        raise LlmError('response is not an object')
     out: dict[str, Any] = {}
     for key, (lo, hi) in LIMITS.items():
         value = data.get(key)
         if not isinstance(value, str):
-            raise LlmError(f'поле {key} не строка')
+            raise LlmError(f'field {key} is not a string')
         value = clean_line(value)
         if len(value) < lo:
-            raise LlmError(f'поле {key}: длина {len(value)} меньше {lo}')
+            raise LlmError(f'field {key}: length {len(value)} is less than {lo}')
         out[key] = trim(value, hi)
 
     steps = data.get('rec_steps')
     if not isinstance(steps, list) or not STEPS_RANGE[0] <= len(steps) <= STEPS_RANGE[1]:
         got = len(steps) if isinstance(steps, list) else type(steps).__name__
-        raise LlmError(f'rec_steps: ожидается {STEPS_RANGE[0]}–{STEPS_RANGE[1]} шагов, получено {got}')
+        raise LlmError(f'rec_steps: expected {STEPS_RANGE[0]}–{STEPS_RANGE[1]} steps, got {got}')
     clean: list[dict[str, str]] = []
     for i, step in enumerate(steps):
         if not isinstance(step, dict):
-            raise LlmError(f'шаг {i + 1}: не объект')
+            raise LlmError(f'step {i + 1}: not an object')
         title = clean_line(step.get('title'))
         detail = clean_line(step.get('detail'))
         if not title:
-            raise LlmError(f'шаг {i + 1}: пустой title')
+            raise LlmError(f'step {i + 1}: empty title')
         if not detail:
-            raise LlmError(f'шаг {i + 1}: пустой detail')
-        # Нумерация — серверная, модель её не задаёт (§15.3).
+            raise LlmError(f'step {i + 1}: empty detail')
+        # Numbering is server-assigned, the model does not set it (§15.3).
         clean.append({'n': str(i + 1).zfill(2), 'title': trim(title, TITLE_MAX),
                       'detail': trim(detail, DETAIL_MAX)})
     out['rec_steps'] = clean
@@ -174,8 +179,8 @@ def validate(data: Any) -> dict[str, Any]:
 def generate(p: Params, s: Scores, sector_id: str, v: str, conf: int,
              logger=None) -> tuple[dict[str, Any], str, str]:
     """
-    Тексты для записи анализа.
-    Возвращает (тексты, источник 'llm'|'rules', версия модуля текстов).
+    Texts for the analysis record.
+    Returns (texts, source 'llm'|'rules', text-module version).
     """
     fallback = rules_texts(p, s, sector_id, v)
     cfg = config.load('texts')
@@ -186,9 +191,9 @@ def generate(p: Params, s: Scores, sector_id: str, v: str, conf: int,
         return validate(data), 'llm', cfg.label()
     except LlmError as e:
         if logger:
-            logger.warning('ИИ-тексты недоступны, применены правила §15: %s', e)
+            logger.warning('AI texts unavailable, applying §15 rules: %s', e)
         return fallback, 'rules', 'rules-v0.1'
-    except Exception as e:  # pragma: no cover — чужой ответ не должен ронять запрос
+    except Exception as e:  # pragma: no cover — a third-party response must not crash the request
         if logger:
-            logger.exception('ИИ-тексты: неожиданная ошибка, применены правила: %s', e)
+            logger.exception('AI texts: unexpected error, applying rules: %s', e)
         return fallback, 'rules', 'rules-v0.1'

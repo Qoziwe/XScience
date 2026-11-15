@@ -1,4 +1,4 @@
-"""HTTP-слой: по одному blueprint на раздел §18."""
+"""HTTP layer: one blueprint per §18 section."""
 from .analyses import bp as analyses_bp
 from .auth import bp as auth_bp
 from .models import bp as models_bp

@@ -1,78 +1,78 @@
-# Архитектурная документация: XScience Server (Termux Edition)
+# Architecture documentation: XScience Server (Termux Edition)
 
-Этот документ описывает развёртывание бэкенда панели оценки пожарной
-обстановки на Android (Termux): демонизацию через `Runit`
-(`termux-services`), туннелирование трафика через Cloudflare Zero Trust
-(`xscienceapi.andatra.space`) и администрирование службы. Фронтенд (React)
-развёрнут отдельно на GitHub Pages — см. ниже «Фронтенд».
+This document describes deploying the fire-hazard assessment panel's backend
+on Android (Termux): daemonizing it via `Runit` (`termux-services`),
+tunneling traffic through Cloudflare Zero Trust
+(`xscienceapi.andatra.space`), and administering the service. The frontend
+(React) is deployed separately on GitHub Pages — see "Frontend" below.
 
-## 1. Обзор
+## 1. Overview
 
 ```
-[ Браузер оператора ]
+[ Operator's browser ]
         │ HTTPS
         ▼
-[ xscience.andatra.space ]  ──  GitHub Pages (статика React, CNAME)
+[ xscience.andatra.space ]  ──  GitHub Pages (static React, CNAME)
         │ fetch (credentials: include), CORS
         ▼
 [ Cloudflare Edge: Zero Trust Tunnel "termux-android" ]
         │ xscienceapi.andatra.space -> 127.0.0.1:5007
         ▼
-[ Смартфон (Android + Termux) ]
-        └──► [ Gunicorn (Runit-демон, -w 1 --threads 20, порт 5007) ]
+[ Phone (Android + Termux) ]
+        └──► [ Gunicorn (Runit daemon, -w 1 --threads 20, port 5007) ]
                     ├──► Flask app (app/__init__.py)
-                    ├──► Фоновый поток передачи отчётов (XSCI_REPORT_WORKER)
-                    ├──► Фоновый поток имитации датчиков (XSCI_SENSOR_WORKER)
+                    ├──► Report transmission background thread (XSCI_REPORT_WORKER)
+                    ├──► Sensor simulation background thread (XSCI_SENSOR_WORKER)
                     └──► SQLite (backend/data/xscience.sqlite3)
 ```
 
-**Важно:** `-w 1` (один воркер) обязателен. Оба фоновых потока (передача
-отчётов и марковская имитация датчиков) должны продвигать состояние только
-в одном процессе — при нескольких воркерах/процессах они начнут работать
-наперегонки и дадут противоречивую историю (см. `backend/README.md`,
-раздел «Перед продом»).
+**Important:** `-w 1` (a single worker) is mandatory. Both background
+threads (report transmission and the Markov-chain sensor simulation) must
+advance state in only one process — with multiple workers/processes they
+would race each other and produce an inconsistent history (see
+`backend/README.md`, the "Before production" section).
 
-## 2. Фронтенд (отдельно от этого документа)
+## 2. Frontend (separate from this document)
 
-* **Хостинг:** GitHub Pages, workflow `.github/workflows/pages.yml`, деплой
-  при пуше в `main` (пути `frontend/**`).
-* **Домен:** `xscience.andatra.space`, custom domain зарегистрирован через
+* **Hosting:** GitHub Pages, workflow `.github/workflows/pages.yml`,
+  deployed on push to `main` (paths `frontend/**`).
+* **Domain:** `xscience.andatra.space`; the custom domain is registered via
   `gh api repos/Qoziwe/XScience/pages` (`cname` + `https_enforced=true`) —
-  при workflow-деплое (`build_type=workflow`) одного файла
-  `frontend/public/CNAME` в артефакте недостаточно, Pages не регистрирует
-  кастомный домен автоматически, нужен отдельный вызов API/настройка в
-  Settings → Pages.
-* **`VITE_API_BASE_URL`** в workflow указывает на `https://xscienceapi.andatra.space/api`.
+  with a workflow deploy (`build_type=workflow`), having
+  `frontend/public/CNAME` in the artifact alone is not enough; Pages does not
+  register the custom domain automatically, a separate API call/setting
+  under Settings → Pages is required.
+* **`VITE_API_BASE_URL`** in the workflow points to `https://xscienceapi.andatra.space/api`.
 
-## 3. Бэкенд на Termux
+## 3. Backend on Termux
 
-* **Путь на устройстве:** `/data/data/com.termux/files/home/XScience/backend`
-* **Python:** venv (`backend/venv`), запуск под Termux Python (на момент
-  деплоя — cp314, arm64).
-* **Зависимости:** `requirements.txt` (Flask, опционально `argon2-cffi` —
-  без компилятора `clang` в Termux собирается долго/падает, без него
-  бэкенд сам переключается на `scrypt` из stdlib) + `python-dotenv` и
-  `gunicorn`, доставленные отдельно (их нет в `requirements.txt`, нужны
-  только для прод-запуска на телефоне).
-* **Конфиг:** `.env` (из `.env.example`), ключевые отличия от шаблона:
+* **Path on the device:** `/data/data/com.termux/files/home/XScience/backend`
+* **Python:** a venv (`backend/venv`), run under Termux Python (at deploy
+  time — cp314, arm64).
+* **Dependencies:** `requirements.txt` (Flask, optionally `argon2-cffi` —
+  without the `clang` compiler in Termux it builds slowly/fails, and without
+  it the backend falls back to stdlib `scrypt` on its own) + `python-dotenv`
+  and `gunicorn`, delivered separately (they aren't in `requirements.txt`,
+  needed only for the production run on the phone).
+* **Config:** `.env` (from `.env.example`), key differences from the template:
   ```
   XSCI_PORT=5007
   XSCI_COOKIE_SECURE=1
   XSCI_COOKIE_DOMAIN=.andatra.space
   XSCI_CORS_ORIGIN=https://xscience.andatra.space
   ```
-  `XSCI_ENV` оставлен `development`, чтобы работал статический демо-код
-  второго фактора (`XSCI_DEMO_CODE=123456`, демо-учётка `demo` /
-  `xscience-demo`) для показа на хакатоне.
-* **Важно:** сам `run.py`/`app/config.py` не вызывают `load_dotenv()` —
-  simple `python3 run.py` не подхватывает `.env` даже с установленным
-  `python-dotenv`. Поэтому переменные грузятся явно в run-скрипте демона
-  (`set -a; . ./.env; set +a`) перед запуском gunicorn.
+  `XSCI_ENV` is left as `development` so the static second-factor demo code
+  still works (`XSCI_DEMO_CODE=123456`, demo account `demo` /
+  `xscience-demo`) for the hackathon demo.
+* **Important:** `run.py`/`app/config.py` themselves do not call
+  `load_dotenv()` — a plain `python3 run.py` won't pick up `.env` even with
+  `python-dotenv` installed. So the variables are loaded explicitly in the
+  daemon's run script (`set -a; . ./.env; set +a`) before starting gunicorn.
 
-### A. Демонизация (Runit / termux-services)
+### A. Daemonization (Runit / termux-services)
 
-* **Служебная директория:** `$PREFIX/var/service/xscience-backend/`
-* **Run-скрипт** (`$PREFIX/var/service/xscience-backend/run`):
+* **Service directory:** `$PREFIX/var/service/xscience-backend/`
+* **Run script** (`$PREFIX/var/service/xscience-backend/run`):
   ```sh
   #!/data/data/com.termux/files/usr/bin/sh
   exec 2>&1
@@ -82,81 +82,82 @@
   set +a
   exec /data/data/com.termux/files/home/XScience/backend/venv/bin/gunicorn -w 1 --threads 20 -b 127.0.0.1:5007 run:app
   ```
-* **Логирование:** `$PREFIX/var/service/xscience-backend/log/run` —
-  симлинк на `$PREFIX/share/termux-services/svlogger`. Логи пишутся в
+* **Logging:** `$PREFIX/var/service/xscience-backend/log/run` — a symlink to
+  `$PREFIX/share/termux-services/svlogger`. Logs are written to
   `$PREFIX/var/log/sv/xscience-backend/current`.
-  * Грабли: если `log/` создать ПОСЛЕ того, как `runsv` для сервиса уже
-    запущен, он не заметит новую поддиректорию и `log/supervise/` не
-    появится (`sv status` будет писать `unable to open supervise/ok`).
-    Фикс — убить процесс `runsv xscience-backend` (`pgrep -fa 'runsv
-    xscience-backend'` → `kill <pid>`), `runsvdir` поднимет его заново и
-    на этот раз подхватит `log/`.
+  * Gotcha: if `log/` is created AFTER `runsv` for the service is already
+    running, it won't notice the new subdirectory and `log/supervise/` won't
+    appear (`sv status` will report `unable to open supervise/ok`). Fix —
+    kill the `runsv xscience-backend` process (`pgrep -fa 'runsv
+    xscience-backend'` → `kill <pid>`); `runsvdir` will bring it back up and
+    pick up `log/` this time.
 
-### B. Сеть и Cloudflare Zero Trust Tunnel
+### B. Networking and the Cloudflare Zero Trust Tunnel
 
-* **Коннектор тоннеля:** `termux-android` — общий тоннель для нескольких
-  проектов на этом устройстве (routes: `eventumapi`→5001, `termuxssh`→ssh
+* **Tunnel connector:** `termux-android` — a shared tunnel for several
+  projects on this device (routes: `eventumapi`→5001, `termuxssh`→ssh
   8022, `amadeus`→5002, `chan`→5003, `presentum`→5004, `observatum`→5005,
-  `venator`→5006, **`xscienceapi`→5007**). Отдельный тоннель заводить не
-  нужно — только новый published application route в существующем.
+  `venator`→5006, **`xscienceapi`→5007**). No separate tunnel is needed —
+  only a new published application route in the existing one.
 * **Route:** `xscienceapi.andatra.space` ➔ `http://127.0.0.1:5007`.
-* ⚠️ Указывать именно `127.0.0.1`, а не `localhost` — на Android/Bionic
-  резолв `localhost` в IPv6 `::1` даёт задержку ~5 секунд на запрос.
-* **`cloudflared tunnel login`** на Termux ломается (`SIGSYS` на
-  `faccessat2` при попытке открыть браузер — seccomp Android блокирует
-  синтаксис, Go-рантайм падает вместо грациозного фолбэка). Это не нужно:
-  тоннель `termux-android` remotely-managed (токен, без `cert.pem`),
-  роутинг настраивается целиком в дашборде Cloudflare, локально — ничего.
+* ⚠️ Use `127.0.0.1`, not `localhost` — on Android/Bionic, resolving
+  `localhost` to IPv6 `::1` adds a ~5-second delay per request.
+* **`cloudflared tunnel login`** is broken on Termux (`SIGSYS` on
+  `faccessat2` when trying to open a browser — Android's seccomp blocks the
+  syscall, and the Go runtime crashes instead of falling back gracefully).
+  This isn't needed anyway: the `termux-android` tunnel is remotely managed
+  (token-based, no `cert.pem`), and routing is configured entirely in the
+  Cloudflare dashboard — nothing local is required.
 
-## 4. Структура на Termux
+## 4. Layout on Termux
 
 ```text
 ~/XScience/
 ├── backend/
-│   ├── .env                  # секреты прод-конфига (не в git)
+│   ├── .env                  # production config secrets (not in git)
 │   ├── .env.example
-│   ├── run.py                 # точка входа (app = create_app())
-│   ├── seed.py                 # демо-учётка
+│   ├── run.py                 # entry point (app = create_app())
+│   ├── seed.py                 # demo account
 │   ├── requirements.txt
-│   ├── app/                    # фабрика, домен, сервисы, API — см. backend/README.md
+│   ├── app/                    # factory, domain, services, API — see backend/README.md
 │   ├── data/
 │   │   └── xscience.sqlite3
 │   └── venv/
-└── frontend/                    # деплоится отдельно на GitHub Pages, на телефоне не нужен
+└── frontend/                    # deployed separately on GitHub Pages, not needed on the phone
 ```
 
-## 5. Шпаргалка администрирования
+## 5. Administration cheat sheet
 
-### Служба:
+### Service:
 ```bash
-sv status xscience-backend         # статус (main + log)
-sv restart xscience-backend        # после git pull / правки .env
+sv status xscience-backend         # status (main + log)
+sv restart xscience-backend        # after git pull / editing .env
 sv down xscience-backend
 sv up xscience-backend
 ```
 
-### Логи:
+### Logs:
 ```bash
-cat $PREFIX/var/log/sv/xscience-backend/current     # все строки с момента ротации
-tail -f $PREFIX/var/log/sv/xscience-backend/current # вживую
+cat $PREFIX/var/log/sv/xscience-backend/current     # all lines since the last rotation
+tail -f $PREFIX/var/log/sv/xscience-backend/current # live
 ```
 
-### Обновление кода:
+### Updating the code:
 ```bash
 cd ~/XScience && git pull
-cd backend && ./venv/bin/pip install -r requirements.txt   # если менялись зависимости
+cd backend && ./venv/bin/pip install -r requirements.txt   # if dependencies changed
 sv restart xscience-backend
 ```
 
-### Проверка живости:
+### Liveness check:
 ```bash
-curl -i http://127.0.0.1:5007/api/me   # 401 {"error":"unauthorized"} — сервер жив, просто не залогинен
-curl -i https://xscienceapi.andatra.space/api/me   # то же самое снаружи, через тоннель
+curl -i http://127.0.0.1:5007/api/me   # 401 {"error":"unauthorized"} — the server is alive, just not logged in
+curl -i https://xscienceapi.andatra.space/api/me   # the same, from outside, through the tunnel
 ```
 
-### Питание телефона 24/7:
+### Keeping the phone powered 24/7:
 ```bash
-termux-wake-lock   # не даёт CPU уходить в глубокий сон при выключенном экране
+termux-wake-lock   # keeps the CPU from going into deep sleep with the screen off
 ```
-Плюс в настройках Android — исключить Termux из оптимизации батареи,
-иначе ОС может убить процесс при долгом простое.
+Also, in Android settings — exclude Termux from battery optimization,
+otherwise the OS may kill the process after a long idle period.

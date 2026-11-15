@@ -1,4 +1,4 @@
-"""Имитация датчиков (прототип) — тумблеры в хедере и форме анализа."""
+"""Sensor simulation (prototype) — toggles in the header and the analysis form."""
 from __future__ import annotations
 
 from flask import Blueprint, jsonify, request

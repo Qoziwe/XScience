@@ -1,6 +1,6 @@
 """
-Агрегация состояния корабля. Порт frontend/src/domain/ship.ts (§7.4, §14.6).
-Отдаётся через GET /api/ship/status (§18.2).
+Ship status aggregation. Port of frontend/src/domain/ship.ts (§7.4, §14.6).
+Served via GET /api/ship/status (§18.2).
 """
 from __future__ import annotations
 
@@ -11,12 +11,12 @@ from .reference import SECTORS, VERDICT_RU
 
 
 def js_round(x: float) -> int:
-    """Округление как Math.round в JS (половина — вверх), а не банковское."""
+    """Rounding like Math.round in JS (half rounds up), not banker's rounding."""
     return math.floor(x + 0.5)
 
 
 def latest_by_sector(hist: list[dict[str, Any]]) -> dict[str, dict[str, Any]]:
-    """Последний анализ каждого сектора (по порядку истории, по возрастанию id)."""
+    """The latest analysis for each sector (in history order, ascending by id)."""
     last: dict[str, dict[str, Any]] = {}
     for h in hist:
         last[h['sector']] = h
@@ -68,24 +68,24 @@ def ship_status(hist: list[dict[str, Any]]) -> dict[str, Any]:
     confidence = js_round(mean_conf * (0.6 + 0.4 * coverage))
 
     if worst == 'high':
-        summary = (f'Опасность в секторах: {codes_with("high")}. '
-                   + (f'Внимания требуют: {codes_with("medium")}. ' if counts['medium'] else '')
-                   + 'Приоритет — нейтрализовать опасность в указанных секторах.')
+        summary = (f'Danger in sectors: {codes_with("high")}. '
+                   + (f'Attention needed: {codes_with("medium")}. ' if counts['medium'] else '')
+                   + 'Priority — neutralize the danger in the listed sectors.')
     elif worst == 'medium':
-        summary = f'Критических секторов нет. Внимания требуют: {codes_with("medium")}.'
+        summary = f'No critical sectors. Attention needed: {codes_with("medium")}.'
     else:
-        summary = 'Во всех проанализированных секторах условия безопасны.'
+        summary = 'Conditions are safe in all analyzed sectors.'
 
     base.update({
         'worst': worst,
         'verdict': worst,
         'verdict_label': VERDICT_RU[worst],
-        'subtitle': (f'по {analysed} из {total} секторов — картина неполная'
-                     if analysed < total else 'по всем секторам'),
+        'subtitle': (f'{analysed} of {total} sectors — incomplete picture'
+                     if analysed < total else 'all sectors'),
         'summary': summary,
         'confidence': confidence,
-        'confidence_note': ('Снижена: проанализированы не все сектора.'
-                            if analysed < total else 'Проанализированы все сектора.'),
+        'confidence_note': ('Reduced: not all sectors have been analyzed.'
+                            if analysed < total else 'All sectors have been analyzed.'),
     })
     return base
 

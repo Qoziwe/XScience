@@ -1,6 +1,6 @@
 /**
- * Общее состояние клиента. FUNCTIONAL_SPEC.md §5.3.
- * История анализов приходит из api (сейчас localApi), остальное — состояние интерфейса.
+ * Shared client state. FUNCTIONAL_SPEC.md §5.3.
+ * Analysis history comes from the api (currently localApi), the rest is UI state.
  */
 import {
   createContext,
@@ -25,14 +25,14 @@ export interface ModalState {
   view: ModalView;
 }
 
-/** Настройки отображения (§20). Не влияют на расчёт. */
+/** Display settings (§20). Do not affect the calculation. */
 export interface Tweaks {
   showContrib: boolean;
   palette: Palette;
 }
 
 export interface Photo {
-  /** Есть, когда снимок сохранён на сервере (§18.7); иначе — объект в памяти. */
+  /** Present when the photo is saved on the server (§18.7); otherwise an in-memory object. */
   id?: string;
   url: string;
   name: string;
@@ -47,28 +47,28 @@ export interface Annotation {
 
 export interface State {
   tab: Tab;
-  /** Текущий сектор, общий для Обзора, Карты и Анализа. */
+  /** Current sector, shared by Overview, Map, and Analysis. */
   cur: SectorId | null;
   form: FormState;
   hist: Analysis[];
-  /** Анализ, результат которого показан на вкладке «Анализ». */
+  /** Analysis whose result is shown on the "Analysis" tab. */
   activeId: number | null;
-  /** Выбранный отчёт; null → последний. */
+  /** Selected report; null → the latest. */
   repId: number | null;
   modal: ModalState | null;
   running: boolean;
   tweaks: Tweaks;
-  /** Вкладка «Данные». */
+  /** "Data" tab. */
   dsMat: MaterialType | 'all';
   dsMismatchOnly: boolean;
-  /** Вкладка «Модели», Stage 3. */
+  /** "Models" tab, Stage 3. */
   d0: string;
   k: string;
   photo: Photo | null;
   annotation: Annotation;
-  /** История уже загружена: после этого activeId сам не восстанавливается. */
+  /** History has already loaded: after that, activeId no longer restores itself. */
   histLoaded: boolean;
-  /** [ПРОТОТИП] имитация датчиков — тумблеры в хедере и форме анализа. */
+  /** [PROTOTYPE] sensor simulation — toggles in the header and the analysis form. */
   sensors: SensorsStatus;
 }
 
@@ -121,15 +121,15 @@ function reducer(s: State, a: Action): State {
       return { ...s, cur: a.sector };
     case 'patchForm':
       return { ...s, form: { ...s.form, ...a.patch } };
-    // §9.1 «Очистить»: форма пуста, результат скрыт, сектор и история сохранены.
+    // §9.1 "Clear": the form is empty, the result is hidden, sector and history are kept.
     case 'resetForm':
       return { ...s, form: { ...EMPTY_FORM }, activeId: null };
     case 'loadForm':
       return { ...s, form: a.form };
     case 'hist': {
-      // Только при первой загрузке активным становится последний анализ истории (§9.6).
-      // Дальше фоновые обновления (смена статуса передачи отчёта) activeId не меняют —
-      // иначе после «Очистить» результат возвращался бы сам.
+      // Only on the first load does the latest history analysis become active (§9.6).
+      // After that, background updates (report transmission status change) do not change activeId —
+      // otherwise the result would come back on its own after "Clear".
       if (s.histLoaded) return { ...s, hist: a.hist };
       return {
         ...s,
@@ -140,7 +140,7 @@ function reducer(s: State, a: Action): State {
     }
     case 'running':
       return { ...s, running: a.running };
-    // §5.3 — открытие анализа ставит activeId, cur и копирует параметры в форму.
+    // §5.3 — opening an analysis sets activeId, cur, and copies parameters into the form.
     case 'openAnalysis':
       return {
         ...s,
@@ -178,7 +178,7 @@ function reducer(s: State, a: Action): State {
         ...s,
         annotation: {
           ...s.annotation,
-          // Повторное нажатие снимает выбор (§17.3).
+          // Pressing it again clears the selection (§17.3).
           [a.key]: s.annotation[a.key] === a.value ? '' : a.value,
         },
       };
@@ -190,11 +190,11 @@ function reducer(s: State, a: Action): State {
 interface Store {
   state: State;
   dispatch: React.Dispatch<Action>;
-  /** §9.5 — запуск расчёта. Повторный запуск во время расчёта игнорируется. */
+  /** §9.5 — start the calculation. A repeat run during calculation is ignored. */
   runAnalysis: (sector: SectorId, params: Parameters<typeof api.analyses.create>[0]['params']) => void;
-  /** [ПРОТОТИП] включить/выключить имитацию датчиков. Нет при VITE_API=local. */
+  /** [PROTOTYPE] turn sensor simulation on/off. Absent when VITE_API=local. */
   toggleSensors: (enabled: boolean) => void;
-  /** [ПРОТОТИП] разблокировать форму ручного ввода, пока датчики включены. */
+  /** [PROTOTYPE] unlock the manual-entry form while sensors are enabled. */
   setManualOverride: (enabled: boolean) => void;
 }
 
@@ -205,7 +205,7 @@ export function StoreProvider({
   seed,
 }: {
   children: ReactNode;
-  /** Начальное состояние для тестов и смоук-прогона. В приложении не используется. */
+  /** Initial state for tests and the smoke run. Not used by the app itself. */
   seed?: Partial<State>;
 }) {
   const [state, dispatch] = useReducer(reducer, { ...initialState, ...seed });
@@ -267,6 +267,6 @@ export function StoreProvider({
 
 export function useStore(): Store {
   const ctx = useContext(StoreContext);
-  if (!ctx) throw new Error('useStore: нет StoreProvider выше в дереве');
+  if (!ctx) throw new Error('useStore: no StoreProvider above in the tree');
   return ctx;
 }

@@ -1,7 +1,7 @@
 /**
- * Расчёт риска, затухания, вердикта и уверенности.
- * FUNCTIONAL_SPEC.md §14 — единственный источник истины.
- * [БЭКЕНД] этот модуль переносится на сервер (модуль расчёта Flask) без изменений логики.
+ * Risk, extinction, verdict, and confidence calculation.
+ * FUNCTIONAL_SPEC.md §14 — the single source of truth.
+ * [BACKEND] this module is ported to the server (Flask calculation module) with no logic changes.
  */
 import { MAT } from './reference';
 import type { AnalysisParams, Level, PartialScores, Scores } from './types';
@@ -39,13 +39,13 @@ export function score(p: AnalysisParams): Scores {
   return { t, risk, ext, level: riskLevel(risk), extLevel: extinctionLevel(ext) };
 }
 
-/** §14.4 — поправка на устойчивость пламени. */
+/** §14.4 — flame stability adjustment. */
 export const stabilityAdjust = (ext: number): number => (ext <= 1 ? 2 : ext >= 4 ? -1 : 0);
 
-/** §14.4 — индекс опасности D (2..18). */
+/** §14.4 — danger index D (2..18). */
 export const dangerIndex = (risk: number, ext: number): number => risk + stabilityAdjust(ext);
 
-/** §14.4 — вердикт состояния по индексу опасности. */
+/** §14.4 — state verdict based on the danger index. */
 export function verdictOf(risk: number, ext: number): Level {
   const d = dangerIndex(risk, ext);
   return d >= 10 ? 'high' : d >= 6 ? 'medium' : 'low';
@@ -53,7 +53,7 @@ export function verdictOf(risk: number, ext: number): Level {
 
 export const verdictOfScores = (s: Scores): Level => verdictOf(s.risk, s.ext);
 
-/** §14.5 — неопределённые границы (16.1). Точное сравнение чисел. */
+/** §14.5 — uncertain boundaries (16.1). Exact number comparison. */
 export const BOUNDARIES = {
   o2: [16, 18, 19, 21],
   flow: [1, 5, 15],
@@ -75,7 +75,7 @@ export function boundaryCount(p: AnalysisParams): number {
   return n;
 }
 
-/** §14.5 — эвристика уверенности интерфейса, 45..94. */
+/** §14.5 — UI confidence heuristic, 45..94. */
 export function confidenceOf(p: AnalysisParams): number {
   let c = 94;
   c -= 8 * boundaryCount(p);
@@ -84,20 +84,20 @@ export function confidenceOf(p: AnalysisParams): number {
   return Math.max(45, Math.min(94, c));
 }
 
-/** Причины снижения уверенности — для пояснения под полосой. */
+/** Reasons for reduced confidence — for the caption under the bar. */
 export function confidenceReasons(p: AnalysisParams): string[] {
   const r: string[] = [];
   const bnd = boundaryCount(p);
-  if (bnd) r.push(`${bnd} знач. на неопределённых границах (16.1)`);
-  if (p.material === 'other') r.push('свойства материала не заданы');
-  if (p.o2 > 30 || p.flow > 15) r.push('значения вне проверенных диапазонов NASA (16.13)');
+  if (bnd) r.push(`${bnd} value(s) on uncertain boundaries (16.1)`);
+  if (p.material === 'other') r.push('material properties not specified');
+  if (p.o2 > 30 || p.flow > 15) r.push('values outside the validated NASA ranges (16.13)');
   return r;
 }
 
 export const confidenceNote = (p: AnalysisParams): string => {
   const r = confidenceReasons(p);
-  return r.length ? `Снижена: ${r.join('; ')}.` : 'Все показания в определённых диапазонах.';
+  return r.length ? `Reduced: ${r.join('; ')}.` : 'All readings are within well-defined ranges.';
 };
 
-/** Зона шкалы RiskScore для значения 3..16 (§9.7). */
+/** RiskScore scale zone for a value 3..16 (§9.7). */
 export const riskZone = (n: number): Level => (n <= 3 ? 'low' : n <= 6 ? 'medium' : 'high');

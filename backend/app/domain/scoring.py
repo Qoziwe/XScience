@@ -1,7 +1,7 @@
 """
-Расчёт риска, затухания, вердикта и уверенности.
-Порт frontend/src/domain/scoring.ts; FUNCTIONAL_SPEC.md §14 — единственный
-источник истины. Модуль расчёта сервера: клиент баллы не присылает (§18.3).
+Risk, extinction, verdict, and confidence calculation.
+Port of frontend/src/domain/scoring.ts; FUNCTIONAL_SPEC.md §14 is the single
+source of truth. Server-side calculation module: the client never sends scores (§18.3).
 """
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from .reference import MAT
 
 
 class Params(TypedDict):
-    """Числовые параметры анализа (§4.2, имена полей прототипа)."""
+    """Numeric analysis parameters (§4.2, prototype field names)."""
     material: str
     desc: str
     thickness: float
@@ -42,7 +42,7 @@ class Scores(TypedDict):
     extLevel: str
 
 
-# §14.1 — частичные баллы риска.
+# §14.1 — partial risk scores.
 def oxygen_risk(o2: float) -> int:
     return 0 if o2 < 16 else 1 if o2 <= 18 else 2 if o2 <= 21 else 3
 
@@ -63,7 +63,7 @@ def gravity_risk(g: str) -> int:
     return 1 if g == 'microgravity' else 0
 
 
-# §14.2 — частичные баллы затухания.
+# §14.2 — partial extinction scores.
 def oxygen_deficit(o2: float) -> int:
     return 3 if o2 < 16 else 2 if o2 < 18 else 1 if o2 < 19 else 0
 
@@ -76,7 +76,7 @@ def thickness_bonus(mm: float) -> int:
     return 3 if mm < 0.2 else 2 if mm <= 0.5 else 1 if mm <= 2 else 0
 
 
-# §14.3 — суммы и уровни.
+# §14.3 — totals and levels.
 def risk_level(r: int) -> str:
     return 'low' if r <= 3 else 'medium' if r <= 6 else 'high'
 
@@ -104,17 +104,17 @@ def score(p: Params) -> Scores:
 
 
 def stability_adjust(ext: int) -> int:
-    """§14.4 — поправка на устойчивость пламени."""
+    """§14.4 — flame stability adjustment."""
     return 2 if ext <= 1 else -1 if ext >= 4 else 0
 
 
 def danger_index(risk: int, ext: int) -> int:
-    """§14.4 — индекс опасности D (2..18)."""
+    """§14.4 — danger index D (2..18)."""
     return risk + stability_adjust(ext)
 
 
 def verdict_of(risk: int, ext: int) -> str:
-    """§14.4 — вердикт состояния по индексу опасности."""
+    """§14.4 — status verdict based on the danger index."""
     d = danger_index(risk, ext)
     return 'high' if d >= 10 else 'medium' if d >= 6 else 'low'
 
@@ -123,7 +123,7 @@ def verdict_of_scores(s: Scores) -> str:
     return verdict_of(s['risk'], s['ext'])
 
 
-#: §14.5 — неопределённые границы (16.1). Точное сравнение чисел.
+#: §14.5 — uncertain boundaries (16.1). Exact number comparison.
 BOUNDARIES: dict[str, tuple[float, ...]] = {
     'o2': (16, 18, 19, 21),
     'flow': (1, 5, 15),
@@ -153,7 +153,7 @@ def boundary_count(p: Params) -> int:
 
 
 def confidence_of(p: Params) -> int:
-    """§14.5 — эвристика уверенности интерфейса, 45..94."""
+    """§14.5 — interface confidence heuristic, 45..94."""
     c = 94
     c -= 8 * boundary_count(p)
     if p['material'] == 'other':
@@ -164,20 +164,20 @@ def confidence_of(p: Params) -> int:
 
 
 def confidence_reasons(p: Params) -> list[str]:
-    """Причины снижения уверенности — текст для пояснения под полосой."""
+    """Reasons for the reduced confidence — explanatory text shown below the bar."""
     r: list[str] = []
     bnd = boundary_count(p)
     if bnd:
-        r.append(f'{bnd} знач. на неопределённых границах (16.1)')
+        r.append(f'{bnd} value(s) on uncertain boundaries (16.1)')
     if p['material'] == 'other':
-        r.append('свойства материала не заданы')
+        r.append('material properties are not specified')
     if p['o2'] > 30 or p['flow'] > 15:
-        r.append('значения вне проверенных диапазонов NASA (16.13)')
+        r.append('values outside verified NASA ranges (16.13)')
     return r
 
 
 def confidence_codes(p: Params) -> list[str]:
-    """Машиночитаемые причины для хранения в записи анализа (§4.2)."""
+    """Machine-readable reasons for storage in the analysis record (§4.2)."""
     codes: list[str] = []
     if on_oxygen_boundary(p['o2']):
         codes.append('boundary:oxygen_percent')
@@ -198,9 +198,9 @@ def confidence_codes(p: Params) -> list[str]:
 
 def confidence_note(p: Params) -> str:
     r = confidence_reasons(p)
-    return f'Снижена: {"; ".join(r)}.' if r else 'Все показания в определённых диапазонах.'
+    return f'Reduced: {"; ".join(r)}.' if r else 'All readings are within well-defined ranges.'
 
 
 def risk_zone(n: float) -> str:
-    """Зона шкалы RiskScore для значения 3..16 (§9.7)."""
+    """RiskScore scale zone for a value in 3..16 (§9.7)."""
     return 'low' if n <= 3 else 'medium' if n <= 6 else 'high'

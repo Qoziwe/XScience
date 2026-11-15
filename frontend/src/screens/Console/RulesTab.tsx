@@ -1,4 +1,4 @@
-/** Вкладка «Правила». FUNCTIONAL_SPEC.md §13. */
+/** "Rules" tab. FUNCTIONAL_SPEC.md §13. */
 import { MAT, gravityShort } from '@/domain/reference';
 import { f1, pn } from '@/domain/format';
 import { RULE_CARDS, type RuleCard } from '@/domain/rules';
@@ -14,7 +14,7 @@ export function RulesTab() {
   const { form } = state;
   const { status, live, totals } = model;
 
-  // Диапазон подсвечивается только если соответствующее поле в статусе ok.
+  // A range is highlighted only if the corresponding field's status is ok.
   const t: Partial<PartialScores> = Object.fromEntries(
     Object.entries(live).filter(([, v]) => v !== null),
   ) as Partial<PartialScores>;
@@ -27,15 +27,15 @@ export function RulesTab() {
       case 'o2':
         return status.o2 === 'ok' ? `${f1(pn(form.o2))} %` : '—';
       case 'flow':
-        return status.flow === 'ok' ? `${f1(pn(form.flow))} см/с` : '—';
+        return status.flow === 'ok' ? `${f1(pn(form.flow))} cm/s` : '—';
       case 'temp':
         return status.temp === 'ok' ? `${pn(form.temp)} °C` : '—';
       case 'time':
-        return status.time === 'ok' ? `${pn(form.time)} с` : '—';
+        return status.time === 'ok' ? `${pn(form.time)} s` : '—';
       case 'gravity':
         return status.gravity === 'ok' ? gravityShort(form.gravity!) : '—';
       case 'thickness':
-        return status.thickness === 'ok' ? `${f1(pn(form.thickness))} мм` : '—';
+        return status.thickness === 'ok' ? `${f1(pn(form.thickness))} mm` : '—';
     }
   };
 
@@ -44,8 +44,8 @@ export function RulesTab() {
       <div className="stack">
         <Card>
           <CardHead
-            title="Правила оценки"
-            kicker="диапазон подсвечивается, когда соответствующее поле формы заполнено"
+            title="Scoring Rules"
+            kicker="a range is highlighted when the corresponding form field is filled in"
           />
           <div className="card__body">
             <div className="mono" style={{ fontSize: 13 }}>
@@ -97,7 +97,7 @@ export function RulesTab() {
         </div>
 
         <Card>
-          <CardHead title="Открытые вопросы спецификации" kicker={ISSUES_SUMMARY} />
+          <CardHead title="Open Specification Questions" kicker={ISSUES_SUMMARY} />
           <div className="card__body">
             {ISSUES.map((i) => (
               <div
@@ -121,7 +121,7 @@ export function RulesTab() {
                     background: i.done ? 'var(--color-neutral-200)' : 'var(--color-accent-100)',
                   }}
                 >
-                  {i.done ? 'решён' : 'открыт'}
+                  {i.done ? 'resolved' : 'open'}
                 </span>
               </div>
             ))}

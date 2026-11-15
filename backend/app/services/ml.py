@@ -1,15 +1,17 @@
 """
-ML-модель риска и затухания (§17.1, Stage 2).
+ML model for risk and extinction (§17.1, Stage 2).
 
-Полностью на стандартной библиотеке: softmax-регрессия (многоклассовая
-логистическая) с градиентным спуском, два независимых выхода — risk_level и
-extinction_probability. Веса хранятся в БД, прогноз выдаётся только обученной
-моделью и НЕ подменяется расчётом по правилам (§17.1).
+Entirely on the standard library: softmax regression (multiclass logistic)
+with gradient descent, two independent outputs — risk_level and
+extinction_probability. Weights are stored in the DB; a prediction is only
+ever produced by a trained model and is NOT substituted for the rule-based
+calculation (§17.1).
 
-ЧЕСТНОЕ ОГРАНИЧЕНИЕ: метки обучающего набора посчитаны формулами §14
-(data_source = simulated), поэтому модель воспроизводит правила, а не
-независимые наблюдения. Это видно в ответе (`labels_are_rule_derived`).
-Заменить набор на измерения — отдельная задача (§19.3).
+HONEST LIMITATION: the training set's labels are computed by the §14 formulas
+(data_source = simulated), so the model approximates the rules rather than
+independent observations. This is visible in the response
+(`labels_are_rule_derived`). Replacing the set with real measurements is a
+separate task (§19.3).
 """
 from __future__ import annotations
 
@@ -29,7 +31,7 @@ CLASSES = ('low', 'medium', 'high')
 NUMERIC = ('thickness', 'o2', 'flow', 'temp', 'time')
 MATERIAL_CODES = [m['code'] for m in MATERIALS]
 
-#: §17.1 — обязательные проверки готовности данных.
+#: §17.1 — required data-readiness checks.
 MIN_ROWS = 50
 MIN_CLASSES = 3
 
@@ -37,7 +39,7 @@ DEFAULTS = {'epochs': 600, 'lr': 0.5, 'l2': 1e-4, 'test_share': 0.25, 'seed': 20
 
 
 def features(p: dict[str, Any]) -> list[float]:
-    """Признаки: one-hot материала, гравитация и нормированные числовые поля."""
+    """Features: one-hot material, gravity, and normalized numeric fields."""
     vec = [1.0 if p['material'] == code else 0.0 for code in MATERIAL_CODES]
     vec.append(1.0 if p['gravity'] == 'microgravity' else 0.0)
     for key in NUMERIC:
@@ -96,7 +98,7 @@ def _accuracy(w, b, xs, ys) -> float:
 
 
 def readiness() -> dict[str, Any]:
-    """§17.1 — четыре проверки по текущему набору + состояние модели."""
+    """§17.1 — four checks against the current dataset + model status."""
     info = summary()
     rows, valid = info['rows'], info['valid_data_source']
     train = training_rows()
@@ -104,30 +106,30 @@ def readiness() -> dict[str, Any]:
     train_ext = {r['extinction_probability'] for r in train}
 
     checks = [
-        {'key': 'rows', 'label': 'Строк в наборе', 'value': rows, 'target': MIN_ROWS,
+        {'key': 'rows', 'label': 'Rows in dataset', 'value': rows, 'target': MIN_ROWS,
          'passed': rows >= MIN_ROWS, 'required': True,
-         'note': f'цель {MIN_ROWS}–100 по разделу 13'},
-        {'key': 'risk_classes', 'label': 'Классов risk_level',
+         'note': f'target {MIN_ROWS}–100 per section 13'},
+        {'key': 'risk_classes', 'label': 'risk_level classes',
          'value': len(info['risk_classes']), 'target': MIN_CLASSES,
          'passed': len(info['risk_classes']) >= MIN_CLASSES, 'required': True,
-         'note': 'классификатор нельзя обучить на одном классе (16.4)'},
-        {'key': 'data_source', 'label': 'Корректный data_source', 'value': valid,
+         'note': 'a classifier cannot be trained on a single class (16.4)'},
+        {'key': 'data_source', 'label': 'Valid data_source', 'value': valid,
          'target': rows, 'passed': valid == rows, 'required': True,
-         'note': 'допустимы NASA_article / estimated / simulated (§19.1)'},
-        {'key': 'earth_rows', 'label': 'Строк с gravity = earth',
+         'note': 'NASA_article / estimated / simulated are allowed (§19.1)'},
+        {'key': 'earth_rows', 'label': 'Rows with gravity = earth',
          'value': info['earth_rows'], 'target': rows, 'passed': info['earth_rows'] > 0,
-         'required': False, 'note': 'без вариации признака его вклад не оценить'},
+         'required': False, 'note': 'without variation in a feature, its contribution cannot be estimated'},
     ]
 
     reasons: list[str] = []
     if len(train) < MIN_ROWS:
-        reasons.append(f'строк с допустимым data_source {len(train)}, нужно {MIN_ROWS}')
+        reasons.append(f'{len(train)} rows with a valid data_source, {MIN_ROWS} needed')
     if len(train_risk) < MIN_CLASSES:
-        reasons.append(f'классов risk_level в обучающем наборе {len(train_risk)}, '
-                       f'нужно {MIN_CLASSES}')
+        reasons.append(f'{len(train_risk)} risk_level classes in the training set, '
+                       f'{MIN_CLASSES} needed')
     if len(train_ext) < MIN_CLASSES:
-        reasons.append(f'классов extinction_probability {len(train_ext)}, '
-                       f'нужно {MIN_CLASSES}')
+        reasons.append(f'{len(train_ext)} extinction_probability classes, '
+                       f'{MIN_CLASSES} needed')
 
     return {
         'checks': checks,
@@ -139,7 +141,7 @@ def readiness() -> dict[str, Any]:
             'ext_classes': sorted(train_ext),
             'can_train': not reasons,
             'reasons': reasons,
-            # Решение: строки с data_source вне схемы §19.1 в обучение не идут.
+            # Design: rows whose data_source falls outside the §19.1 schema are excluded from training.
             'excluded_rows': rows - len(train),
             'labels_are_rule_derived': True,
         },
@@ -151,15 +153,15 @@ def active_model_info() -> dict[str, Any]:
     row = query('SELECT * FROM ml_models WHERE active = 1 ORDER BY id DESC', one=True)
     if not row:
         return {'trained': False, 'version': None,
-                'note': 'Прогноз выдаётся только обученной моделью и не подменяется '
-                        'расчётом по правилам (§17.1).'}
+                'note': 'A prediction is only produced by a trained model and is not '
+                        'substituted for the rule-based calculation (§17.1).'}
     metrics = json.loads(row['metrics'])
     return {'trained': True, 'id': row['id'], 'version': row['version'],
             'kind': row['kind'], 'trained_at': row['created_at'], 'metrics': metrics}
 
 
 def train(options: dict[str, Any] | None = None) -> dict[str, Any]:
-    """Обучение двух классификаторов. Доступно только при пройденных проверках."""
+    """Trains two classifiers. Available only once the checks pass."""
     opts = {**DEFAULTS, **(options or {})}
     rows = training_rows()
     rnd = random.Random(int(opts['seed']))
@@ -196,12 +198,12 @@ def train(options: dict[str, Any] | None = None) -> dict[str, Any]:
                   (iso(utc_now()), 'softmax_regression', VERSION,
                    json.dumps(params), json.dumps(metrics, ensure_ascii=False)))
     return {'id': int(cur.lastrowid), 'version': VERSION, 'metrics': metrics,
-            'note': 'Метки набора посчитаны формулами §14: модель приближает правила, '
-                    'а не независимые наблюдения (§19.3).'}
+            'note': 'The dataset labels are computed by the §14 formulas: the model '
+                    'approximates the rules, not independent observations (§19.3).'}
 
 
 def predict(p: dict[str, Any]) -> dict[str, Any]:
-    """Прогноз обученной модели. Без модели вызывающий код отвечает 409."""
+    """Prediction from the trained model. Without a model, the calling code returns 409."""
     row = query('SELECT * FROM ml_models WHERE active = 1 ORDER BY id DESC', one=True)
     if not row:
         return {}
@@ -216,6 +218,6 @@ def predict(p: dict[str, Any]) -> dict[str, Any]:
             'label': CLASSES[best],
             'probabilities': {c: round(v, 4) for c, v in zip(CLASSES, probs)},
         }
-    out['note'] = ('Прогноз ML-модели. Расчёт по правилам §14 остаётся основным '
-                   'источником вердикта — прогноз его не подменяет (§17.1).')
+    out['note'] = ('ML model prediction. The §14 rule-based calculation remains the '
+                   'primary source of the verdict — this prediction does not replace it (§17.1).')
     return out

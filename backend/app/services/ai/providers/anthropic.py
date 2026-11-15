@@ -1,11 +1,12 @@
 """
 Anthropic Messages API (`POST {base_url}/v1/messages`).
 
-Шейп запроса и блок изображения — по официальной документации Messages API:
-заголовки x-api-key + anthropic-version, системный промпт отдельным полем
-`system`, картинка блоком `{"type":"image","source":{"type":"base64",…}}`.
-Если проект когда-нибудь станет Anthropic-only, этот адаптер заменяется
-официальным SDK `anthropic`; пока слой провайдер-нейтральный и зависимостей нет.
+The request shape and image block follow the official Messages API docs:
+x-api-key + anthropic-version headers, the system prompt as a separate
+`system` field, an image as a `{"type":"image","source":{"type":"base64",…}}`
+block. If the project ever becomes Anthropic-only, this adapter can be
+replaced with the official `anthropic` SDK; for now the layer is
+provider-neutral and has no dependencies.
 """
 from __future__ import annotations
 
@@ -32,7 +33,7 @@ def _content(parts: list[Part]) -> list[dict[str, Any]]:
 
 def complete(system: str, parts: list[Part], cfg: ProviderConfig) -> str:
     if not cfg.api_key:
-        raise LlmError('для anthropic нужен api_key')
+        raise LlmError('anthropic requires an api_key')
     payload: dict[str, Any] = {
         'model': cfg.model,
         'max_tokens': cfg.max_tokens,
@@ -48,10 +49,10 @@ def complete(system: str, parts: list[Part], cfg: ProviderConfig) -> str:
 
     blocks = data.get('content')
     if not isinstance(blocks, list):
-        raise LlmError(f'ответ без content: {str(data)[:200]}')
+        raise LlmError(f'response has no content: {str(data)[:200]}')
     text = ''.join(b.get('text', '') for b in blocks
                    if isinstance(b, dict) and b.get('type') == 'text')
     if not text.strip():
-        # stop_reason refusal или ответ только из thinking-блоков
-        raise LlmError(f'пустой текст в ответе (stop_reason={data.get("stop_reason")})')
+        # stop_reason refusal, or a response made up only of thinking blocks
+        raise LlmError(f'empty text in response (stop_reason={data.get("stop_reason")})')
     return text

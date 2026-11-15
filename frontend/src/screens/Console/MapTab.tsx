@@ -1,4 +1,4 @@
-/** Вкладка «Карта». FUNCTIONAL_SPEC.md §8. */
+/** "Map" tab. FUNCTIONAL_SPEC.md §8. */
 import {
   DOT,
   MAT,
@@ -29,8 +29,8 @@ export function MapTab() {
       <div className="map-main">
         <Card>
           <CardHead
-            title="Карта корабля"
-            kicker="Выберите сектор, чтобы увидеть его состояние и запустить анализ."
+            title="Ship Map"
+            kicker="Select a sector to see its status and run an analysis."
           />
           <div className="card__body">
             <ShipMap
@@ -41,7 +41,7 @@ export function MapTab() {
             />
             <MapLegend />
             <span className="muted" style={{ fontSize: 12 }}>
-              Схема-заглушка: планировка корабля и назначение отсеков в спецификации не заданы.
+              Placeholder diagram: the ship layout and compartment assignment are not defined in the specification.
             </span>
           </div>
         </Card>
@@ -51,10 +51,10 @@ export function MapTab() {
         <Card>
           {!sector ? (
             <>
-              <CardHead title="Сектор не выбран" />
+              <CardHead title="No Sector Selected" />
               <div className="card__body">
                 <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-                  Нажмите на отсек на схеме. Пока сектор не выбран, анализ запустить нельзя.
+                  Click a compartment on the diagram. The analysis cannot be run until a sector is selected.
                 </p>
               </div>
             </>
@@ -64,7 +64,7 @@ export function MapTab() {
               <div className="card__body">
                 <div style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 13.5 }}>
                   <Dot color={DOT[ship.statusOf(sector.id)]} large />
-                  <span>{entry ? VERDICT_RU[entry.v] : 'Нет данных'}</span>
+                  <span>{entry ? VERDICT_RU[entry.v] : 'No data'}</span>
                   <span className="mono muted">
                     {scores ? `R${scores.risk} · E${scores.ext}` : '—'}
                   </span>
@@ -74,18 +74,18 @@ export function MapTab() {
                   <>
                     <p style={{ margin: 0, fontSize: 13 }}>{summaryOf(scores)}</p>
                     <div>
-                      <KeyValue k="Материал" v={MAT[entry.p.material].label} />
-                      <KeyValue k="Толщина" v={`${f1(entry.p.thickness)} мм`} />
-                      <KeyValue k="Кислород" v={`${f1(entry.p.o2)} %`} />
-                      <KeyValue k="Поток воздуха" v={`${f1(entry.p.flow)} см/с`} />
-                      <KeyValue k="Температура" v={`${entry.p.temp} °C`} />
-                      <KeyValue k="Время горения" v={`${entry.p.time} с`} />
-                      <KeyValue k="Гравитация" v={gravityRu(entry.p.gravity)} />
+                      <KeyValue k="Material" v={MAT[entry.p.material].label} />
+                      <KeyValue k="Thickness" v={`${f1(entry.p.thickness)} mm`} />
+                      <KeyValue k="Oxygen" v={`${f1(entry.p.o2)} %`} />
+                      <KeyValue k="Air Flow" v={`${f1(entry.p.flow)} cm/s`} />
+                      <KeyValue k="Temperature" v={`${entry.p.temp} °C`} />
+                      <KeyValue k="Burn Time" v={`${entry.p.time} s`} />
+                      <KeyValue k="Gravity" v={gravityRu(entry.p.gravity)} />
                     </div>
                   </>
                 ) : (
                   <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-                    В этом секторе анализ ещё не проводился.
+                    No analysis has been run in this sector yet.
                   </p>
                 )}
 
@@ -95,20 +95,20 @@ export function MapTab() {
                     className="btn btn--primary"
                     onClick={() => dispatch({ type: 'tab', tab: 'analysis' })}
                   >
-                    Анализ в этом секторе
+                    Analyze This Sector
                   </button>
                   <button
                     type="button"
                     className="btn"
                     onClick={() => dispatch({ type: 'tab', tab: 'overview' })}
                   >
-                    Показать на обзоре
+                    Show on Overview
                   </button>
                 </div>
               </div>
 
               <div className="card__section" style={{ gap: 0, paddingBottom: 0 }}>
-                <span className="field__label">Последние анализы</span>
+                <span className="field__label">Recent Analyses</span>
               </div>
               <div className="list">
                 {recent.length ? (
@@ -128,14 +128,14 @@ export function MapTab() {
                     </button>
                   ))
                 ) : (
-                  <div className="card__foot">Анализов в этом секторе ещё не было.</div>
+                  <div className="card__foot">No analyses in this sector yet.</div>
                 )}
               </div>
             </>
           )}
         </Card>
         <span className="muted" style={{ fontSize: 12 }}>
-          Палитра индикаторов: {tweaks.palette === 'mono' ? 'монохром' : 'сигнальная'}.
+          Indicator palette: {tweaks.palette === 'mono' ? 'monochrome' : 'signal'}.
         </span>
       </div>
     </main>

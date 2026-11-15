@@ -1,8 +1,8 @@
 /**
- * Защита маршрута панели. FUNCTIONAL_SPEC.md §6.5.
- * Пока сессия проверяется — на экране ничего, кроме надписи; без сессии —
- * возврат на вход. В режиме VITE_API=local сессия хранится в localStorage,
- * поэтому прототип после перезагрузки остаётся доступным.
+ * Console route guard. FUNCTIONAL_SPEC.md §6.5.
+ * While the session is being checked — nothing on screen but the label; without a
+ * session — redirect back to login. In VITE_API=local mode the session is stored
+ * in localStorage, so the prototype stays accessible after a reload.
  */
 import { useEffect, useState, type ReactNode } from 'react';
 import { Navigate } from 'react-router-dom';
@@ -28,7 +28,7 @@ export function RequireSession({ children }: { children: ReactNode }) {
     return (
       <div className="login">
         <span className="muted" style={{ margin: 'auto', fontSize: 13 }}>
-          Проверка сессии…
+          Checking session…
         </span>
       </div>
     );
