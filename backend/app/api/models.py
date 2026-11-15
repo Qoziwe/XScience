@@ -7,7 +7,7 @@ from ..domain import d2
 from ..domain.dataset import all_rows, summary
 from ..domain.validation import to_params, validate_input
 from ..errors import ApiError, bad_json, validation_error
-from ..services import auth, ml
+from ..services import ml
 
 bp = Blueprint('models', __name__, url_prefix='/api')
 
@@ -15,7 +15,6 @@ bp = Blueprint('models', __name__, url_prefix='/api')
 @bp.get('/dataset')
 def dataset():
     """§18.5 — dataset rows with the §14 formula cross-check result."""
-    auth.require_auth()
     rows = all_rows()
     if request.args.get('only_mismatches') in ('1', 'true', 'yes'):
         rows = [r for r in rows if not r['ok']]
@@ -27,15 +26,12 @@ def dataset():
 @bp.get('/models/ml/readiness')
 def readiness():
     """§17.1 — the four data-readiness checks and model state."""
-    auth.require_auth()
     return jsonify(ml.readiness())
 
 
 @bp.post('/models/ml/train')
 def train():
     """§17.1 — training is only available once all required checks pass."""
-    row = auth.require_auth()
-    auth.require_csrf(row)
     state = ml.readiness()
     if not state['training_set']['can_train']:
         raise ApiError(409, 'training_unavailable',
@@ -51,7 +47,6 @@ def train():
 @bp.post('/models/ml/predict')
 def predict():
     """§17.1 — prediction only when a model is trained, otherwise 409."""
-    auth.require_auth()
     body = request.get_json(silent=True)
     if body is None:
         raise bad_json()
@@ -71,7 +66,6 @@ def predict():
 @bp.post('/models/d2')
 def law_d2():
     """§17.2 — reduced form of the d² law."""
-    auth.require_auth()
     body = request.get_json(silent=True)
     if body is None:
         raise bad_json()

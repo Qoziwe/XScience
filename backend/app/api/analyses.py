@@ -7,7 +7,6 @@ from ..domain.report import history_csv
 from ..domain.validation import to_params, validate_input
 from ..errors import bad_json, not_found, validation_error
 from ..services import analyses as svc
-from ..services import auth
 from ..services.security import body_hash
 
 bp = Blueprint('analyses', __name__, url_prefix='/api')
@@ -29,8 +28,6 @@ def create():
     Body is AnalysisInput (§4.1). The client does not send scores, levels, the
     verdict, or texts: the server re-validates the input and computes everything itself (§18.3).
     """
-    row = auth.require_auth()
-    auth.require_csrf(row)
     body = request.get_json(silent=True)
     if body is None:
         raise bad_json()
@@ -42,7 +39,7 @@ def create():
     res = svc.create(
         params=to_params(clean),
         sector=clean['sector'],
-        operator_id=row['user_id'],
+        operator_id=None,
         idem_key=request.headers.get('Idempotency-Key'),
         request_hash=body_hash(request.get_data()),
     )
@@ -59,7 +56,6 @@ def create():
 @bp.get('/analyses')
 def listing():
     """List, newest first (§18.3)."""
-    auth.require_auth()
     return jsonify(svc.listing(sector=request.args.get('sector'),
                                limit=_int_arg('limit') or 100,
                                before_id=_int_arg('before_id')))
@@ -68,7 +64,6 @@ def listing():
 @bp.get('/analyses.csv')
 def csv_export():
     """§16.2 — history export."""
-    auth.require_auth()
     body = history_csv(svc.all_ascending())
     return Response('﻿' + body, mimetype='text/csv; charset=utf-8', headers={
         'Content-Disposition': 'attachment; filename="xscience-analyses.csv"'})
@@ -76,7 +71,6 @@ def csv_export():
 
 @bp.get('/analyses/<int:analysis_id>')
 def one(analysis_id: int):
-    auth.require_auth()
     rec = svc.get(analysis_id)
     if not rec:
         raise not_found()
@@ -86,6 +80,4 @@ def one(analysis_id: int):
 @bp.post('/analyses/<int:analysis_id>/ack')
 def ack(analysis_id: int):
     """Operator's "Acknowledged" confirmation (§10.2)."""
-    row = auth.require_auth()
-    auth.require_csrf(row)
-    return jsonify(svc.ack(analysis_id, row['user_id']))
+    return jsonify(svc.ack(analysis_id, None))

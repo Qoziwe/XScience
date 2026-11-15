@@ -1,5 +1,4 @@
 /** Console header. FUNCTIONAL_SPEC.md §5.1. */
-import { useNavigate } from 'react-router-dom';
 import { api } from '@/api';
 import { useStore, type Tab } from '@/state/store';
 import { shipStatus } from '@/domain/ship';
@@ -19,9 +18,8 @@ const REF_TABS: [Tab, string][] = [
   ['models', 'Models'],
 ];
 
-export function Header({ user }: { user: string }) {
+export function Header() {
   const { state, dispatch, toggleSensors } = useStore();
-  const navigate = useNavigate();
   const { enabled, manualOverride } = state.sensors;
   const ship = shipStatus(state.hist);
   const dangerCount = ship.dangers.length;
@@ -33,12 +31,6 @@ export function Header({ user }: { user: string }) {
     if (tab === 'overview' && dangerCount) return { text: `${dangerCount} danger`, danger: true };
     if (tab === 'reports' && reportCount) return { text: String(reportCount), danger: false };
     return null;
-  };
-
-  const logout = async () => {
-    // [PROTOTYPE] the session is not actually terminated. [BACKEND] POST /api/auth/logout.
-    await api.auth.logout();
-    navigate('/login');
   };
 
   return (
@@ -114,9 +106,6 @@ export function Header({ user }: { user: string }) {
             </button>
           </div>
         ) : null}
-        <button type="button" className="logout" onClick={logout}>
-          {user} · Log out
-        </button>
       </div>
     </header>
   );

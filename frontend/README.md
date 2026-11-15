@@ -15,7 +15,7 @@ classes live in `src/styles`, the palette is spec §21.3.
 
 ```bash
 npm install
-npm run dev        # http://localhost:5173 → /login
+npm run dev        # http://localhost:5173
 npm run build      # tsc -b + vite build
 npm run typecheck
 npm run smoke      # renders every screen in Node, without a browser
@@ -29,9 +29,7 @@ The data source is chosen via the `VITE_API` variable:
 | `http` (default) | the Flask API at `/api` — see [../backend](../backend/README.md) |
 | `local` | calculation in the browser + `localStorage` (prototype, works without a server) |
 
-Demo login (§6.4): username `demo`, password `xscience-demo`, code `123456`.
-The panel is also reachable directly at `/console` — as in the prototype,
-it is not yet protected by a session (§22).
+There is no login: the panel opens straight to the console at `/`.
 
 ## Structure
 
@@ -52,11 +50,11 @@ src/
   api/         seam to the data source
     types.ts        the XScienceApi contract
     localApi.ts     [PROTOTYPE] calculation in the browser + localStorage
-    httpApi.ts      the Flask API (§18): /api/auth/*, /api/analyses, history polling
+    httpApi.ts      the Flask API (§18): /api/analyses, history polling
     index.ts        implementation selection via VITE_API
   state/       store.tsx (§5.3) and derived form/result hooks
   components/  header, footer, ship diagram, modal window, primitives
-  screens/     Login + Console (7 tabs)
+  screens/     Console (7 tabs)
   styles/      tokens.css (§21.3), base.css, app.css
 scripts/       smoke.tsx — renders every screen; e2e.ts — runs httpApi
 ```
@@ -97,7 +95,6 @@ What's fetched from the server, when one is present:
 | "Models", photos | `POST /api/photos`, `PATCH /api/photos/{id}`, `POST /api/photos/{id}/recognize` |
 | "Data" | `GET /api/dataset` |
 | Alert window, "Acknowledged" | `POST /api/analyses/{id}/ack` |
-| Entering `/console` | `GET /api/me` — without a session, redirects to `/login` (§6.5) |
 
 The `models`, `dataset`, `photos`, and `sensors` sections of the contract are
 **optional**: `localApi` has none of them (all simulation generation is
@@ -114,8 +111,7 @@ computed by the §14 rules.
 
 What remains a mock-up (§22): report transmission to Earth (queue → "sent"
 after 2.5 s, though the status is now stored in the DB), and time without a
-date. In `VITE_API=local` mode, authorization also remains a mock-up
-(session in `localStorage`, key `xsci.session.v1`), as does history storage.
+date. In `VITE_API=local` mode, history is kept in `localStorage` only.
 
 ## Prototype fixes per the specification
 

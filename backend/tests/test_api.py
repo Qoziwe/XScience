@@ -1,4 +1,4 @@
-"""Endpoints §18: authorization, analyses, sectors, reports, idempotency."""
+"""Endpoints §18: analyses, sectors, reports, idempotency."""
 from __future__ import annotations
 
 import json
@@ -7,12 +7,7 @@ import tempfile
 import unittest
 
 from app import create_app
-from app.db import connect
-from app.domain.format import iso, utc_now
 from app.services import reports as reports_svc
-from app.services.security import hash_password, new_id, new_totp_secret
-
-LOGIN, PASSWORD, CODE = 'tester', 'test-password', '123456'
 
 INPUT_A = {  # §23, example A → verdict medium
     'sector': 'l1', 'material_type': 'paper', 'material_description': '',
@@ -33,107 +28,19 @@ class ApiCase(unittest.TestCase):
         self.app = create_app({
             'DB_PATH': self.db_path,
             'REPORT_WORKER': False,
-            'DEMO_CODE': CODE,
-            'LOGIN_MIN_RESPONSE_S': 0,
             'REPORT_SEND_DELAY_S': 0,
         })
-        con = connect(self.db_path)
-        con.execute('INSERT INTO users (id, login, password_hash, totp_secret, role, '
-                    'is_active, created_at) VALUES (?,?,?,?,?,1,?)',
-                    (new_id('u'), LOGIN, hash_password(PASSWORD), new_totp_secret(),
-                     'operator', iso(utc_now())))
-        con.close()
         self.client = self.app.test_client()
 
     def tearDown(self) -> None:
         os.unlink(self.db_path)
 
     # --- helpers -----------------------------------------------------------
-    def csrf(self) -> str:
-        return self.client.get_cookie(self.app.config['CSRF_COOKIE']).value
-
-    def auth_headers(self) -> dict[str, str]:
-        return {'X-CSRF-Token': self.csrf()}
-
-    def sign_in(self) -> None:
-        r = self.client.post('/api/auth/login', json={'login': LOGIN, 'password': PASSWORD})
-        self.assertEqual(r.status_code, 200)
-        self.assertEqual(r.get_json(), {'stage': 'code_required'})
-        r = self.client.post('/api/auth/code', json={'code': CODE}, headers=self.auth_headers())
-        self.assertEqual(r.status_code, 200)
-
     def create(self, body: dict, **kwargs):
-        headers = {**self.auth_headers(), **kwargs.pop('headers', {})}
-        return self.client.post('/api/analyses', json=body, headers=headers, **kwargs)
-
-
-class TestAuth(ApiCase):
-    def test_two_step_login_and_me(self):
-        self.sign_in()
-        r = self.client.get('/api/me')
-        self.assertEqual(r.status_code, 200)
-        body = r.get_json()
-        self.assertEqual(body['login'], LOGIN)
-        self.assertEqual(body['role'], 'operator')
-        self.assertIn('expires_at', body)
-
-    def test_endpoints_require_session(self):
-        for path in ('/api/me', '/api/analyses', '/api/sectors', '/api/ship/status',
-                     '/api/reports', '/api/analyses.csv'):
-            with self.subTest(path=path):
-                self.assertEqual(self.client.get(path).status_code, 401)
-
-    def test_bad_password_is_401_with_attempts_left(self):
-        r = self.client.post('/api/auth/login', json={'login': LOGIN, 'password': 'wrong'})
-        self.assertEqual(r.status_code, 401)
-        self.assertEqual(r.get_json()['error'], 'invalid_credentials')
-        self.assertEqual(r.get_json()['attempts_left'], 4)
-
-    def test_unknown_login_answers_the_same(self):
-        r = self.client.post('/api/auth/login', json={'login': 'nobody', 'password': 'wrong'})
-        self.assertEqual(r.status_code, 401)
-        self.assertEqual(r.get_json()['error'], 'invalid_credentials')
-
-    def test_password_lock_after_five_failures(self):
-        for _ in range(5):
-            self.client.post('/api/auth/login', json={'login': LOGIN, 'password': 'wrong'})
-        r = self.client.post('/api/auth/login', json={'login': LOGIN, 'password': PASSWORD})
-        self.assertEqual(r.status_code, 429)
-        self.assertEqual(r.get_json()['error'], 'locked')
-        self.assertGreater(r.get_json()['retry_after_s'], 0)
-
-    def test_code_attempts_then_restart_login(self):
-        self.client.post('/api/auth/login', json={'login': LOGIN, 'password': PASSWORD})
-        for left in (2, 1):
-            r = self.client.post('/api/auth/code', json={'code': '000000'},
-                                 headers=self.auth_headers())
-            self.assertEqual(r.status_code, 401)
-            self.assertEqual(r.get_json(), {'error': 'invalid_code', 'attempts_left': left})
-        r = self.client.post('/api/auth/code', json={'code': '000000'},
-                             headers=self.auth_headers())
-        self.assertEqual(r.get_json()['error'], 'restart_login')
-        # The step-1 session is invalidated — the correct code is no longer accepted.
-        r = self.client.post('/api/auth/code', json={'code': CODE}, headers=self.auth_headers())
-        self.assertEqual(r.get_json()['error'], 'restart_login')
-
-    def test_logout_drops_session(self):
-        self.sign_in()
-        self.assertEqual(self.client.post('/api/auth/logout',
-                                          headers=self.auth_headers()).status_code, 204)
-        self.assertEqual(self.client.get('/api/me').status_code, 401)
-
-    def test_csrf_required_for_mutations(self):
-        self.sign_in()
-        r = self.client.post('/api/analyses', json=INPUT_A)
-        self.assertEqual(r.status_code, 403)
-        self.assertEqual(r.get_json()['error'], 'csrf_failed')
+        return self.client.post('/api/analyses', json=body, **kwargs)
 
 
 class TestAnalyses(ApiCase):
-    def setUp(self) -> None:
-        super().setUp()
-        self.sign_in()
-
     def test_create_computes_everything_server_side(self):
         r = self.create(INPUT_A)
         self.assertEqual(r.status_code, 201)
@@ -184,8 +91,7 @@ class TestAnalyses(ApiCase):
         self.assertEqual(r.status_code, 201)
 
     def test_bad_json_is_400(self):
-        r = self.client.post('/api/analyses', data='{', content_type='application/json',
-                             headers=self.auth_headers())
+        r = self.client.post('/api/analyses', data='{', content_type='application/json')
         self.assertEqual(r.status_code, 400)
 
     def test_idempotency_key_prevents_duplicates(self):
@@ -232,11 +138,10 @@ class TestAnalyses(ApiCase):
 
     def test_ack(self):
         self.create(INPUT_A)
-        r = self.client.post('/api/analyses/1/ack', headers=self.auth_headers())
+        r = self.client.post('/api/analyses/1/ack')
         self.assertEqual(r.status_code, 200)
         self.assertFalse(r.get_json()['already'])
-        self.assertTrue(self.client.post('/api/analyses/1/ack',
-                                         headers=self.auth_headers()).get_json()['already'])
+        self.assertTrue(self.client.post('/api/analyses/1/ack').get_json()['already'])
         self.assertIsNotNone(self.client.get('/api/analyses/1').get_json()['acked_at'])
 
     def test_record_is_immutable_after_create(self):
@@ -248,10 +153,6 @@ class TestAnalyses(ApiCase):
 
 
 class TestSectorsAndShip(ApiCase):
-    def setUp(self) -> None:
-        super().setUp()
-        self.sign_in()
-
     def test_sectors_geometry(self):
         secs = self.client.get('/api/sectors').get_json()
         self.assertEqual(len(secs), 7)
@@ -291,7 +192,6 @@ class TestSectorsAndShip(ApiCase):
 class TestReports(ApiCase):
     def setUp(self) -> None:
         super().setUp()
-        self.sign_in()
         self.create(INPUT_A)
 
     def test_list_and_document(self):
@@ -321,11 +221,7 @@ class TestReports(ApiCase):
         self.assertEqual(lst[0]['status'], 'sent')
         self.assertIsNotNone(lst[0]['sent_at'])
         # A new app instance on the same DB sees the report as sent.
-        other = create_app({'DB_PATH': self.db_path, 'REPORT_WORKER': False,
-                            'DEMO_CODE': CODE, 'LOGIN_MIN_RESPONSE_S': 0}).test_client()
-        other.post('/api/auth/login', json={'login': LOGIN, 'password': PASSWORD})
-        csrf = other.get_cookie('xsci_csrf').value
-        other.post('/api/auth/code', json={'code': CODE}, headers={'X-CSRF-Token': csrf})
+        other = create_app({'DB_PATH': self.db_path, 'REPORT_WORKER': False}).test_client()
         rec = other.get('/api/analyses/1').get_json()
         self.assertIsNotNone(rec['sent'])
         self.assertEqual(rec['report_status'], 'sent')
@@ -340,10 +236,6 @@ class TestReports(ApiCase):
 
 class TestReportConclusion(ApiCase):
     """§11.2 — "Conclusion" and "Limitations" in the report document."""
-
-    def setUp(self) -> None:
-        super().setUp()
-        self.sign_in()
 
     def test_verdict_not_duplicated_and_limits_name_text_source(self):
         self.create(INPUT_A)

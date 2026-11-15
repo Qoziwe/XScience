@@ -45,10 +45,10 @@ jobs:
           VITE_API_BASE_URL: https://xscienceapi.andatra.space/api
         run: npm run build
 
-      - name: SPA fallback for direct links to /console and /login
+      - name: SPA fallback for direct links to any route
         # GitHub Pages is static hosting with no server-side rerouting: without
-        # this, refreshing the page on /console gives a 404. 404.html is an
-        # exact copy of index.html; React Router resolves the path client-side.
+        # this, refreshing the page on a non-root path gives a 404. 404.html is
+        # an exact copy of index.html; React Router resolves the path client-side.
         run: cp frontend/dist/index.html frontend/dist/404.html
 
       - uses: actions/upload-pages-artifact@v3

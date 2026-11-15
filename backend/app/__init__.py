@@ -44,8 +44,7 @@ def create_app(overrides: dict[str, Any] | None = None) -> Flask:
         @app.after_request
         def cors(resp):
             resp.headers['Access-Control-Allow-Origin'] = origin
-            resp.headers['Access-Control-Allow-Credentials'] = 'true'
-            resp.headers['Access-Control-Allow-Headers'] = 'Content-Type, X-CSRF-Token, Idempotency-Key'
+            resp.headers['Access-Control-Allow-Headers'] = 'Content-Type, Idempotency-Key'
             resp.headers['Access-Control-Allow-Methods'] = 'GET, POST, PATCH, DELETE, OPTIONS'
             resp.headers['Vary'] = 'Origin'
             return resp

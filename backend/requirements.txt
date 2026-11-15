@@ -1,8 +1,4 @@
 # XScience backend. Python 3.11+.
 Flask>=3.0
 
-# Recommended per §6.5 (argon2id for passwords). Without this package, scrypt
-# from the standard library is used instead — also without reversible encryption.
-argon2-cffi>=23.1
-
-# TOTP (RFC 6238), SQLite, and everything else — standard library, no dependencies.
+# SQLite and everything else — standard library, no dependencies.

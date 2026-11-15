@@ -8,7 +8,6 @@ import { StaticRouter } from 'react-router';
 import type { ReactElement } from 'react';
 import { StoreProvider, type State, type Tab } from '@/state/store';
 import { ConsolePage } from '@/screens/Console/ConsolePage';
-import { LoginPage } from '@/screens/Login/LoginPage';
 import { confidenceOf, score, verdictOfScores } from '@/domain/scoring';
 import { toForm } from '@/domain/validation';
 import type { Analysis, AnalysisParams } from '@/domain/types';
@@ -51,15 +50,13 @@ const withData: Partial<State> = {
 let fails = 0;
 const run = (label: string, el: ReactElement) => {
   try {
-    const html = renderToString(<StaticRouter location="/console">{el}</StaticRouter>);
+    const html = renderToString(<StaticRouter location="/">{el}</StaticRouter>);
     console.log(`OK   ${label}  (${html.length} characters)`);
   } catch (e) {
     fails++;
     console.log(`FAIL ${label}: ${(e as Error).message}`);
   }
 };
-
-run('login', <LoginPage />);
 
 for (const tab of TABS) {
   for (const seeded of [false, true]) {

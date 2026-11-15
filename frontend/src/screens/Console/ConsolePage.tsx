@@ -19,7 +19,7 @@ export function ConsolePage() {
 
   return (
     <div className="app">
-      <Header user="demo" />
+      <Header />
       {state.tab === 'overview' ? <OverviewTab /> : null}
       {state.tab === 'map' ? <MapTab /> : null}
       {state.tab === 'analysis' ? <AnalysisTab /> : null}

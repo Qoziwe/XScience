@@ -16,28 +16,6 @@ export interface CreateAnalysisResult {
   alertLevel: Level | null;
 }
 
-export interface LoginResult {
-  stage: 'code_required';
-}
-
-export interface SessionUser {
-  login: string;
-  role: string;
-  /** HH:MM — the time until which the session is active. */
-  expiresAt: string;
-}
-
-export interface AuthApi {
-  /** POST /api/auth/login */
-  login(login: string, password: string): Promise<LoginResult>;
-  /** POST /api/auth/code */
-  verifyCode(code: string): Promise<SessionUser>;
-  /** POST /api/auth/logout */
-  logout(): Promise<void>;
-  /** GET /api/me — null if there is no session (§6.5). This is what guards the /console route. */
-  me(): Promise<SessionUser | null>;
-}
-
 export interface AnalysesApi {
   /** GET /api/analyses — in ascending id order. */
   list(): Promise<Analysis[]>;
@@ -184,7 +162,6 @@ export interface Photo {
   analysisId: number | null;
   annotation: PhotoAnnotation;
   recognition: Recognition | null;
-  /** Path to the photo itself; only served with a valid session. */
   fileUrl: string;
 }
 
@@ -217,7 +194,6 @@ export interface SensorsApi {
 }
 
 export interface XScienceApi {
-  auth: AuthApi;
   analyses: AnalysesApi;
   /**
    * Sections the prototype doesn't have: localApi doesn't implement them, and
@@ -238,17 +214,6 @@ export class ValidationError extends Error {
   ) {
     super(message);
     this.name = 'ValidationError';
-  }
-}
-
-export class AuthError extends Error {
-  constructor(
-    public code: 'invalid_credentials' | 'invalid_code' | 'restart_login' | 'locked',
-    public attemptsLeft?: number,
-    public retryAfterS?: number,
-  ) {
-    super(code);
-    this.name = 'AuthError';
   }
 }
 

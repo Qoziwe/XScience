@@ -7,19 +7,9 @@ import { MAT, SEC } from '@/domain/reference';
 import { now } from '@/domain/format';
 import { confidenceOf, score, verdictOfScores } from '@/domain/scoring';
 import type { Analysis, AnalysisParams, SectorId } from '@/domain/types';
-import type {
-  AnalysesApi,
-  AuthApi,
-  CreateAnalysisResult,
-  NewAnalysis,
-  SessionUser,
-  XScienceApi,
-} from './types';
-import { AuthError } from './types';
+import type { AnalysesApi, CreateAnalysisResult, NewAnalysis, XScienceApi } from './types';
 
 const KEY = 'xsci.hist.v3';
-/** Prototype session: survives a reload so /console doesn't bounce back to login. */
-const SESSION_KEY = 'xsci.session.v1';
 /** §9.5 — simulated calculation time. [BACKEND] not needed. */
 const CALC_DELAY_MS = 650;
 /** §11.4 — simulated transmission of the report to Earth. */
@@ -129,79 +119,11 @@ class LocalAnalyses implements AnalysesApi {
   }
 }
 
-/** §6 [PROTOTYPE] — demo account hardcoded in client code. [BACKEND] see §6.5. */
-const DEMO = { login: 'demo', password: 'xscience-demo', code: '123456' };
-
-class LocalAuth implements AuthApi {
-  private stage: 'none' | 'password_ok' = 'none';
-
-  async login(login: string, password: string) {
-    if (login.trim() === DEMO.login && password === DEMO.password) {
-      this.stage = 'password_ok';
-      return { stage: 'code_required' as const };
-    }
-    throw new AuthError('invalid_credentials');
-  }
-
-  async verifyCode(code: string) {
-    if (this.stage !== 'password_ok') throw new AuthError('restart_login');
-    if (code !== DEMO.code) throw new AuthError('invalid_code');
-    const d = new Date(Date.now() + 8 * 3600e3);
-    const user: SessionUser = {
-      login: DEMO.login,
-      role: 'operator',
-      expiresAt: d.toTimeString().slice(0, 5),
-    };
-    writeSession({ user, until: d.getTime() });
-    return user;
-  }
-
-  async logout() {
-    this.stage = 'none';
-    writeSession(null);
-  }
-
-  /** Prototype session from localStorage; null once it has expired. */
-  async me(): Promise<SessionUser | null> {
-    const s = readSession();
-    if (!s) return null;
-    if (Date.now() > s.until) {
-      writeSession(null);
-      return null;
-    }
-    return s.user;
-  }
-}
-
-interface StoredSession {
-  user: SessionUser;
-  until: number;
-}
-
-function readSession(): StoredSession | null {
-  try {
-    const raw = JSON.parse(localStorage.getItem(SESSION_KEY) ?? 'null');
-    return raw && raw.user && typeof raw.until === 'number' ? (raw as StoredSession) : null;
-  } catch {
-    return null;
-  }
-}
-
-function writeSession(s: StoredSession | null): void {
-  try {
-    if (s) localStorage.setItem(SESSION_KEY, JSON.stringify(s));
-    else localStorage.removeItem(SESSION_KEY);
-  } catch {
-    /* storage unavailable — session lives only in the page's memory */
-  }
-}
-
 /**
  * The prototype does not implement the models / dataset / photos sections: it has no server.
  * Screens account for this and work off local constants §19/§17 and an
  * in-memory page snapshot (§17.3).
  */
 export const localApi: XScienceApi = {
-  auth: new LocalAuth(),
   analyses: new LocalAnalyses(),
 };

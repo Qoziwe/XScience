@@ -37,7 +37,6 @@ class PhotoCase(ApiCase):
         import tempfile
         self.photo_dir = tempfile.mkdtemp()
         self.app.config['PHOTO_DIR'] = self.photo_dir
-        self.sign_in()
 
     def tearDown(self) -> None:
         import shutil
@@ -48,8 +47,7 @@ class PhotoCase(ApiCase):
         payload = {'file': (io.BytesIO(data if data is not None else png_bytes()), name),
                    **{k: str(v) for k, v in form.items()}}
         return self.client.post('/api/photos', data=payload,
-                                content_type='multipart/form-data',
-                                headers=self.auth_headers())
+                                content_type='multipart/form-data')
 
 
 class TestUpload(PhotoCase):
@@ -70,11 +68,6 @@ class TestUpload(PhotoCase):
         self.assertEqual(raw.status_code, 200)
         self.assertEqual(raw.mimetype, 'image/png')
         raw.close()  # send_file keeps the file open until the response is closed
-
-    def test_file_requires_session(self):
-        body = self.upload().get_json()
-        other = self.app.test_client()
-        self.assertEqual(other.get(body['file_url']).status_code, 401)
 
     def test_rejects_non_image_by_content(self):
         r = self.upload(data=b'%PDF-1.7 not an image', name='doc.png')
@@ -97,8 +90,7 @@ class TestUpload(PhotoCase):
 
     def test_delete_removes_file(self):
         body = self.upload().get_json()
-        self.assertEqual(self.client.delete(f'/api/photos/{body["id"]}',
-                                            headers=self.auth_headers()).status_code, 204)
+        self.assertEqual(self.client.delete(f'/api/photos/{body["id"]}').status_code, 204)
         self.assertEqual(self.client.get(f'/api/photos/{body["id"]}').status_code, 404)
         self.assertEqual(self.client.get(body['file_url']).status_code, 404)
 
@@ -107,17 +99,14 @@ class TestAnnotation(PhotoCase):
     def test_operator_annotation_vocabulary(self):
         pid = self.upload().get_json()['id']
         r = self.client.patch(f'/api/photos/{pid}',
-                              json={'size': 'medium', 'shape': 'elongated'},
-                              headers=self.auth_headers())
+                              json={'size': 'medium', 'shape': 'elongated'})
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.get_json()['annotation'],
                          {'size': 'medium', 'shape': 'elongated'})
         # Setting an empty value again clears the choice (§17.3).
-        r = self.client.patch(f'/api/photos/{pid}', json={'shape': ''},
-                              headers=self.auth_headers())
+        r = self.client.patch(f'/api/photos/{pid}', json={'shape': ''})
         self.assertEqual(r.get_json()['annotation'], {'size': 'medium'})
-        r = self.client.patch(f'/api/photos/{pid}', json={'brightness': 'blinding'},
-                              headers=self.auth_headers())
+        r = self.client.patch(f'/api/photos/{pid}', json={'brightness': 'blinding'})
         self.assertEqual(r.status_code, 422)
 
 
@@ -136,12 +125,10 @@ class TestRecognition(PhotoCase):
 
     def test_recognize_fills_features_and_keeps_operator_annotation(self):
         pid = self.upload().get_json()['id']
-        self.client.patch(f'/api/photos/{pid}', json={'size': 'small'},
-                          headers=self.auth_headers())
+        self.client.patch(f'/api/photos/{pid}', json={'size': 'small'})
         self.llm.reply = GOOD_VISION
         with mock.patch.dict('os.environ', self.env(), clear=True):
-            r = self.client.post(f'/api/photos/{pid}/recognize',
-                                 headers=self.auth_headers())
+            r = self.client.post(f'/api/photos/{pid}/recognize')
         self.assertEqual(r.status_code, 200)
         body = r.get_json()
         self.assertEqual(body['recognition']['size'], 'medium')
@@ -156,8 +143,7 @@ class TestRecognition(PhotoCase):
     def test_409_when_vision_not_configured(self):
         pid = self.upload().get_json()['id']
         with mock.patch.dict('os.environ', {}, clear=True):
-            r = self.client.post(f'/api/photos/{pid}/recognize',
-                                 headers=self.auth_headers())
+            r = self.client.post(f'/api/photos/{pid}/recognize')
         self.assertEqual(r.status_code, 409)
         self.assertEqual(r.get_json()['error'], 'vision_not_configured')
 
@@ -165,8 +151,7 @@ class TestRecognition(PhotoCase):
         pid = self.upload().get_json()['id']
         self.llm.status, self.llm.raw = 500, 'boom'
         with mock.patch.dict('os.environ', self.env(), clear=True):
-            r = self.client.post(f'/api/photos/{pid}/recognize',
-                                 headers=self.auth_headers())
+            r = self.client.post(f'/api/photos/{pid}/recognize')
         self.assertEqual(r.status_code, 502)
         self.assertEqual(r.get_json()['error'], 'vision_failed')
 
@@ -176,8 +161,7 @@ class TestRecognition(PhotoCase):
                                      'shape': None, 'note': 'No flame is visible.',
                                      'flame_visible': False}, ensure_ascii=False)
         with mock.patch.dict('os.environ', self.env(), clear=True):
-            body = self.client.post(f'/api/photos/{pid}/recognize',
-                                    headers=self.auth_headers()).get_json()
+            body = self.client.post(f'/api/photos/{pid}/recognize').get_json()
         rec = body['recognition']
         self.assertFalse(rec['flame_visible'])
         self.assertIsNone(rec['size'])

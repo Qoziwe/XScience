@@ -48,10 +48,6 @@ class TestD2(unittest.TestCase):
 
 
 class TestModelsApi(ApiCase):
-    def setUp(self) -> None:
-        super().setUp()
-        self.sign_in()
-
     def test_readiness_reports_four_checks(self):
         state = self.client.get('/api/models/ml/readiness').get_json()
         keys = [c['key'] for c in state['checks']]
@@ -67,13 +63,12 @@ class TestModelsApi(ApiCase):
         r = self.client.post('/api/models/ml/predict', json={
             'material_type': 'paper', 'thickness_mm': 0.5, 'oxygen_percent': 21,
             'air_flow_cm_s': 5, 'gravity': 'microgravity', 'temperature_C': 25,
-            'time_s': 30, 'material_description': ''}, headers=self.auth_headers())
+            'time_s': 30, 'material_description': ''})
         self.assertEqual(r.status_code, 409)
         self.assertEqual(r.get_json()['error'], 'model_not_trained')
 
     def test_train_then_predict(self):
-        r = self.client.post('/api/models/ml/train', json={'epochs': 120},
-                             headers=self.auth_headers())
+        r = self.client.post('/api/models/ml/train', json={'epochs': 120})
         self.assertEqual(r.status_code, 201)
         body = r.get_json()
         self.assertEqual(body['version'], 'logreg-v1')
@@ -89,7 +84,7 @@ class TestModelsApi(ApiCase):
         r = self.client.post('/api/models/ml/predict', json={
             'material_type': 'paper', 'thickness_mm': 0.1, 'oxygen_percent': 30,
             'air_flow_cm_s': 20, 'gravity': 'microgravity', 'temperature_C': 250,
-            'time_s': 300, 'material_description': ''}, headers=self.auth_headers())
+            'time_s': 300, 'material_description': ''})
         self.assertEqual(r.status_code, 200)
         pred = r.get_json()['predictions']
         self.assertEqual(pred['risk_level']['label'], 'high')
@@ -97,19 +92,16 @@ class TestModelsApi(ApiCase):
                                places=3)
 
     def test_predict_validates_input(self):
-        r = self.client.post('/api/models/ml/predict', json={'material_type': 'paper'},
-                             headers=self.auth_headers())
+        r = self.client.post('/api/models/ml/predict', json={'material_type': 'paper'})
         self.assertEqual(r.status_code, 422)
         self.assertIn('oxygen_percent', r.get_json()['fields'])
         self.assertNotIn('sector', r.get_json()['fields'])
 
     def test_d2_endpoint(self):
-        r = self.client.post('/api/models/d2', json={'d0_mm': 2, 'k_mm2_s': 0.5},
-                             headers=self.auth_headers())
+        r = self.client.post('/api/models/d2', json={'d0_mm': 2, 'k_mm2_s': 0.5})
         self.assertEqual(r.status_code, 200)
         self.assertEqual(r.get_json()['t_burn_s'], 8.0)
-        r = self.client.post('/api/models/d2', json={'d0_mm': 99},
-                             headers=self.auth_headers())
+        r = self.client.post('/api/models/d2', json={'d0_mm': 99})
         self.assertEqual(r.status_code, 422)
 
     def test_dataset_endpoint(self):
@@ -120,10 +112,3 @@ class TestModelsApi(ApiCase):
         self.assertEqual([r['n'] for r in only], [13])
         v1 = self.client.get('/api/dataset?dataset=v1').get_json()['rows']
         self.assertEqual(len(v1), 30)
-
-    def test_models_require_session(self):
-        for path in ('/api/dataset', '/api/models/ml/readiness'):
-            self.assertEqual(self.client_without_session().get(path).status_code, 401)
-
-    def client_without_session(self):
-        return self.app.test_client()

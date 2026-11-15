@@ -6,7 +6,6 @@ from flask import Blueprint, jsonify
 from ..domain.reference import SECTORS
 from ..domain.ship import ship_status
 from ..services import analyses as svc
-from ..services import auth
 
 bp = Blueprint('sectors', __name__, url_prefix='/api')
 
@@ -14,7 +13,6 @@ bp = Blueprint('sectors', __name__, url_prefix='/api')
 @bp.get('/sectors')
 def sectors():
     """§3.4 — placeholder layout (16.14), geometry matches the client diagram."""
-    auth.require_auth()
     return jsonify([
         {'id': s['id'], 'code': s['code'], 'name': s['name'], 'desc': s['desc'],
          'geometry': {'x': s['x'], 'y': s['y'], 'w': s['w'], 'h': s['h']}}
@@ -30,5 +28,4 @@ def ship():
     a sector's latest analysis is used with no time limit, as in the prototype.
     Once a policy exists, add a filter on created_at.
     """
-    auth.require_auth()
     return jsonify(ship_status(svc.all_ascending()))

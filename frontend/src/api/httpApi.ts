@@ -8,7 +8,6 @@ import { SEC } from '@/domain/reference';
 import type { Analysis, AnalysisParams, Level, SectorId } from '@/domain/types';
 import type {
   AnalysesApi,
-  AuthApi,
   CreateAnalysisResult,
   DatasetApi,
   DatasetRow,
@@ -22,12 +21,11 @@ import type {
   Readiness,
   SensorsApi,
   SensorsStatus,
-  SessionUser,
   TrainResult,
   D2Result,
   XScienceApi,
 } from './types';
-import { AuthError, NotConfiguredError, ValidationError } from './types';
+import { NotConfiguredError, ValidationError } from './types';
 
 // Empty (dev) — Vite proxies /api to the backend (vite.config.ts). In production,
 // when the frontend and backend are on different hosts (GitHub Pages + its own server),
@@ -35,7 +33,6 @@ import { AuthError, NotConfiguredError, ValidationError } from './types';
 const BASE = import.meta.env?.VITE_API_BASE_URL || '/api';
 /** History polling period — §11.4 (transmission status change) and other users' analyses. */
 const POLL_MS = 1500;
-const CSRF_COOKIE = 'xsci_csrf';
 
 /** §4.2 — prototype field names → API field names (§4.1). */
 interface AnalysisInputBody {
@@ -80,17 +77,10 @@ const FIELD_OF: Record<string, string> = {
   time_s: 'time',
 };
 
-const csrfToken = (): string => {
-  const m = document.cookie.match(new RegExp(`(?:^|; )${CSRF_COOKIE}=([^;]*)`));
-  return m ? decodeURIComponent(m[1]) : '';
-};
-
 interface ApiErrorBody {
   error?: string;
   detail?: string;
   fields?: Record<string, string>;
-  attempts_left?: number;
-  retry_after_s?: number;
   reasons?: string[];
 }
 
@@ -101,17 +91,11 @@ function raise(status: number, body: ApiErrorBody): never {
     for (const [k, v] of Object.entries(body.fields)) fields[FIELD_OF[k] ?? k] = v;
     throw new ValidationError(fields);
   }
-  const known = ['invalid_credentials', 'invalid_code', 'restart_login', 'locked'] as const;
-  if ((status === 401 || status === 429) && (known as readonly string[]).includes(code)) {
-    throw new AuthError(code as (typeof known)[number], body.attempts_left, body.retry_after_s);
-  }
   // 409/502 — the capability exists in the API but is not configured or not ready
   // on the server (model not trained, recognition not wired up, provider unavailable).
   if (status === 409 || status === 502) {
     throw new NotConfiguredError(code, body.detail ?? body.reasons?.join('; '));
   }
-  // 401 without a login-step code — the session expired or doesn't exist (§6.5): this is
-  // not a login-form error, screens handle it as a plain request failure.
   throw new Error(`${status} ${code}`);
 }
 
@@ -119,10 +103,8 @@ async function request<T>(path: string, init: RequestInit = {}): Promise<T> {
   const method = init.method ?? 'GET';
   const headers = new Headers(init.headers);
   if (init.body !== undefined) headers.set('Content-Type', 'application/json');
-  // §6.5 — CSRF token on every mutating request.
-  if (method !== 'GET') headers.set('X-CSRF-Token', csrfToken());
 
-  const res = await fetch(BASE + path, { ...init, method, headers, credentials: 'include' });
+  const res = await fetch(BASE + path, { ...init, method, headers });
   if (!res.ok) raise(res.status, (await res.json().catch(() => ({}))) as ApiErrorBody);
   if (res.status === 204) return undefined as T;
   return (await res.json()) as T;
@@ -229,43 +211,6 @@ const newKey = (): string =>
   typeof crypto !== 'undefined' && 'randomUUID' in crypto
     ? crypto.randomUUID()
     : `k-${Date.now()}-${Math.random().toString(16).slice(2)}`;
-
-/** ISO session expiry time → local HH:MM (§5.1). */
-const hhmm = (iso: string): string => {
-  const d = new Date(iso);
-  return Number.isNaN(d.getTime()) ? iso : d.toTimeString().slice(0, 5);
-};
-
-class HttpAuth implements AuthApi {
-  async login(login: string, password: string) {
-    return request<{ stage: 'code_required' }>('/auth/login', {
-      method: 'POST',
-      body: JSON.stringify({ login, password }),
-    });
-  }
-
-  async verifyCode(code: string): Promise<SessionUser> {
-    const body = await request<{ user: { login: string; role: string }; expires_at: string }>(
-      '/auth/code',
-      { method: 'POST', body: JSON.stringify({ code }) },
-    );
-    return { login: body.user.login, role: body.user.role, expiresAt: hhmm(body.expires_at) };
-  }
-
-  async logout(): Promise<void> {
-    await request<void>('/auth/logout', { method: 'POST' });
-  }
-
-  /** §6.5 — whether a live session exists. A 401 here isn't an error, it means "no session". */
-  async me(): Promise<SessionUser | null> {
-    try {
-      const body = await request<{ login: string; role: string; expires_at: string }>('/me');
-      return { login: body.login, role: body.role, expiresAt: hhmm(body.expires_at) };
-    } catch {
-      return null;
-    }
-  }
-}
 
 /** §17.1–17.2 — ML model and the d² law. */
 class HttpModels implements ModelsApi {
@@ -427,12 +372,7 @@ class HttpPhotos implements PhotosApi {
     form.append('file', file);
     if (analysisId != null) form.append('analysis_id', String(analysisId));
     // FormData sets its own Content-Type with a boundary — we don't override it.
-    const res = await fetch(`${BASE}/photos`, {
-      method: 'POST',
-      body: form,
-      headers: { 'X-CSRF-Token': csrfToken() },
-      credentials: 'include',
-    });
+    const res = await fetch(`${BASE}/photos`, { method: 'POST', body: form });
     if (!res.ok) raise(res.status, (await res.json().catch(() => ({}))) as ApiErrorBody);
     return toPhoto((await res.json()) as ServerPhoto);
   }
@@ -575,7 +515,6 @@ const toStatus = (s: ServerSensorsStatus): SensorsStatus => ({
 });
 
 export const httpApi: XScienceApi = {
-  auth: new HttpAuth(),
   analyses: new HttpAnalyses(),
   models: new HttpModels(),
   dataset: new HttpDataset(),

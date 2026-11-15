@@ -4,7 +4,7 @@ from __future__ import annotations
 from flask import Blueprint, jsonify, request, send_file
 
 from ..errors import bad_json, validation_error
-from ..services import auth, photos
+from ..services import photos
 
 bp = Blueprint('photos', __name__, url_prefix='/api')
 
@@ -12,8 +12,6 @@ bp = Blueprint('photos', __name__, url_prefix='/api')
 @bp.post('/photos')
 def upload():
     """multipart: file + optional analysis_id → photo metadata."""
-    row = auth.require_auth()
-    auth.require_csrf(row)
     upload_file = request.files.get('file')
     if upload_file is None:
         raise validation_error({'file': 'Select a photo'})
@@ -27,12 +25,11 @@ def upload():
             raise validation_error({'analysis_id': 'Expected an analysis ID'})
 
     return jsonify(photos.save(upload_file.filename or 'photo', upload_file.read(),
-                               analysis_id, row['user_id'])), 201
+                               analysis_id, None)), 201
 
 
 @bp.get('/photos')
 def listing():
-    auth.require_auth()
     raw = request.args.get('analysis_id')
     analysis_id = int(raw) if raw and raw.isdigit() else None
     return jsonify(photos.listing(analysis_id))
@@ -40,14 +37,12 @@ def listing():
 
 @bp.get('/photos/<photo_id>')
 def one(photo_id: str):
-    auth.require_auth()
     return jsonify(photos.get(photo_id))
 
 
 @bp.get('/photos/<photo_id>/file')
 def file(photo_id: str):
-    """The photo itself — session-only; files live outside the web root."""
-    auth.require_auth()
+    """The photo itself; files live outside the web root."""
     path, mime, name = photos.file_path(photo_id)
     return send_file(path, mimetype=mime, download_name=name)
 
@@ -55,8 +50,6 @@ def file(photo_id: str):
 @bp.patch('/photos/<photo_id>')
 def patch(photo_id: str):
     """Operator annotation (§17.3) and linking to an analysis."""
-    row = auth.require_auth()
-    auth.require_csrf(row)
     body = request.get_json(silent=True)
     if body is None:
         raise bad_json()
@@ -66,14 +59,10 @@ def patch(photo_id: str):
 @bp.post('/photos/<photo_id>/recognize')
 def recognize(photo_id: str):
     """Feature recognition via the vision model. 409 if not configured."""
-    row = auth.require_auth()
-    auth.require_csrf(row)
     return jsonify(photos.recognize(photo_id))
 
 
 @bp.delete('/photos/<photo_id>')
 def delete(photo_id: str):
-    row = auth.require_auth()
-    auth.require_csrf(row)
     photos.delete(photo_id)
     return '', 204

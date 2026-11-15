@@ -1,11 +1,14 @@
 # XScience — backend (Flask)
 
 The server side of the fire-hazard assessment panel. Implements the API
-from `FUNCTIONAL_SPEC.md` §18: authorization, analyses, sectors, ship
-status, reports, the AI text module, the risk ML model, the d² law, and
-flame photos. **The server performs the entire calculation** — the client
-only sends the raw input (§4.1) and receives back the finished record (§4.2)
-with scores, verdict, and texts (§18.3).
+from `FUNCTIONAL_SPEC.md` §18: analyses, sectors, ship status, reports, the
+AI text module, the risk ML model, the d² law, and flame photos. **The
+server performs the entire calculation** — the client only sends the raw
+input (§4.1) and receives back the finished record (§4.2) with scores,
+verdict, and texts (§18.3).
+
+The panel has no login — every endpoint is open, by design: it is meant to
+run as an open access point for whoever can reach it.
 
 There are two different "AI"s in the project — don't confuse them:
 
@@ -24,16 +27,15 @@ contest: it receives them already finished and only writes the text.
 ```bash
 cd backend
 python3 -m venv .venv && source .venv/bin/activate   # optional
-pip install -r requirements.txt                      # Flask (+ argon2-cffi)
+pip install -r requirements.txt                      # Flask
 cp .env.example .env                                 # and fill in secrets
-python3 seed.py                                      # demo account demo/xscience-demo
 python3 run.py                                       # http://127.0.0.1:5000
 ```
 
 Port **5000** — `frontend/vite.config.ts` already proxies to it. Next:
 
 ```bash
-cd ../frontend && npm run dev      # http://localhost:5173, login demo / xscience-demo / 123456
+cd ../frontend && npm run dev      # http://localhost:5173
 ```
 
 The client selects the API implementation via the `VITE_API` variable:
@@ -43,7 +45,7 @@ server-free prototype).
 ## Verification
 
 ```bash
-cd backend && python3 -m unittest discover -s tests -t .   # 83 tests
+cd backend && python3 -m unittest discover -s tests -t .   # 82 tests
 cd ../frontend && npm run e2e                              # real httpApi against a live server
 ```
 
@@ -63,8 +65,8 @@ unreachable.
 
 - `tests/test_scoring.py` — the §23 control examples (A–F) and the ship
   aggregation example: the same numbers as in the specification and the TS version.
-- `tests/test_api.py` — endpoints, login limits, idempotency, validation,
-  record immutability, the report document.
+- `tests/test_api.py` — endpoints, idempotency, validation, record
+  immutability, the report document.
 - `tests/test_ai.py` — provider adapters (via a local fake server, no
   network or keys needed), model-response validation, fallback to the §15 rules.
 - `tests/test_models.py` — the dataset, §17.1 checks, training and prediction,
@@ -92,8 +94,7 @@ app/
     dataset.py     §19 — dataset and cross-check against the formulas
     d2.py          §17.2 — the law d²(t) = d₀² − K·t
   services/
-    security.py    argon2id/scrypt, TOTP (RFC 6238), idempotency
-    auth.py        the two-step login, sessions, limits, attempt log
+    security.py    id generation, idempotency request-body hashing
     analyses.py    creating and reading §4.2 records
     reports.py     reports and the Earth-transmission mock-up
     ml.py          §17.1 — training and prediction (softmax regression, stdlib)
@@ -109,7 +110,6 @@ app/
   data/            dataset_extra.csv (the §19 dataset extension)
 scripts/
   gen_dataset.py   dataset-extension generator
-seed.py            account creation (no self-registration — §6.5)
 ```
 
 The calculation and text logic is a line-by-line port of
@@ -121,10 +121,6 @@ client, keeping it only for `VITE_API=local` mode).
 
 | Method and path | § | Purpose |
 | --- | --- | --- |
-| `POST /api/auth/login` | 18.1 | `{login, password}` → `{stage:"code_required"}`; 401 `invalid_credentials` + `attempts_left`; 429 `locked` + `retry_after_s` |
-| `POST /api/auth/code` | 18.1 | `{code}` → `{user:{login,role}, expires_at}`; 401 `invalid_code` / `restart_login` |
-| `POST /api/auth/logout` | 18.1 | `204`, the session is invalidated |
-| `GET /api/me` | 18.1 | `{login, role, expires_at}` |
 | `POST /api/analyses` | 18.3 | input §4.1 → `201 {analysis, report, alert_level}` |
 | `GET /api/analyses` | 18.3 | `?sector=&limit=&before_id=`, newest first |
 | `GET /api/analyses/{id}` | 18.3 | a single record |
@@ -139,7 +135,7 @@ client, keeping it only for `VITE_API=local` mode).
 | `POST /api/photos` | 18.7 | multipart `file` + optional `analysis_id` → metadata |
 | `GET /api/photos` | 18.7 | `?analysis_id=`, a list |
 | `GET /api/photos/{id}` | 18.7 | metadata for a single photo |
-| `GET /api/photos/{id}/file` | 18.7 | the photo itself (session-only) |
+| `GET /api/photos/{id}/file` | 18.7 | the photo itself |
 | `PATCH /api/photos/{id}` | 18.7 | operator annotation, linking to an analysis |
 | `POST /api/photos/{id}/recognize` | 17.3 | photo features from the vision model |
 | `DELETE /api/photos/{id}` | 18.7 | delete the photo and its file |
@@ -153,9 +149,7 @@ client, keeping it only for `VITE_API=local` mode).
 | `POST /api/sensors/toggle` | — | `{enabled}` — turns generation on/off; enabling resets `manual_override` |
 | `POST /api/sensors/override` | — | `{enabled}` — unlock manual entry while sensors are enabled |
 
-Everything except `/api/auth/*` and `/api/health` requires a session at the
-`authenticated` stage. Mutating requests require an `X-CSRF-Token` header
-matching the `xsci_csrf` cookie value (double submit). `POST /api/analyses`
+Every endpoint is open — there is no login or session. `POST /api/analyses`
 accepts an `Idempotency-Key`: a retry with the same key and body returns the
 original record (`200`); a different body returns `409`.
 
@@ -259,8 +253,7 @@ shows how many rows were excluded and why.
 `POST /api/photos` (multipart) accepts a single JPEG or PNG photo; the type
 is determined from the file content, not the header, with a size limit of
 `XSCI_PHOTO_MAX_MB` (8 MB). Files live in `XSCI_PHOTO_DIR` (`data/photos`,
-outside the web root) and are served only to an authenticated session via
-`GET /api/photos/{id}/file`.
+outside the web root) and are served via `GET /api/photos/{id}/file`.
 
 `PATCH /api/photos/{id}` — operator annotation from the §17.3 vocabulary
 (size / brightness / shape; an empty value clears the selection).
@@ -273,30 +266,16 @@ human set.
 Photo features are an observation: they are not part of the risk/extinction
 calculation and do not affect the verdict (§17.3).
 
-## Security (§6.5)
+## Security
 
-- Passwords: argon2id (`argon2-cffi`), falling back to stdlib scrypt if the
-  package is absent. No reversible encryption.
-- Second factor: TOTP, 6 digits, a ±1 step window. The secret is printed by
-  `seed.py`.
-- Password limit: 5 failures → 30 s lockout, counted by both login and IP
-  (a sliding window the length of the lockout, measured from the last failure).
-- Code limit: 3 failures → the step-1 session is invalidated.
-- The response and response time for "no such login" and "wrong password"
-  are identical: the hash is always checked, and the response never takes
-  less than `LOGIN_MIN_RESPONSE_S`.
-- Session: cookie `HttpOnly; SameSite=Strict` (+`Secure` when
-  `XSCI_ENV=production`), 8 h absolute lifetime, 15 min idle timeout.
-- Every login attempt is logged to `login_attempts`.
-- No self-registration; accounts are created by an administrator via `seed.py`.
+There is no authentication layer: the panel is meant to be reachable by
+anyone who can reach the host. Put access control (a reverse proxy, VPN, or
+network-level restriction) in front of it if that's ever a requirement.
 
 ### Before production
 
-1. `XSCI_ENV=production` — disables debug mode and the static demo code.
-2. `XSCI_SECRET_KEY` and `XSCI_COOKIE_SECURE=1`, HTTPS only.
-3. Remove the `demo` account (§6.5) and create real ones via `seed.py`.
-4. Install `argon2-cffi`.
-5. Run under a WSGI server (gunicorn/waitress) — `run.py` is for dev only.
+1. `XSCI_ENV=production` — disables debug mode.
+2. Run under a WSGI server (gunicorn/waitress) — `run.py` is for dev only.
    With multiple workers, the report-transmission background thread must
    run in exactly one process: set `XSCI_REPORT_WORKER=0` on the other
    workers and run a separate process that calls `reports.flush_queue`,
@@ -333,7 +312,6 @@ nothing while the toggle is off.
 | 16.1 — range-boundary inclusion | as in §14.1, boundaries are inclusive; reflected in "Calculation Assumptions" |
 | 16.16 — report confirmation channel | mock-up: queue → `sent` after 2.5 s, status in the DB (survives a restart, unlike the prototype) |
 | 16.19 — how long a sector analysis stays valid | unlimited: the sector's latest analysis is always used (as in the prototype); once a policy exists — filter by `created_at` in `/api/ship/status` |
-| 16.21 — roles and permissions | only `operator`; the role is stored in `users.role`, no permission checks yet |
 | 17.3 — linking a photo to an analysis | `analysis_id` is optional: supplied at upload time or later via `PATCH`; photo features are not part of the calculation |
 | 19.1 — invalid `data_source` in the dataset | v1 rows are left as-is (the "Data" tab relies on them) but excluded from training; the extension uses `simulated` |
 
@@ -345,7 +323,6 @@ nothing while the toggle is off.
   endpoint is only needed if a second client appears.
 - The client is wired up to everything listed above: the "Models" tab pulls
   checks, training, and prediction from the server, "Data" pulls the §19
-  dataset, photos go to `POST /api/photos` with a "Recognize" button,
-  "Acknowledged" calls `ack`, and the `/console` route is gated by a
-  session check. All that remains missing is what's also missing on the
-  server: §18.8 sensors.
+  dataset, photos go to `POST /api/photos` with a "Recognize" button, and
+  "Acknowledged" calls `ack`. All that remains missing is what's also
+  missing on the server: §18.8 sensors.

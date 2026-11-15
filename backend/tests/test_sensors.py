@@ -6,14 +6,10 @@ import tempfile
 import unittest
 
 from app import create_app
-from app.db import connect, query
-from app.domain.format import iso, utc_now
+from app.db import query
 from app.domain.reference import sector_adjacency
 from app.domain.scoring import score, verdict_of_scores
 from app.services import sensors as svc
-from app.services.security import hash_password, new_id, new_totp_secret
-
-LOGIN, PASSWORD, CODE = 'tester', 'test-password', '123456'
 
 
 class AdjacencyCase(unittest.TestCase):
@@ -40,29 +36,13 @@ class SensorsCase(unittest.TestCase):
         os.close(fd)
         self.app = create_app({
             'DB_PATH': self.db_path, 'REPORT_WORKER': False, 'SENSOR_WORKER': False,
-            'DEMO_CODE': CODE, 'LOGIN_MIN_RESPONSE_S': 0, 'REPORT_SEND_DELAY_S': 0,
+            'REPORT_SEND_DELAY_S': 0,
         })
-        con = connect(self.db_path)
-        con.execute('INSERT INTO users (id, login, password_hash, totp_secret, role, '
-                    'is_active, created_at) VALUES (?,?,?,?,?,1,?)',
-                    (new_id('u'), LOGIN, hash_password(PASSWORD), new_totp_secret(),
-                     'operator', iso(utc_now())))
-        con.close()
         self.client = self.app.test_client()
 
     def tearDown(self) -> None:
         svc.reset()
         os.unlink(self.db_path)
-
-    def csrf(self) -> str:
-        return self.client.get_cookie(self.app.config['CSRF_COOKIE']).value
-
-    def auth_headers(self) -> dict[str, str]:
-        return {'X-CSRF-Token': self.csrf()}
-
-    def sign_in(self) -> None:
-        self.client.post('/api/auth/login', json={'login': LOGIN, 'password': PASSWORD})
-        self.client.post('/api/auth/code', json={'code': CODE}, headers=self.auth_headers())
 
     # --- parameter generator -----------------------------------------------
 
@@ -142,32 +122,24 @@ class SensorsCase(unittest.TestCase):
 
     # --- API -------------------------------------------------------------
 
-    def test_status_requires_auth(self):
-        self.assertEqual(self.client.get('/api/sensors').status_code, 401)
-
     def test_toggle_and_override_flow(self):
-        self.sign_in()
         r = self.client.get('/api/sensors')
         self.assertEqual(r.get_json(), {'enabled': False, 'manual_override': False})
 
-        r = self.client.post('/api/sensors/toggle', json={'enabled': True},
-                              headers=self.auth_headers())
+        r = self.client.post('/api/sensors/toggle', json={'enabled': True})
         self.assertEqual(r.get_json(), {'enabled': True, 'manual_override': False})
 
         # override has no effect while sensors are disabled
         svc.set_enabled(False)
-        r = self.client.post('/api/sensors/override', json={'enabled': True},
-                              headers=self.auth_headers())
+        r = self.client.post('/api/sensors/override', json={'enabled': True})
         self.assertEqual(r.get_json()['manual_override'], False)
 
         svc.set_enabled(True)
-        r = self.client.post('/api/sensors/override', json={'enabled': True},
-                              headers=self.auth_headers())
+        r = self.client.post('/api/sensors/override', json={'enabled': True})
         self.assertEqual(r.get_json(), {'enabled': True, 'manual_override': True})
 
         # re-enabling sensors resets the override
-        r = self.client.post('/api/sensors/toggle', json={'enabled': True},
-                              headers=self.auth_headers())
+        r = self.client.post('/api/sensors/toggle', json={'enabled': True})
         self.assertEqual(r.get_json(), {'enabled': True, 'manual_override': False})
 
 

@@ -225,7 +225,6 @@ class TestAnalysisUsesAi(ProviderCase):
         self.api = ApiCase('run')
         self.api.setUp()
         self.addCleanup(self.api.tearDown)
-        self.api.sign_in()
         self.input_a = INPUT_A
 
     def env(self) -> dict[str, str]:

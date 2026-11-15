@@ -1,7 +1,6 @@
 /**
  * Runs the real httpApi.ts against a live backend (backend/run.py, port 5000).
- * Usage: npm run e2e — first start the backend and create an account:
- *   cd ../backend && python3 seed.py && python3 run.py
+ * Usage: npm run e2e — first start the backend: cd ../backend && python3 run.py
  * The database must be empty: ids 1 and 2 are checked.
  */
 import { httpApi } from '@/api/httpApi';
@@ -15,11 +14,6 @@ const ok = (label: string, cond: unknown) => {
 };
 
 async function main() {
-  await httpApi.auth.login('demo', 'xscience-demo');
-  const user = await httpApi.auth.verifyCode('123456');
-  ok(`login: ${user.login}/${user.role}, session until ${user.expiresAt}`,
-    user.login === 'demo' && /^\d\d:\d\d$/.test(user.expiresAt));
-
   const seen: Analysis[][] = [];
   const off = httpApi.analyses.subscribe((h) => seen.push(h));
 
@@ -72,21 +66,6 @@ async function main() {
     ok(`422 → ValidationError, field o2: ${v.fields?.o2}`,
       v.name === 'ValidationError' && !!v.fields?.o2);
   }
-
-  // §6.1 — a wrong password raises AuthError, login does not proceed.
-  try {
-    await httpApi.auth.login('demo', 'wrong');
-    ok('401 → AuthError', false);
-  } catch (e) {
-    const v = e as { name: string; code: string; attemptsLeft?: number };
-    ok(`401 → AuthError(${v.code}), attempts left ${v.attemptsLeft}`,
-      v.name === 'AuthError' && v.code === 'invalid_credentials');
-  }
-
-  // §6.5 — me() guards the /console route.
-  const session = await httpApi.auth.me();
-  ok(`me(): ${session?.login}/${session?.role}, until ${session?.expiresAt}`,
-    session?.login === 'demo' && /^\d\d:\d\d$/.test(session?.expiresAt ?? ''));
 
   // §10.2 — "Acknowledged" in the alert window.
   await httpApi.analyses.ack(1);
@@ -167,17 +146,6 @@ async function main() {
 
   await httpApi.photos!.remove(photo.id);
   ok('remove(): photo removed', true);
-
-  await httpApi.auth.logout();
-  try {
-    await httpApi.analyses.list();
-    ok('list is unavailable after logout', false);
-  } catch (e) {
-    ok(`list is unavailable after logout: ${(e as Error).message}`,
-      (e as Error).message === '401 unauthorized');
-  }
-  const gone = await httpApi.auth.me();
-  ok('me() after logout: null', gone === null);
 }
 
 /** A minimal valid PNG — the server checks the file signature, not the header. */
